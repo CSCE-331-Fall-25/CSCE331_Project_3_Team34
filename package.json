@@ -1,0 +1,17 @@
+{
+  "name": "project3",
+  "version": "1.0.0",
+  "description": "To run node.js with example, type node server.js and go to localhost link go into CSCE331_Project npm install and npm run dev will run the project",
+  "main": "server.js",
+  
+  "scripts": {
+    "dev": "concurrently \"npm run dev --prefix Project3_Client\" \"npm run dev --prefix Project3_Server\""
+  },
+
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
