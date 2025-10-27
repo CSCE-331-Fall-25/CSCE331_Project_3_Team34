@@ -61,9 +61,11 @@ export default function WeatherScreen() {
   };
 
   // Example in any React component
-  fetch('http://localhost:3001/api/hello')
-    .then(res => res.json())
-    .then(data => console.log(" Message from backend:", data.message));
+  useEffect(() => {
+    fetch('http://localhost:3001/api/hello')
+      .then(res => res.json())
+      .then(data => console.log(" Message from backend:", data.message));
+  }, []);
 
 
   return (
