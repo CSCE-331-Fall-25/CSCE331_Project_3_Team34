@@ -92,8 +92,6 @@ export default function WeatherScreen() {
       ) : (
         <p>Fetching location...</p>
       )}
-
-      {error && <p style={{ color: 'red' }}>{error}</p>}
       
       {weather ? (
         <div>
@@ -112,8 +110,6 @@ export default function WeatherScreen() {
                 )
             })()}
         </div>
-      ) : error ? (
-        <p>Error: {error}</p>
       ) : (
         <p>Loading weather data...</p>
       )}
