@@ -88,9 +88,9 @@ export default function WeatherScreen() {
         {location ? (
         <p></p>
       ) : error ? (
-        <p>Error: {error}</p>
+        console.log(`Error: ${error}`)
       ) : (
-        <p>Fetching location...</p>
+        console.log('Fetching location...')
       )}
       
       {weather ? (
@@ -111,7 +111,7 @@ export default function WeatherScreen() {
             })()}
         </div>
       ) : (
-        <p>Loading weather data...</p>
+        console.log('Loading weather data...')
       )}
     </div>
   );

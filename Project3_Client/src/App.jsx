@@ -13,8 +13,9 @@ import './styles/App.css'
 export default function App() {
   const location = useLocation();
   const showButtons = location.pathname === "/";
-  const [employeeId, setEmployeeId] = useState(null);
-  const [employeePassword, setEmployeePassword] = useState(null);
+  // initialize as empty strings so placeholders render correctly
+  const [employeeId, setEmployeeId] = useState('');
+  const [employeePassword, setEmployeePassword] = useState('');
   const navigate = useNavigate();
 
   function handleIdChange(event) {
@@ -55,13 +56,13 @@ export default function App() {
             <input
               type="text"
               placeholder="Employee ID"
-              value={employeeId}
+              value={employeeId ?? ''}
               onChange={handleIdChange}
             />
             <input
               type="password"
               placeholder="Password"
-              value={employeePassword}
+              value={employeePassword ?? ''}
               onChange={handlePasswordChange}
             />
             <button type="submit">Login</button>
