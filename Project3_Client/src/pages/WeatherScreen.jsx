@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
+import { Routes, Route } from 'react-router-dom';
+import '../styles/WeatherScreen.css'
+import Kiosk from './Kiosk.jsx';
 
 export default function WeatherScreen() {
   const [location, setLocation] = useState(null);
   const [weather, setWeather] = useState(null);
   const [error, setError] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [clicked, setClicked] = useState(false);
 
   useEffect(() => {
     if (navigator.geolocation) {
@@ -32,7 +35,6 @@ export default function WeatherScreen() {
     try {
       setError(null);
       setWeather(null);
-      setLoading(true);
       const response = await fetch(`https://api.weather.gov/points/${location.latitude},${location.longitude}`);
       if (!response.ok) {
         throw new Error('Weather API request failed');
@@ -55,46 +57,69 @@ export default function WeatherScreen() {
       });
     } catch (err) {
       setError(err.message);
-    } finally {
-      setLoading(false);
     }
   };
 
-  // Example in any React component
+  // Helper: map a shortForecast string to a local fallback icon (emoji or asset path)
+  const mapShortForecastToFallback = (shortForecast) => {
+    if (!shortForecast) return null;
+    const s = shortForecast.toLowerCase();
+    if (s.includes('sun') || s.includes('clear')) return new URL('../assets/weather_icons/day.svg', import.meta.url).href;
+    if (s.includes('partly') && s.includes('cloud')) return new URL('../assets/weather_icons/cloudy-day-1.svg', import.meta.url).href;
+    if (s.includes('mostly') && s.includes('cloud')) return new URL('../assets/weather_icons/cloudy.svg', import.meta.url).href;
+    if (s.includes('cloud') || s.includes('overcast')) return new URL('../assets/weather_icons/cloudy.svg', import.meta.url).href;
+    if (s.includes('rain') || s.includes('showers') || s.includes('sprinkles')) return new URL('../assets/weather_icons/rainy-6.svg', import.meta.url).href;
+    if (s.includes('thunder') || s.includes('t-storm')) return new URL('../assets/weather_icons/thunder.svg', import.meta.url).href;
+    if (s.includes('snow') || s.includes('sleet') || s.includes('flurr')) return new URL('../assets/weather_icons/snowy-6.svg', import.meta.url).href;
+    if (s.includes('fog') || s.includes('haze') || s.includes('mist')) return new URL('../assets/weather_icons/cloudy.svg', import.meta.url).href;
+    if (s.includes('wind') || s.includes('breezy')) return new URL('../assets/weather_icons/cloudy-day-1.svg', import.meta.url).href;
+    return new URL('../assets/weather_icons/cloudy.svg', import.meta.url).href;
+  }
+
   useEffect(() => {
-    fetch('http://localhost:3001/api/hello')
-      .then(res => res.json())
-      .then(data => console.log(" Message from backend:", data.message));
-  }, []);
+    fetchWeather();
+  }, [location]);
 
 
   return (
-    <div>
+    <div className="weatherScreen" onClick={() => setClicked(true)}>
+        {clicked && 
+          <Routes>
+            <Route path="/Kiosk" element={<Kiosk />} />
+          </Routes>
+        }
+
         {location ? (
-        <p>
-          Latitude: {location.latitude}, Longitude: {location.longitude}
-        </p>
+        <p></p>
       ) : error ? (
         <p>Error: {error}</p>
       ) : (
         <p>Fetching location...</p>
       )}
 
-      <button onClick={fetchWeather} disabled={!location || loading}>
-        {loading ? 'Loading...' : 'Fetch Weather'}
-      </button>
-
       {error && <p style={{ color: 'red' }}>{error}</p>}
-      {weather && (
+      
+      {weather ? (
         <div>
-            <h2>Weather Data:</h2>
-            {weather.periods?.[0] && (
-                <>
-                    <p>{weather.periods[0].shortForecast}</p>
-                    <p>Temperature: {weather.periods[0].temperature} °F</p>
-                </>
-            )}
+            {weather.periods?.[0] && (() => {
+                const current = weather.periods[0];
+                const icon = mapShortForecastToFallback(current.shortForecast);
+                return (
+                  <>
+                    <div className="weatherIcon">
+                      <img src={icon} alt={current.shortForecast} />
+                    </div>
+                    <div className="temperature">
+                      <p style={{ margin: 0 }}>{current.temperature}°</p>
+                    </div>
+                  </>
+                )
+            })()}
         </div>
+      ) : error ? (
+        <p>Error: {error}</p>
+      ) : (
+        <p>Loading weather data...</p>
       )}
     </div>
   );
