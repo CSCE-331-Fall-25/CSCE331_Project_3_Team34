@@ -15,7 +15,7 @@ class User {
 
 
 
-class MainPage {
+class CashierMainPage {
     
     constructor(user){
         this.debugging = true;
