@@ -17,7 +17,7 @@ export default function Kiosk() {
       startTimer();
     }
 
-    events.forEach(event => window.addEventListener(event, resetTimer));
+    events.forEach(event => window.addEventListener(event, resetTimer, { passive: true }));
 
     startTimer(); // Start the timer on mount
 
