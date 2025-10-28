@@ -39,7 +39,7 @@ app.post('/api/add-discount', (req, res) => {
     result = mainPage.AddDiscount(discountCode);
   }
   const success = !!result.acceptedDiscount;
-  res.json({ success, acceptedDiscount: result.acceptedDiscount });
+  res.json({ success, acceptedDiscount: result.acceptedDiscount, discountPer: result.discountPer || 0 });
 });
 
 // Simple route

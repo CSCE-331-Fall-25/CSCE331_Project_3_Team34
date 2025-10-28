@@ -4,6 +4,10 @@ export default function Cashier() {
   //Discount buttons
   const [showDiscountModal, setShowDiscountModal] = useState(false);
   const [discountCode, setDiscountCode] = useState("");
+  const [discountPercent, setDiscountPercent] = useState(0);
+  const [discountPriceOff, setDiscountPriceOff] = useState(0);
+  const [currCost, setCurrCost] = useState(0);
+  const taxRate = 0.0825;
   const [discountError, setDiscountError] = useState("");
   // TODO: Replace these with actual React state or backend calls
   const [transactionItems, setTransactionItems] = useState([]);
@@ -25,6 +29,7 @@ export default function Cashier() {
             ...data.entrees.map((entree) => ({ item: entree, type: "entree" })),
             ...data.side.map((side) => ({ item: side, type: "side" }))
           ]);
+          setCurrCost((prev) => prev + data.cost);
         }
         //console.log("Cost is: ", data.cost)
       });
@@ -52,16 +57,19 @@ export default function Cashier() {
         if (data.acceptedDiscount) {
           setShowDiscountModal(false);
           setDiscountError("");
-        } else {
+          // Only update discountPercent if new value is greater
+          console.log("Discount percent:", data.discountPer);
+          setDiscountPercent(data.discountPer);
+        } 
+        else if (data.acceptedDiscount === -1) {
+          setDiscountError("Cannot apply discount before adding items");
+        }
+        else {
           setDiscountError("Invalid discount code");
         }
       });
   };
 
-  const orderItems = [
-    { cost: 9.99, item: "Orange Chicken" },
-    // Add more items as needed
-  ];
 
   return (
     <div className="main-page bkgColor cashier-container">
@@ -185,10 +193,11 @@ export default function Cashier() {
         </table>
 
         <div className="order-stats">
-          <p>Discount:</p>
-          <p>Total Cost:</p>
-          <p>Tax:</p>
-          <p>Price Total:</p>
+          {/* (total price - price off) * discountPercent */}
+          <p>Total Cost: ${(currCost).toFixed(2)}</p>
+          <p>Discount: ${((discountPercent || 0) * currCost).toFixed(2)}</p> 
+          <p>Tax:${(currCost * taxRate).toFixed(2)}</p>
+          <p>Price Total: ${((currCost - ((discountPercent || 0) * currCost)) + taxRate * currCost).toFixed(2)}</p>
         </div>
 
         <button onClick={handlePurchase} className="miscButtonFlex purchase-button">

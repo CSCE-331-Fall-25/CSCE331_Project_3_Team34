@@ -67,21 +67,42 @@ class CashierMainPage {
             this.discountRate = 0.20; //TODO: employee will set the discount to whatever manually
             return { acceptedDiscount: true };
         }
+        if(this.currTransaction == null) {
+            if(this.debugging) {
+                console.log("Transaction is null, cant apply discount yet");
+            }
+            return { acceptedDiscount: -1};
+
+        }
         //check code validity
         // if db contains discountCode {
         //     this.discountRate = db.getDiscountRate(discountCode);
         // }
+        let newDiscountRate = 0;
+        let newPriceOff = 0;
+        let currDicountCode = null;
         switch(discountCode) {
             case "SAVE10":
-                this.discountRate = 0.10;
-                return { acceptedDiscount: true };
+                currDicountCode = "SAVE10";
+                newDiscountRate = 0.10;
+                break;
             case "SAVE20":
-                this.priceOff = 20;
-                return { acceptedDiscount: true };
+                currDicountCode = "SAVE20";
+                newPriceOff = 20;
+                break;
             default:
                 if(this.debugging) console.log("Invalid discount code: " + discountCode);
                 return { acceptedDiscount: false };
         }
+        if(newDiscountRate > this.discountRate) {
+            this.discountRate = newDiscountRate;
+            this.currTransaction.discountCode = currDicountCode;
+        }
+        if(newPriceOff > this.priceOff) {
+            this.priceOff = newPriceOff;
+            this.currTransaction.discountCode = currDicountCode;
+        }
+        return { acceptedDiscount: 1, discountPer: this.discountRate, priceOff: this.priceOff, discountCode: this.discountCode};
         
     }
 
