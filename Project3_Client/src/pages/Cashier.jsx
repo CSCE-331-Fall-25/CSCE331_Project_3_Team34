@@ -2,7 +2,21 @@ import "../styles/Cashier.css";
 
 export default function Cashier() {
   // TODO: Replace these with actual React state or backend calls
-  const handleBuyItem = (e) => console.log("Buy:", e.target.id);
+  const handleBuyItem = (e) => {
+    //console.log("Item Button ID: " + e.target.id);
+    fetch("http://localhost:5000/api/buy-item", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ itemID: e.target.id }),
+     
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          console.log("Item bought:", e.target.id);
+        }
+      });
+  };
   const handleRemoveItem = () => console.log("Remove item");
   const handlePurchase = () => console.log("Purchase order");
   const handleSignOut = () => console.log("Sign out");
@@ -37,7 +51,7 @@ export default function Cashier() {
             </tr>
           </thead>
           <tbody>
-            {/* Example row */}
+            {/* Example row, How could we set this to update with return from buyitem buttons */}
             <tr>
               <td>$9.99</td>
               <td>Orange Chicken</td>
@@ -60,7 +74,7 @@ export default function Cashier() {
       {/* Menu buttons */}
       <div className="menu-area">
         <div className="menu-row">
-          {["Bowl", "Plate", "Bigger", "Family"].map((item) => (
+          {["Bowl", "Plate", "Bigger", "Family"].map((item) => ( //Can we set this to be filled by the DB?
             <button key={item} id={item} className="buy-button" onClick={handleBuyItem}>
               {item}
             </button>

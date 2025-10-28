@@ -35,10 +35,10 @@ class CashierMainPage {
     }
 
 
-    BuyItemButton() {
-        const itemID = "Bowl"; //TODO: Get Real ID
+    BuyItemButton(givenItemID) {
+        this.itemID = givenItemID; // Store the itemID if needed
         if(this.debugging) {
-            console.log("Item Button ID: " + itemID);
+            console.log("Item Button ID: " + givenItemID);
         }
         if(this.currTransaction == null) {
             if(this.debugging) {
@@ -46,7 +46,7 @@ class CashierMainPage {
             }
             this.currTransaction = new Transaction(null, null, null, null, this.user, this);
         }
-        const currItem = new Item(itemID);
+        const currItem = new Item(givenItemID);
         this.currTransaction.NewOrder(currItem);
     }
 
@@ -107,8 +107,8 @@ class CashierMainPage {
 
 
 
-user = new User("testUser", "password123", "bob@gmail.com");
-mainPage = new MainPage(user);
-mainPage.BuyItemButton();
+module.exports = { CashierMainPage, User };
+
+
 
 
