@@ -1,6 +1,7 @@
 class Item {
     constructor(itemID) {
         this.itemID = itemID;
+        console.log("Creating Item with ID: " + itemID);
         this.itemTypes = {
             ENTREE: 'entree',
             SIDE: 'side',

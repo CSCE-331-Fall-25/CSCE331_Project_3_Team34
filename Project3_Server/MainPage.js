@@ -48,6 +48,16 @@ class CashierMainPage {
         }
         const currItem = new Item(givenItemID);
         this.currTransaction.NewOrder(currItem);
+        // Get the last order (just added)
+        const lastOrder = this.currTransaction.orders[this.currTransaction.orders.length - 1];
+        const tray = lastOrder.Tray;
+        if(this.debugging)console.log("Cost should be: " + currItem.price);
+        return {
+            cost: currItem.price,
+            item: currItem.itemID,
+            entrees: tray.entrees,
+            side: tray.sides
+        };
     }
 
 

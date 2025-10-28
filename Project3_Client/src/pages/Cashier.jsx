@@ -1,7 +1,8 @@
 import "../styles/Cashier.css";
-
+import { useState } from "react";
 export default function Cashier() {
   // TODO: Replace these with actual React state or backend calls
+  const [transactionItems, setTransactionItems] = useState([]);
   const handleBuyItem = (e) => {
     //console.log("Item Button ID: " + e.target.id);
     fetch("http://localhost:5000/api/buy-item", {
@@ -14,7 +15,14 @@ export default function Cashier() {
       .then((data) => {
         if (data.success) {
           console.log("Item bought:", e.target.id);
+          setTransactionItems((prev) => [
+            ...prev,
+            { cost: data.cost, item: data.item, type: "main" },
+            ...data.entrees.map((entree) => ({ item: entree, type: "entree" })),
+            ...data.side.map((side) => ({ item: side, type: "side" }))
+          ]);
         }
+        //console.log("Cost is: ", data.cost)
       });
   };
   const handleRemoveItem = () => console.log("Remove item");
@@ -27,6 +35,11 @@ export default function Cashier() {
   const handleVoidItem = () => console.log("Void item");
   const handleViewReports = () => console.log("View reports");
   const handleAddDiscount = () => console.log("Add discount");
+
+  const orderItems = [
+    { cost: 9.99, item: "Orange Chicken" },
+    // Add more items as needed
+  ];
 
   return (
     <div className="main-page bkgColor cashier-container">
@@ -50,12 +63,18 @@ export default function Cashier() {
               <th>Item</th>
             </tr>
           </thead>
-          <tbody>
-            {/* Example row, How could we set this to update with return from buyitem buttons */}
-            <tr>
-              <td>$9.99</td>
-              <td>Orange Chicken</td>
-            </tr>
+          <tbody> 
+            {/* make into a scrollable table */}
+            {transactionItems.map((row, idx) => (
+              <tr key={idx}>
+                <td>
+                  {row.type === "main" ? `$${row.cost}` : ""}
+                </td>
+                <td>
+                  {row.type === "main" ? row.item : row.type === "entree" ? `Entree: ${row.item}` : `Side: ${row.item}`}
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
 

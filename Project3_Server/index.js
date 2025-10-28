@@ -22,13 +22,13 @@ const mainPage = new CashierMainPage(user);
 
 // API endpoint to buy an item
 app.post('/api/buy-item', (req, res) => {
-  console.log("Request body:", req.body); // Add this line
+  let result;
   if (req.body && req.body.itemID) {
-    mainPage.BuyItemButton(req.body.itemID);
+    result = mainPage.BuyItemButton(req.body.itemID);
   } else {
-    mainPage.BuyItemButton();
+    result = mainPage.BuyItemButton();
   }
-  res.json({ success: true });
+  res.json({ success: true, ...result });
 });
 
 // Simple route
