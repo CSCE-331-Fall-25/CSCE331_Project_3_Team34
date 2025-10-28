@@ -1,13 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import '../styles/WeatherScreen.css'
-import Kiosk from './Kiosk.jsx';
 
 export default function WeatherScreen() {
   const [location, setLocation] = useState(null);
   const [weather, setWeather] = useState(null);
   const [error, setError] = useState(null);
-  const [clicked, setClicked] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (navigator.geolocation) {
@@ -80,15 +79,12 @@ export default function WeatherScreen() {
     fetchWeather();
   }, [location]);
 
+  function handleClick() {
+    navigate("/kiosk");
+  }
 
   return (
-    <div className="weatherScreen" onClick={() => setClicked(true)}>
-        {clicked && 
-          <Routes>
-            <Route path="/Kiosk" element={<Kiosk />} />
-          </Routes>
-        }
-
+    <div className="weatherScreen" onClick={() => handleClick()}>
         {location ? (
         <p></p>
       ) : error ? (

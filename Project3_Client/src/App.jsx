@@ -4,6 +4,7 @@ import Cashier from './pages/Cashier.jsx'
 import Manager from './pages/Manager.jsx'
 import Menu from './pages/Menu.jsx'
 import Kitchen from './pages/Kitchen.jsx'
+import Kiosk from './pages/Kiosk.jsx'
 import './styles/App.css'
 
 
@@ -13,7 +14,6 @@ export default function App() {
 
   return (
     <div>
-      {/* Nav Bar */}
       {showButtons && (
         <div className="home-grid">
           <Link to="/weather"><button>Weather</button></Link>
@@ -31,6 +31,7 @@ export default function App() {
         <Route path="/manager" element={<Manager />} />
         <Route path="/menu" element={<Menu />} />
         <Route path="/kitchen" element={<Kitchen />} />
+        <Route path="/kiosk" element={<Kiosk />} />
       </Routes>
     </div>
   )
