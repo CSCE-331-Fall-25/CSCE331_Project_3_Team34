@@ -1,6 +1,10 @@
 import "../styles/Cashier.css";
 import { useState } from "react";
 export default function Cashier() {
+  //Discount buttons
+  const [showDiscountModal, setShowDiscountModal] = useState(false);
+  const [discountCode, setDiscountCode] = useState("");
+  const [discountError, setDiscountError] = useState("");
   // TODO: Replace these with actual React state or backend calls
   const [transactionItems, setTransactionItems] = useState([]);
   const handleBuyItem = (e) => {
@@ -34,7 +38,24 @@ export default function Cashier() {
   const handleOpenEmployee = () => console.log("Open employees");
   const handleVoidItem = () => console.log("Void item");
   const handleViewReports = () => console.log("View reports");
-  const handleAddDiscount = () => console.log("Add discount");
+  const handleAddDiscount = () => setShowDiscountModal(true);
+
+  const handleDiscountSubmit = () => {
+    fetch("http://localhost:5000/api/add-discount", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ discountCode }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.acceptedDiscount) {
+          setShowDiscountModal(false);
+          setDiscountError("");
+        } else {
+          setDiscountError("Invalid discount code");
+        }
+      });
+  };
 
   const orderItems = [
     { cost: 9.99, item: "Orange Chicken" },
@@ -43,6 +64,90 @@ export default function Cashier() {
 
   return (
     <div className="main-page bkgColor cashier-container">
+      {showDiscountModal && (
+        <div
+          className="modal-overlay"
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100vw",
+            height: "100vh",
+            background: "rgba(0,0,0,0.6)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000
+          }}
+          onClick={() => setShowDiscountModal(false)}
+        >
+          <div
+            className="modal-window"
+            style={{
+              background: "#f9f9fb",
+              padding: "2.5rem 2rem 2rem 2rem",
+              borderRadius: "16px",
+              boxShadow: "0 8px 32px rgba(0,0,0,0.25)",
+              minWidth: "340px",
+              maxWidth: "90vw",
+              position: "relative",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center"
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <h2 style={{ textAlign: "center", marginBottom: "1.5rem" }}>Enter Discount Code</h2>
+            <input
+              type="text"
+              value={discountCode}
+              onChange={e => setDiscountCode(e.target.value)}
+              placeholder="Discount Code"
+              style={{
+                width: "100%",
+                marginBottom: "1rem",
+                padding: "0.75rem",
+                borderRadius: "6px",
+                border: "1px solid #ccc",
+                fontSize: "1rem"
+              }}
+            />
+            <div style={{ color: "red", textAlign: "center", minHeight: "1.5em" }}>{discountError}</div>
+            <div style={{ display: "flex", justifyContent: "space-between", width: "100%", marginTop: "1.5rem" }}>
+              <button
+                onClick={handleDiscountSubmit}
+                style={{
+                  padding: "0.5rem 1.5rem",
+                  borderRadius: "6px",
+                  border: "none",
+                  background: "#007bff",
+                  color: "#fff",
+                  fontWeight: "bold",
+                  fontSize: "1rem",
+                  cursor: "pointer"
+                }}
+              >
+                Submit
+              </button>
+              <button
+                onClick={() => setShowDiscountModal(false)}
+                style={{
+                  padding: "0.5rem 1.5rem",
+                  borderRadius: "6px",
+                  border: "none",
+                  background: "#eee",
+                  color: "#333",
+                  fontWeight: "bold",
+                  fontSize: "1rem",
+                  cursor: "pointer"
+                }}
+              >
+                Back
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Sidebar */}
       <div className="sidebar-left" />
 

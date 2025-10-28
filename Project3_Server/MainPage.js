@@ -62,8 +62,10 @@ class CashierMainPage {
 
 
     AddDiscount(discountCode, override = false) {
+        if(this.debugging) console.log("Adding discount with code: " + discountCode);
         if(override && this.user.employee) {
             this.discountRate = 0.20; //TODO: employee will set the discount to whatever manually
+            return { acceptedDiscount: true };
         }
         //check code validity
         // if db contains discountCode {
@@ -72,10 +74,13 @@ class CashierMainPage {
         switch(discountCode) {
             case "SAVE10":
                 this.discountRate = 0.10;
-                break;
+                return { acceptedDiscount: true };
             case "SAVE20":
                 this.priceOff = 20;
-                break;
+                return { acceptedDiscount: true };
+            default:
+                if(this.debugging) console.log("Invalid discount code: " + discountCode);
+                return { acceptedDiscount: false };
         }
         
     }
