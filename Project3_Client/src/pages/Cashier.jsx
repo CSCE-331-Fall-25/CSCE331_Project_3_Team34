@@ -1,8 +1,39 @@
 import "../styles/Cashier.css";
-
+import { useState } from "react";
 export default function Cashier() {
+  //Discount buttons
+  const [showDiscountModal, setShowDiscountModal] = useState(false);
+  const [discountCode, setDiscountCode] = useState("");
+  const [discountPercent, setDiscountPercent] = useState(0);
+  const [discountPriceOff, setDiscountPriceOff] = useState(0);
+  const [currCost, setCurrCost] = useState(0);
+  const taxRate = 0.0825;
+  const [discountError, setDiscountError] = useState("");
   // TODO: Replace these with actual React state or backend calls
-  const handleBuyItem = (e) => console.log("Buy:", e.target.id);
+  const [transactionItems, setTransactionItems] = useState([]);
+  const handleBuyItem = (e) => {
+    //console.log("Item Button ID: " + e.target.id);
+    fetch("http://localhost:5000/api/buy-item", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ itemID: e.target.id }),
+     
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          console.log("Item bought:", e.target.id);
+          setTransactionItems((prev) => [
+            ...prev,
+            { cost: data.cost, item: data.item, type: "main" },
+            ...data.entrees.map((entree) => ({ item: entree, type: "entree" })),
+            ...data.side.map((side) => ({ item: side, type: "side" }))
+          ]);
+          setCurrCost((prev) => prev + data.cost);
+        }
+        //console.log("Cost is: ", data.cost)
+      });
+  };
   const handleRemoveItem = () => console.log("Remove item");
   const handlePurchase = () => console.log("Purchase order");
   const handleSignOut = () => console.log("Sign out");
@@ -12,10 +43,120 @@ export default function Cashier() {
   const handleOpenEmployee = () => console.log("Open employees");
   const handleVoidItem = () => console.log("Void item");
   const handleViewReports = () => console.log("View reports");
-  const handleAddDiscount = () => console.log("Add discount");
+  const handleAddDiscount = () => setShowDiscountModal(true);
+
+  const handleDiscountSubmit = () => {
+    fetch("http://localhost:5000/api/add-discount", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ discountCode }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        console.log("Discount response:", data);
+        if (data.acceptedDiscount) {
+          setShowDiscountModal(false);
+          setDiscountError("");
+          // Only update discountPercent if new value is greater
+          console.log("Discount percent:", data.discountPer);
+          setDiscountPercent(data.discountPer);
+        } 
+        else if (data.acceptedDiscount === -1) {
+          setDiscountError("Cannot apply discount before adding items");
+        }
+        else {
+          setDiscountError("Invalid discount code");
+        }
+      });
+  };
+
 
   return (
     <div className="main-page bkgColor cashier-container">
+      {showDiscountModal && (
+        <div
+          className="modal-overlay"
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100vw",
+            height: "100vh",
+            background: "rgba(0,0,0,0.6)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000
+          }}
+          onClick={() => setShowDiscountModal(false)}
+        >
+          <div
+            className="modal-window"
+            style={{
+              background: "#f9f9fb",
+              padding: "2.5rem 2rem 2rem 2rem",
+              borderRadius: "16px",
+              boxShadow: "0 8px 32px rgba(0,0,0,0.25)",
+              minWidth: "340px",
+              maxWidth: "90vw",
+              position: "relative",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center"
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <h2 style={{ textAlign: "center", marginBottom: "1.5rem" }}>Enter Discount Code</h2>
+            <input
+              type="text"
+              value={discountCode}
+              onChange={e => setDiscountCode(e.target.value)}
+              placeholder="Discount Code"
+              style={{
+                width: "100%",
+                marginBottom: "1rem",
+                padding: "0.75rem",
+                borderRadius: "6px",
+                border: "1px solid #ccc",
+                fontSize: "1rem"
+              }}
+            />
+            <div style={{ color: "red", textAlign: "center", minHeight: "1.5em" }}>{discountError}</div>
+            <div style={{ display: "flex", justifyContent: "space-between", width: "100%", marginTop: "1.5rem" }}>
+              <button
+                onClick={handleDiscountSubmit}
+                style={{
+                  padding: "0.5rem 1.5rem",
+                  borderRadius: "6px",
+                  border: "none",
+                  background: "#007bff",
+                  color: "#fff",
+                  fontWeight: "bold",
+                  fontSize: "1rem",
+                  cursor: "pointer"
+                }}
+              >
+                Submit
+              </button>
+              <button
+                onClick={() => setShowDiscountModal(false)}
+                style={{
+                  padding: "0.5rem 1.5rem",
+                  borderRadius: "6px",
+                  border: "none",
+                  background: "#eee",
+                  color: "#333",
+                  fontWeight: "bold",
+                  fontSize: "1rem",
+                  cursor: "pointer"
+                }}
+              >
+                Back
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Sidebar */}
       <div className="sidebar-left" />
 
@@ -36,20 +177,27 @@ export default function Cashier() {
               <th>Item</th>
             </tr>
           </thead>
-          <tbody>
-            {/* Example row */}
-            <tr>
-              <td>$9.99</td>
-              <td>Orange Chicken</td>
-            </tr>
+          <tbody> 
+            {/* make into a scrollable table */}
+            {transactionItems.map((row, idx) => (
+              <tr key={idx}>
+                <td>
+                  {row.type === "main" ? `$${row.cost}` : ""}
+                </td>
+                <td>
+                  {row.type === "main" ? row.item : row.type === "entree" ? `Entree: ${row.item}` : `Side: ${row.item}`}
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
 
         <div className="order-stats">
-          <p>Discount:</p>
-          <p>Total Cost:</p>
-          <p>Tax:</p>
-          <p>Price Total:</p>
+          {/* (total price - price off) * discountPercent */}
+          <p>Total Cost: ${(currCost).toFixed(2)}</p>
+          <p>Discount: ${((discountPercent || 0) * currCost).toFixed(2)}</p> 
+          <p>Tax:${(currCost * taxRate).toFixed(2)}</p>
+          <p>Price Total: ${((currCost - ((discountPercent || 0) * currCost)) + taxRate * currCost).toFixed(2)}</p>
         </div>
 
         <button onClick={handlePurchase} className="miscButtonFlex purchase-button">
@@ -60,7 +208,7 @@ export default function Cashier() {
       {/* Menu buttons */}
       <div className="menu-area">
         <div className="menu-row">
-          {["Bowl", "Plate", "Bigger", "Family"].map((item) => (
+          {["Bowl", "Plate", "Bigger", "Family"].map((item) => ( //Can we set this to be filled by the DB?
             <button key={item} id={item} className="buy-button" onClick={handleBuyItem}>
               {item}
             </button>

@@ -35,10 +35,10 @@ class CashierMainPage {
     }
 
 
-    BuyItemButton() {
-        const itemID = "Bowl"; //TODO: Get Real ID
+    BuyItemButton(givenItemID) {
+        this.itemID = givenItemID; // Store the itemID if needed
         if(this.debugging) {
-            console.log("Item Button ID: " + itemID);
+            console.log("Item Button ID: " + givenItemID);
         }
         if(this.currTransaction == null) {
             if(this.debugging) {
@@ -46,27 +46,63 @@ class CashierMainPage {
             }
             this.currTransaction = new Transaction(null, null, null, null, this.user, this);
         }
-        const currItem = new Item(itemID);
+        const currItem = new Item(givenItemID);
         this.currTransaction.NewOrder(currItem);
+        // Get the last order (just added)
+        const lastOrder = this.currTransaction.orders[this.currTransaction.orders.length - 1];
+        const tray = lastOrder.Tray;
+        if(this.debugging)console.log("Cost should be: " + currItem.price);
+        return {
+            cost: currItem.price,
+            item: currItem.itemID,
+            entrees: tray.entrees,
+            side: tray.sides
+        };
     }
 
 
     AddDiscount(discountCode, override = false) {
+        if(this.debugging) console.log("Adding discount with code: " + discountCode);
         if(override && this.user.employee) {
             this.discountRate = 0.20; //TODO: employee will set the discount to whatever manually
+            return { acceptedDiscount: true };
+        }
+        if(this.currTransaction == null) {
+            if(this.debugging) {
+                console.log("Transaction is null, cant apply discount yet");
+            }
+            return { acceptedDiscount: -1};
+
         }
         //check code validity
         // if db contains discountCode {
         //     this.discountRate = db.getDiscountRate(discountCode);
         // }
+        let newDiscountRate = 0;
+        let newPriceOff = 0;
+        let currDicountCode = null;
         switch(discountCode) {
             case "SAVE10":
-                this.discountRate = 0.10;
+                currDicountCode = "SAVE10";
+                newDiscountRate = 0.10;
                 break;
             case "SAVE20":
-                this.priceOff = 20;
+                currDicountCode = "SAVE20";
+                newPriceOff = 20;
                 break;
+            default:
+                if(this.debugging) console.log("Invalid discount code: " + discountCode);
+                return { acceptedDiscount: false };
         }
+        if(newDiscountRate > this.discountRate) {
+            this.discountRate = newDiscountRate;
+            this.currTransaction.discountCode = currDicountCode;
+        }
+        if(newPriceOff > this.priceOff) {
+            this.priceOff = newPriceOff;
+            this.currTransaction.discountCode = currDicountCode;
+        }
+        return { acceptedDiscount: 1, discountPer: this.discountRate, priceOff: this.priceOff, discountCode: this.discountCode};
         
     }
 
@@ -107,8 +143,8 @@ class CashierMainPage {
 
 
 
-user = new User("testUser", "password123", "bob@gmail.com");
-mainPage = new MainPage(user);
-mainPage.BuyItemButton();
+module.exports = { CashierMainPage, User };
+
+
 
 

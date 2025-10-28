@@ -8,7 +8,8 @@ class Transaction {
         this.user = user;
         this.MainPage = MainPage;  
         this.currOrder = null;
-        this.orders = [];      
+        this.orders = [];
+        this.DiscountCode = null;     
     }
 
     NewOrder(itemID) {
