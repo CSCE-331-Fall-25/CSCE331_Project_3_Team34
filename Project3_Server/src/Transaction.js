@@ -1,4 +1,4 @@
-const Tray = require('./Tray');
+const Tray = require('../Tray');
 
 
 class Transaction {
