@@ -2,10 +2,12 @@ const Transaction = require('./Transaction');
 const Item = require('./Item');
 
 class User {
-    constructor(username, password, email) {
+    constructor(username, password, email, employee = false) {
+        //if this is an employee, set employee to true AND username is the employee ID
         this.username = username;
         this.password = password;
         this.email = email;
+        this.employee = employee;
     }
 }
 
@@ -13,7 +15,7 @@ class User {
 
 
 
-class MainPage {
+class CashierMainPage {
     
     constructor(user){
         this.debugging = true;
@@ -25,6 +27,10 @@ class MainPage {
         this.currentUser = user;//May need to find a way to ensure only User
 
         this.currTransaction = new Transaction(null, null, null, null, user, this);
+        this.totalPrice = 0;
+        this.taxRate = 0.0825;
+        this.discountRate = 0;
+        this.priceOff = 0;
         
     }
 
@@ -44,6 +50,55 @@ class MainPage {
         this.currTransaction.NewOrder(currItem);
     }
 
+
+    AddDiscount(discountCode, override = false) {
+        if(override && this.user.employee) {
+            this.discountRate = 0.20; //TODO: employee will set the discount to whatever manually
+        }
+        //check code validity
+        // if db contains discountCode {
+        //     this.discountRate = db.getDiscountRate(discountCode);
+        // }
+        switch(discountCode) {
+            case "SAVE10":
+                this.discountRate = 0.10;
+                break;
+            case "SAVE20":
+                this.priceOff = 20;
+                break;
+        }
+        
+    }
+
+
+    GetTotalPrice() {
+        let subtotal = 0;
+        for (let order of this.currTransaction.orders) {
+            subtotal += order.Item.price;
+        }
+        let discountAmount = subtotal * this.discountRate;
+        let tax = subtotal * this.taxRate;
+        this.totalPrice = subtotal - discountAmount + tax - this.priceOff;
+        return subtotal,tax, this.totalPrice;
+    }
+    PurchaseButton() {
+        // Finalize purchase logic here
+        if(this.debugging) {
+            console.log("Purchase button clicked. Finalizing transaction...");
+        }
+        console.log("Total Price: $" + this.GetTotalPrice().toFixed(2));
+        console.log(this.GetTotalPrice())
+    }
+
+    clearTransaction() {
+        this.currTransaction = null;
+        this.currTransaction = new Transaction(null, null, null, null, user, this);
+        this.totalPrice = 0;
+        this.taxRate = 0.0825;
+        this.discountRate = 0;
+        this.priceOff = 0;
+        this.user = user; //TODO: WILL NEED TO GO BACK TO LOGIN PAGE FOR NEW CUSTOMER
+    }
 
 }
 
