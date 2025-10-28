@@ -34,14 +34,12 @@ app.post('/api/buy-item', (req, res) => {
 // API endpoint to add a discount
 app.post('/api/add-discount', (req, res) => {
   const { discountCode } = req.body;
-  // Validate discount code using your MainPage logic
-  let success = false;
+  let result = { acceptedDiscount: false };
   if (discountCode) {
-    mainPage.AddDiscount(discountCode);
-    // You can add more validation logic here if needed
-    success = true; // Set to true if valid, false if not
+    result = mainPage.AddDiscount(discountCode);
   }
-  res.json({ success });
+  const success = !!result.acceptedDiscount;
+  res.json({ success, acceptedDiscount: result.acceptedDiscount });
 });
 
 // Simple route

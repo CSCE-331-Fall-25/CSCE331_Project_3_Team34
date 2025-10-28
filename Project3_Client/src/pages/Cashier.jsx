@@ -48,6 +48,7 @@ export default function Cashier() {
     })
       .then((res) => res.json())
       .then((data) => {
+        console.log("Discount response:", data);
         if (data.acceptedDiscount) {
           setShowDiscountModal(false);
           setDiscountError("");
