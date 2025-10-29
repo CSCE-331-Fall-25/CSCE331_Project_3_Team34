@@ -1,3 +1,4 @@
+import React from "react";
 import "../styles/Cashier.css";
 import "../styles/DiscountModal.css";
 import { useEffect, useState, useRef } from "react";
@@ -9,7 +10,7 @@ export default function Cashier() {
   //Discount buttons
   const [showDiscountModal, setShowDiscountModal] = useState(false);
   const [discountCode, setDiscountCode] = useState("");
-  const [discountPercent, setDiscountPercent] = useState(0);
+  const [discountAmount, setDiscountAmount] = useState(0);
   const [discountPriceOff, setDiscountPriceOff] = useState(0);
   const [currCost, setCurrCost] = useState(0);
   const [currOrderNumber, setCurrOrderNumber] = useState(1);
@@ -108,9 +109,8 @@ export default function Cashier() {
           setShowDiscountModal(false);
           setDiscountError("");
           // Only update discountPercent if new value is greater
-          console.log("Discount percent:", data.discountPer);
-          setDiscountPercent(data.discountPer);
-        } 
+          console.log("Discount Amount:", data.discountAmount);
+          setDiscountAmount(data.discountAmount);} 
         else if (data.acceptedDiscount === -1) {
           setDiscountError("Cannot apply discount before adding items");
         }
@@ -138,7 +138,6 @@ export default function Cashier() {
     fetch("http://localhost:5000/api/current-state")
       .then((res) => res.json())
       .then((data) => {
-        //console.log("Current state data:", data);
         //Formats orders into a flat array for display
         if (Array.isArray(data.orders)) {
           const formattedItems = data.orders.flatMap(order => [
@@ -152,11 +151,11 @@ export default function Cashier() {
           setTransactionItems([]);
         }
         //Calls functions to update their states
-        setCurrCost(data.totalPrice || 0);
-        setDiscountPercent(data.discountRate || 0);
-        setDiscountPriceOff(data.priceOff || 0);
+  setCurrCost(data.totalPrice || 0);
+  setDiscountAmount(data.discountAmount || 0);
+  setDiscountPriceOff(data.priceOff || 0);
       });
-  }, []);
+  }
 
   // Scroll to the latest added item whenever transactionItems change
   useEffect(() => {
@@ -166,9 +165,9 @@ export default function Cashier() {
   }, [transactionItems]);
 
   const ResetPage = () => {
-    setTransactionItems([]);
-    setCurrCost(0);
-    setDiscountPercent(0);
+  setTransactionItems([]);
+  setCurrCost(0);
+  setDiscountAmount(0);
   }  
 
   return (
@@ -286,9 +285,9 @@ export default function Cashier() {
         <div className="order-stats">
           {/* (total price - price off) * discountPercent */}
           <p>Total Cost: ${(currCost).toFixed(2)}</p>
-          <p>Discount: ${((discountPercent || 0) * currCost).toFixed(2)}</p> 
-          <p>Tax:${(currCost * taxRate).toFixed(2)}</p>
-          <p>Price Total: ${((currCost - ((discountPercent || 0) * currCost)) + taxRate * currCost).toFixed(2)}</p>
+          <p>Discount Amount: ${typeof discountAmount === "number" ? discountAmount.toFixed(2) : "0.00"}</p>
+          <p>Tax: ${(currCost * taxRate).toFixed(2)}</p>
+          <p>Price Total: ${((currCost - (typeof discountAmount === "number" ? discountAmount : 0)) + taxRate * currCost).toFixed(2)}</p>
         </div>
 
         <button onClick={handlePurchase} className="miscButtonFlex purchase-button">

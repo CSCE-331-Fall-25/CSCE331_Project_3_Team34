@@ -38,8 +38,10 @@ app.post('/api/add-discount', (req, res) => {
   if (discountCode) {
     result = mainPage.AddDiscount(discountCode);
   }
+  // Get the latest discount amount from the transaction
+  const state = mainPage.GetCurrentState();
   const success = !!result.acceptedDiscount;
-  res.json({ success, acceptedDiscount: result.acceptedDiscount, discountPer: result.discountPer || 0 });
+  res.json({ success, acceptedDiscount: result.acceptedDiscount, discountAmount: state.discountAmount || 0 });
 });
 
 // API endpoint to clear the transaction
@@ -65,9 +67,16 @@ app.get("/api/users", async (req, res) => {
   }
 });
 
+// API endpoint to get current state
 app.get("/api/current-state", (req, res) => {
   let result = mainPage.GetCurrentState();
   res.json(result);
+});
+// API endpoint to remove an item by index
+app.post('/api/remove-item', (req, res) => {
+  const { index } = req.body;
+  let result = mainPage.RemoveItemByIndex(index);
+  res.json({ success: true, ...result });
 });
 
 const PORT = process.env.PORT || 5000;

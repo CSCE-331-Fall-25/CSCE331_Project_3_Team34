@@ -121,28 +121,24 @@ class CashierMainPage {
     }
 
 
-    GetTotalPrice() {
-        let subtotal = 0;
-        for (let order of this.currTransaction.orders) {
-            subtotal += order.Item.price;
-        }
-        let discountAmount = subtotal * this.discountRate;
-        let tax = subtotal * this.taxRate;
-        this.totalPrice = subtotal - discountAmount + tax - this.priceOff;
-        return subtotal,tax, this.totalPrice;
-    }
+    // GetTotalPrice() {
+    //     let subtotal = 0;
+    //     for (let order of this.currTransaction.orders) {
+    //         subtotal += order.Item.price;
+    //     }
+    //     let discountAmount = subtotal * this.discountRate;
+    //     let tax = subtotal * this.taxRate;
+    //     this.totalPrice = subtotal - discountAmount + tax - this.priceOff;
+    //     let priceOff = this.priceOff;
+    //     return subtotal,tax, this.totalPrice, priceOff;
+    // }
     PrintReceipt(transaction) {
         console.log("----- Receipt -----");
         transaction.orders.forEach((order, index) => {
             console.log(`${index + 1}. Item ID: ${order.Item.itemID}, Price: $${order.Item.price.toFixed(2)}`);
         });
-        let subtotal = 0;
-        transaction.orders.forEach(order => {
-            subtotal += order.Item.price;
-        });
-        let discountAmount = subtotal * this.discountRate;
-        let tax = subtotal * this.taxRate;
-        let total = subtotal - discountAmount + tax - this.priceOff;
+        this.GetCostInformation();
+        let { subtotal, discountAmount, tax, total } = this.GetCostInformation();
         console.log(`Subtotal: $${subtotal.toFixed(2)}`);
         console.log(`Discount: -$${discountAmount.toFixed(2)}`);
         console.log(`Price Off: -$${this.priceOff.toFixed(2)}`);
@@ -156,12 +152,30 @@ class CashierMainPage {
         if(this.debugging) {
             console.log("Purchase button clicked. Finalizing transaction...");
         }
-        console.log("Total Price: $" + Math.ceil(this.GetTotalPrice()).toFixed(2));
+        const { total } = this.GetCostInformation();
+        console.log("Total Price: $" + Math.ceil(total).toFixed(2));
         //add logic to store transaction in database, print receipt, etc.
         this.PrintReceipt(this.currTransaction);
     }
 
-    
+    RemoveItemByIndex(index) {
+        if(this.debugging) {
+            console.log("Removing item at index: " + index);
+        }
+        if(index < 0 || index >= this.currTransaction.orders.length) {
+            if(this.debugging) {
+                console.log("Invalid index: " + index);
+            }
+            return { success: false, error: "Invalid index" };
+        }
+        // Remove the order at the given index
+        this.currTransaction.orders.splice(index, 1);
+        if(this.debugging)console.log("Item removed. now " + this.currTransaction.orders.length + " items remain.");
+
+        return {
+            success: true
+        };
+    }
     ClearTransaction() {
         console.log("Clearing current transaction...");
         //this.user = user; //TODO: if kiosk WILL NEED TO GO BACK TO LOGIN PAGE FOR NEW CUSTOMER
@@ -174,9 +188,31 @@ class CashierMainPage {
         this.priceOff = 0;
         
     }
+    GetCostInformation(){
+        let subtotal = 0;
+        if (!this.currTransaction || !this.currTransaction.orders) {
+            return { subtotal: 0, discountAmount: 0, tax: 0, total: 0, priceOff: 0 };
+        }
+        this.currTransaction.orders.forEach(order => {
+            subtotal += order.Item.price;
+        });
+        let discountAmount = subtotal * this.discountRate;
+        let tax = subtotal * this.taxRate;
+        let total = subtotal - discountAmount + tax - this.priceOff;
+        let priceOff = this.priceOff;
+        return { subtotal, discountAmount, tax, total, priceOff };
+    }
     GetCurrentState() {
         console.log("Getting current state...");
-        console.log(this.currTransaction.orders.length);
+        if (!this.currTransaction || !this.currTransaction.orders) {
+            return {
+                orders: [],
+                discountAmount: 0,
+                priceOff: 0,
+                totalPrice: 0
+            };
+        }
+        const { subtotal, discountAmount, tax, total, priceOff } = this.GetCostInformation();
         return {
             orders: this.currTransaction.orders.map(order => ({
                 cost: order.Item.price,
@@ -185,8 +221,9 @@ class CashierMainPage {
                 side: order.Tray.sides,
                 orderNumber: this.currTransaction.orderNumber
             })),
-            discountRate: this.discountRate,
-            priceOff: this.priceOff
+            discountAmount,
+            priceOff,
+            totalPrice: total
         };
     }
 }
