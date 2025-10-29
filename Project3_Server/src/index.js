@@ -59,14 +59,28 @@ app.post('/api/buy-item', async (req, res) => {
 });
 
 // API endpoint to add a discount
-app.post('/api/add-discount', (req, res) => {
+app.post('/api/add-discount', async (req, res) => {
   const { discountCode } = req.body;
   let result = { acceptedDiscount: false };
-  if (discountCode) {
-    result = mainPage.AddDiscount(discountCode);
+  try {
+    if (discountCode) {
+      result = await mainPage.AddDiscount(discountCode);
+      console.log('Discount result:', result);
+    }
+    res.json({
+      success: result.acceptedDiscount === true,
+      acceptedDiscount: result.acceptedDiscount === true,
+      discountPer: result.discountPer || 0,
+      priceOff: result.priceOff || 0
+    });
+  } catch (err) {
+    console.error('Error applying discount:', err);
+    res.status(500).json({ 
+      success: false, 
+      acceptedDiscount: false, 
+      error: 'Failed to apply discount' 
+    });
   }
-  const success = !!result.acceptedDiscount;
-  res.json({ success, acceptedDiscount: result.acceptedDiscount, discountPer: result.discountPer || 0 });
 });
 
 // Simple route

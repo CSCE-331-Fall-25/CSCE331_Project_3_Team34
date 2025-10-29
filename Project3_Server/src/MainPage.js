@@ -76,59 +76,68 @@ class CashierMainPage {
     }
 
 
-    AddDiscount(discountCode, override = false) {
+    async AddDiscount(discountCode, override = false) {
         console.log("Adding discount with code: " + discountCode);
 
         // Allow the employee to set a manual discount override
         if(override && this.user.employee) {
             this.discountRate = 0.20; //TODO: employee will set the discount to whatever manually
+            console.log("Employee override");
             return { acceptedDiscount: true };
         }
 
         // Checks if the transaction exists
         if(this.currTransaction == null) {
-            if(this.debugging) {
-                console.log("Transaction is null, cant apply discount yet");
-            }
-            return { acceptedDiscount: -1};
+            console.log("Transaction is null, cant apply discount yet");
+            return { acceptedDiscount: false};
         }
 
-        //check code validity
-        // if db contains discountCode {
-        //     this.discountRate = db.getDiscountRate(discountCode);
-        // }
+        // Check if we have a database connection
+        if (!this.db) {
+            console.warn('No DB connection available, cannot validate discount code');
+            return { acceptedDiscount: false };
+        }
 
-        // Hard coded discount codes, TODO: add database implementation
-        let newDiscountRate = 0;
-        let newPriceOff = 0;
-        let currDicountCode = null;
-        switch(discountCode) {
-            case "SAVE10":
-                currDicountCode = "SAVE10";
-                newDiscountRate = 0.10;
-                break;
-            case "SAVE20":
-                currDicountCode = "SAVE20";
-                newPriceOff = 20;
-                break;
-            default:
-                if(this.debugging) console.log("Invalid discount code: " + discountCode);
+        try {
+            console.log("Querying the database for the code");
+            // Query the discounts table for the provided code
+            const q = 'SELECT * FROM discounts WHERE code = $1';
+            const result = await this.db.query(q, [discountCode]);
+
+            if (!result.rows || result.rows.length === 0) {
+                console.log("Invalid discount code: " + discountCode);
                 return { acceptedDiscount: false };
-        }
+            }
 
-        // Apply the best discount for the customer
-        if(newDiscountRate > this.discountRate) {
-            this.discountRate = newDiscountRate;
-            this.currTransaction.discountCode = currDicountCode;
-        }
+            const discount = result.rows[0];
+            let newDiscountRate = discount.percent ? (discount.percent / 100) : 0;
+            let newPriceOff = discount.fixed || 0;
 
-        // Apply the best priceOff for the customer
-        if(newPriceOff > this.priceOff) {
-            this.priceOff = newPriceOff;
-            this.currTransaction.discountCode = currDicountCode;
-        }
+            // Apply the best percentage discount for the customer
+            if(newDiscountRate > this.discountRate) {
+                this.discountRate = newDiscountRate;
+                this.currTransaction.discountCode = discountCode;
+            }
 
-        return { acceptedDiscount: 1, discountPer: this.discountRate, priceOff: this.priceOff, discountCode: this.discountCode};     
+            // Apply the best fixed discount for the customer
+            if(newPriceOff > this.priceOff) {
+                this.priceOff = newPriceOff;
+                this.currTransaction.discountCode = discountCode;
+            }
+
+            console.log("Returning discount with " + this.discountRate + " " + this.priceOff)
+
+            return { 
+                acceptedDiscount: true, 
+                discountPer: this.discountRate, 
+                priceOff: this.priceOff, 
+                discountCode: this.currTransaction.discountCode
+            };
+
+        } catch (err) {
+            console.error('Error querying discounts table:', err);
+            return { acceptedDiscount: false };
+        }
     }
 
 
