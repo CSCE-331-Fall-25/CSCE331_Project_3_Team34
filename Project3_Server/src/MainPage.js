@@ -3,77 +3,73 @@ import Item from './Item.js';
 
 class User {
     constructor(username, password, email, employee = false) {
-        //if this is an employee, set employee to true AND username is the employee ID
+        // Initialize instance variables
         this.username = username;
         this.password = password;
         this.email = email;
         this.employee = employee;
+
+        console.log(`User created: ${username}, Employee: ${employee}`);
     }
 }
-
-
-
-
 
 class CashierMainPage {
     
     constructor(user, db = null){
-        this.debugging = true;
-
-            if(this.debugging) {
-            console.log("Initializing Back End...");
-        }
-    this.user = user;
-        this.currentUser = user;//May need to find a way to ensure only User
-
-    // Database pool (optional). Tests or index.js can inject this.
-    this.db = db;
-    this.currTransaction = new Transaction(null, this.user, this);
+        // Initialize instance variables
+        this.user = user;
+        this.currentUser = user;
         this.totalPrice = 0;
         this.taxRate = 0.0825;
         this.discountRate = 0;
         this.priceOff = 0;
-        
+
+        // Connects the database
+        this.db = db;
+
+        // Creates the current transaction
+        this.currTransaction = new Transaction(null, this.user, this);
     }
 
 
     async BuyItemButton(givenItemID) {
-        this.itemID = givenItemID; // Store the itemID if needed
-        if(this.debugging) {
-            console.log("Item Button ID: " + givenItemID);
-        }
+        // Stores the current itemID
+        this.itemID = givenItemID;
+
+        // Creates a new transaction if transaction is null
         if(this.currTransaction == null) {
-            if(this.debugging) {
-                console.log("Transaction is null, creating new transaction...");
-            }
+            console.log("Transaction is null, creating new transaction...");
             this.currTransaction = new Transaction(null, null, null, null, this.user, this);
         }
 
+        // Instantiates the item based on the given item id 
         let currItem;
         if (this.db) {
             try {
                 currItem = await Item.fetchByName(this.db, givenItemID);
                 if (!currItem) {
-                    if (this.debugging) console.error('Item with ButtonID ' + givenItemID + ' not found in database.');
+                    console.error('Item with ButtonID ' + givenItemID + ' not found in database.');
                     currItem = new Item(givenItemID);
                 }
             } catch (err) {
-                if (this.debugging) console.error('Error querying DB for item:', err);
+                console.error('Error querying DB for item: ', err);
                 currItem = new Item(givenItemID);
             }
         } else {
-            if (this.debugging) console.warn('No DB connection available, using placeholder item.');
+            console.warn('No DB connection available, using placeholder item.');
             currItem = new Item(givenItemID);
         }
 
+        // Creates a new order with the item 
         this.currTransaction.NewOrder(currItem);
+
         // Get the last order (just added)
         const lastOrder = this.currTransaction.orders[this.currTransaction.orders.length - 1];
         const tray = lastOrder.Tray;
-        if(this.debugging)console.log("Cost should be: " + currItem.price);
+
         return {
             cost: currItem.price,
-            item: currItem.itemID,
+            item: currItem.name,
             entrees: tray.entrees,
             side: tray.sides
         };
@@ -81,22 +77,28 @@ class CashierMainPage {
 
 
     AddDiscount(discountCode, override = false) {
-        if(this.debugging) console.log("Adding discount with code: " + discountCode);
+        console.log("Adding discount with code: " + discountCode);
+
+        // Allow the employee to set a manual discount override
         if(override && this.user.employee) {
             this.discountRate = 0.20; //TODO: employee will set the discount to whatever manually
             return { acceptedDiscount: true };
         }
+
+        // Checks if the transaction exists
         if(this.currTransaction == null) {
             if(this.debugging) {
                 console.log("Transaction is null, cant apply discount yet");
             }
             return { acceptedDiscount: -1};
-
         }
+
         //check code validity
         // if db contains discountCode {
         //     this.discountRate = db.getDiscountRate(discountCode);
         // }
+
+        // Hard coded discount codes, TODO: add database implementation
         let newDiscountRate = 0;
         let newPriceOff = 0;
         let currDicountCode = null;
@@ -113,45 +115,52 @@ class CashierMainPage {
                 if(this.debugging) console.log("Invalid discount code: " + discountCode);
                 return { acceptedDiscount: false };
         }
+
+        // Apply the best discount for the customer
         if(newDiscountRate > this.discountRate) {
             this.discountRate = newDiscountRate;
             this.currTransaction.discountCode = currDicountCode;
         }
+
+        // Apply the best priceOff for the customer
         if(newPriceOff > this.priceOff) {
             this.priceOff = newPriceOff;
             this.currTransaction.discountCode = currDicountCode;
         }
-        return { acceptedDiscount: 1, discountPer: this.discountRate, priceOff: this.priceOff, discountCode: this.discountCode};
-        
+
+        return { acceptedDiscount: 1, discountPer: this.discountRate, priceOff: this.priceOff, discountCode: this.discountCode};     
     }
 
 
     GetTotalPrice() {
+        // Totals the price of all the transaction orders
         let subtotal = 0;
         for (let order of this.currTransaction.orders) {
             subtotal += order.Item.price;
         }
+
+        // Applies the discount and tax
         let discountAmount = subtotal * this.discountRate;
         let tax = subtotal * this.taxRate;
         this.totalPrice = subtotal - discountAmount + tax - this.priceOff;
+
         return subtotal,tax, this.totalPrice;
     }
     PurchaseButton() {
-        // Finalize purchase logic here
-        if(this.debugging) {
-            console.log("Purchase button clicked. Finalizing transaction...");
-        }
+        // TODO: purchase logic
+        console.log("Purchase button clicked. Finalizing transaction...");
         console.log("Total Price: $" + this.GetTotalPrice().toFixed(2));
-        console.log(this.GetTotalPrice())
     }
 
     clearTransaction() {
+        // Clear instance variables
         this.currTransaction = null;
         this.currTransaction = new Transaction(null, this.user, this);
         this.totalPrice = 0;
         this.taxRate = 0.0825;
         this.discountRate = 0;
         this.priceOff = 0;
+
         this.user = this.user; //TODO: WILL NEED TO GO BACK TO LOGIN PAGE FOR NEW CUSTOMER
     }
 
