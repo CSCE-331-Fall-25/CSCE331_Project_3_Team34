@@ -1,6 +1,11 @@
+/* Highlight selected main group row */
+.selected-row {
+	background-color: #ffeeba;
+	border-left: 4px solid #f0ad4e;
+}
 /* Scrollable order table container */
 .order-table-scroll {
-	max-height: 250px;
+	max-height: 400px;
 	overflow-y: auto;
 	border: 1px solid #ccc;
 	border-radius: 4px;
@@ -70,7 +75,7 @@
 .order-area {
 	position: absolute;
 	right: 0;
-	top: 40px;
+	top: 10px;
 	width: 302px;
 	padding: 8px 6px;
 }
@@ -183,4 +188,9 @@
 	justify-content: center;
 	gap: 8px;
 	border-radius: 8px;
+}
+
+.selected-row {
+  background-color: #ffeeba; /* highlight color */
+  border-left: 4px solid #f0ad4e; /* optional visual marker */
 }

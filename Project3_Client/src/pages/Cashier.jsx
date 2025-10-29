@@ -4,6 +4,8 @@ import { useEffect, useState, useRef } from "react";
 export default function Cashier() {
   //newestRowRef for scrolling
   const lastRowRef = useRef(null);
+  //handles selected row of items
+  const [selectedRow, setSelectedRow] = useState(null);
   //Discount buttons
   const [showDiscountModal, setShowDiscountModal] = useState(false);
   const [discountCode, setDiscountCode] = useState("");
@@ -203,7 +205,9 @@ export default function Cashier() {
             <tbody>
               {transactionItems.map((row, idx) => (
                 <tr key={idx}
-                    ref={idx === transactionItems.length - 1 ? lastRowRef : null}         
+                    ref={idx === transactionItems.length - 1 ? lastRowRef : null}
+                    className={row.type === "main" ? idx === selectedRow ? "selected-row" : "clickable-row" : ""}        
+                    onClick={row.type === "main" ? () => setSelectedRow(idx): undefined}
                 >
                   <td>
                     {row.type === "main" ? `$${row.cost}` : ""}
