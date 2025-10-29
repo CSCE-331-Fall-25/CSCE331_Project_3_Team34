@@ -1,5 +1,5 @@
-const Transaction = require('./Transaction');
-const Item = require('./Item');
+import Transaction from './Transaction.js';
+import Item from './Item.js';
 
 class User {
     constructor(username, password, email, employee = false) {
@@ -17,16 +17,18 @@ class User {
 
 class CashierMainPage {
     
-    constructor(user){
+    constructor(user, db = null){
         this.debugging = true;
 
             if(this.debugging) {
             console.log("Initializing Back End...");
         }
-        this.user = user;
+    this.user = user;
         this.currentUser = user;//May need to find a way to ensure only User
 
-        this.currTransaction = new Transaction(null, null, null, null, user, this);
+    // Database pool (optional). Tests or index.js can inject this.
+    this.db = db;
+    this.currTransaction = new Transaction(null, this.user, this);
         this.totalPrice = 0;
         this.taxRate = 0.0825;
         this.discountRate = 0;
@@ -35,7 +37,7 @@ class CashierMainPage {
     }
 
 
-    BuyItemButton(givenItemID) {
+    async BuyItemButton(givenItemID) {
         this.itemID = givenItemID; // Store the itemID if needed
         if(this.debugging) {
             console.log("Item Button ID: " + givenItemID);
@@ -46,7 +48,24 @@ class CashierMainPage {
             }
             this.currTransaction = new Transaction(null, null, null, null, this.user, this);
         }
-        const currItem = new Item(givenItemID);
+
+        let currItem;
+        if (this.db) {
+            try {
+                currItem = await Item.fetchByName(this.db, givenItemID);
+                if (!currItem) {
+                    if (this.debugging) console.error('Item with ButtonID ' + givenItemID + ' not found in database.');
+                    currItem = new Item(givenItemID);
+                }
+            } catch (err) {
+                if (this.debugging) console.error('Error querying DB for item:', err);
+                currItem = new Item(givenItemID);
+            }
+        } else {
+            if (this.debugging) console.warn('No DB connection available, using placeholder item.');
+            currItem = new Item(givenItemID);
+        }
+
         this.currTransaction.NewOrder(currItem);
         // Get the last order (just added)
         const lastOrder = this.currTransaction.orders[this.currTransaction.orders.length - 1];
@@ -128,12 +147,12 @@ class CashierMainPage {
 
     clearTransaction() {
         this.currTransaction = null;
-        this.currTransaction = new Transaction(null, null, null, null, user, this);
+        this.currTransaction = new Transaction(null, this.user, this);
         this.totalPrice = 0;
         this.taxRate = 0.0825;
         this.discountRate = 0;
         this.priceOff = 0;
-        this.user = user; //TODO: WILL NEED TO GO BACK TO LOGIN PAGE FOR NEW CUSTOMER
+        this.user = this.user; //TODO: WILL NEED TO GO BACK TO LOGIN PAGE FOR NEW CUSTOMER
     }
 
 }
@@ -143,7 +162,7 @@ class CashierMainPage {
 
 
 
-module.exports = { CashierMainPage, User };
+export { CashierMainPage, User };
 
 
 
