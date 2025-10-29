@@ -129,6 +129,13 @@ export default function Cashier() {
       });
   }, []);
 
+  // Scroll to the latest added item whenever transactionItems change
+  useEffect(() => {
+    if (lastRowRef.current) {
+      lastRowRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [transactionItems]);
+
   const ResetPage = () => {
     setTransactionItems([]);
     setCurrCost(0);
@@ -249,9 +256,14 @@ export default function Cashier() {
       </div>
 
       {/* Misc button */}
-      <button onClick={handleRemoveItem} className="miscButtonFlex remove-button">
-        REMOVE
-      </button>
+      <div className="misc-buttons-row">
+        <button onClick={handleRemoveItem} className="miscButtonFlex remove-button">
+          REMOVE
+        </button>
+        <button onClick={ResetPage} className="miscButtonFlex clear-button">
+          CLEAR TRANS
+        </button>
+      </div>
 
       {/* Function buttons (left sidebar) */}
       <div className="functions-column">
