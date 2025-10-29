@@ -82,13 +82,14 @@ class CashierMainPage {
         // Allow the employee to set a manual discount override
         if(override && this.user.employee) {
             this.discountRate = 0.20; //TODO: employee will set the discount to whatever manually
+            console.log("Employee override");
             return { acceptedDiscount: true };
         }
 
         // Checks if the transaction exists
         if(this.currTransaction == null) {
             console.log("Transaction is null, cant apply discount yet");
-            return { acceptedDiscount: -1};
+            return { acceptedDiscount: false};
         }
 
         // Check if we have a database connection
@@ -98,6 +99,7 @@ class CashierMainPage {
         }
 
         try {
+            console.log("Querying the database for the code");
             // Query the discounts table for the provided code
             const q = 'SELECT * FROM discounts WHERE code = $1';
             const result = await this.db.query(q, [discountCode]);
@@ -122,6 +124,8 @@ class CashierMainPage {
                 this.priceOff = newPriceOff;
                 this.currTransaction.discountCode = discountCode;
             }
+
+            console.log("Returning discount with " + this.discountRate + " " + this.priceOff)
 
             return { 
                 acceptedDiscount: true, 
