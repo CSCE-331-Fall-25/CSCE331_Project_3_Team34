@@ -1,5 +1,6 @@
 import "../styles/Cashier.css";
-import { useState } from "react";
+import "../styles/DiscountModal.css";
+import { useEffect, useState } from "react";
 export default function Cashier() {
   //Discount buttons
   const [showDiscountModal, setShowDiscountModal] = useState(false);
@@ -7,6 +8,7 @@ export default function Cashier() {
   const [discountPercent, setDiscountPercent] = useState(0);
   const [discountPriceOff, setDiscountPriceOff] = useState(0);
   const [currCost, setCurrCost] = useState(0);
+  const [currOrderNumber, setCurrOrderNumber] = useState(1);
   const taxRate = 0.0825;
   const [discountError, setDiscountError] = useState("");
   // TODO: Replace these with actual React state or backend calls
@@ -25,16 +27,32 @@ export default function Cashier() {
           console.log("Item bought:", e.target.id);
           setTransactionItems((prev) => [
             ...prev,
-            { cost: data.cost, item: data.item, type: "main" },
+            { cost: data.cost, item: data.item, type: "main", currOrderNumber: data.orderNumber },
             ...data.entrees.map((entree) => ({ item: entree, type: "entree" })),
             ...data.side.map((side) => ({ item: side, type: "side" }))
           ]);
           setCurrCost((prev) => prev + data.cost);
+          setCurrOrderNumber(currOrderNumber);
         }
         //console.log("Cost is: ", data.cost)
       });
   };
-  const handleRemoveItem = () => console.log("Remove item");
+  //TODO: update remove, currently a clear button
+  const handleRemoveItem = (e) => {
+    console.log("Remove item clicked");
+    //Tells server to clear transaction
+    fetch("http://localhost:5000/api/clear-transaction", {
+      method: "POST",
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          console.log("Transaction cleared");
+          //server should be clear at this point so now we clear frontend
+          ResetPage();
+        }
+      });
+  }
   const handlePurchase = () => console.log("Purchase order");
   const handleSignOut = () => console.log("Sign out");
   const handleOpenInventory = () => console.log("Open inventory");
@@ -70,86 +88,68 @@ export default function Cashier() {
       });
   };
 
+  //Called on page refresh, should update frontend based on what is on the server
+  useEffect(() => {
+    console.log("Fetching current state from server...");
+    fetch("http://localhost:5000/api/current-state")
+      .then((res) => res.json())
+      .then((data) => {
+        //console.log("Current state data:", data);
+        //Formats orders into a flat array for display
+        if (Array.isArray(data.orders)) {
+          const formattedItems = data.orders.flatMap(order => [
+            { cost: order.cost, item: order.item, type: "main", currOrderNumber: order.orderNumber },
+            ...(order.entrees ? order.entrees.map(entree => ({ item: entree, type: "entree" })) : []),
+            ...(order.side ? order.side.map(side => ({ item: side, type: "side" })) : [])
+          ]);
+          //updates the front end to show current items
+          setTransactionItems(formattedItems);
+        } else {
+          setTransactionItems([]);
+        }
+        //Calls functions to update their states
+        setCurrCost(data.totalPrice || 0);
+        setDiscountPercent(data.discountRate || 0);
+        setDiscountPriceOff(data.priceOff || 0);
+      });
+  }, []);
+
+  const ResetPage = () => {
+    setTransactionItems([]);
+    setCurrCost(0);
+    setDiscountPercent(0);
+  }  
 
   return (
     <div className="main-page bkgColor cashier-container">
       {showDiscountModal && (
         <div
           className="modal-overlay"
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            width: "100vw",
-            height: "100vh",
-            background: "rgba(0,0,0,0.6)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 1000
-          }}
           onClick={() => setShowDiscountModal(false)}
         >
           <div
             className="modal-window"
-            style={{
-              background: "#f9f9fb",
-              padding: "2.5rem 2rem 2rem 2rem",
-              borderRadius: "16px",
-              boxShadow: "0 8px 32px rgba(0,0,0,0.25)",
-              minWidth: "340px",
-              maxWidth: "90vw",
-              position: "relative",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center"
-            }}
             onClick={e => e.stopPropagation()}
           >
-            <h2 style={{ textAlign: "center", marginBottom: "1.5rem" }}>Enter Discount Code</h2>
+            <h2 className="modal-title">Enter Discount Code</h2>
             <input
               type="text"
               value={discountCode}
               onChange={e => setDiscountCode(e.target.value)}
               placeholder="Discount Code"
-              style={{
-                width: "100%",
-                marginBottom: "1rem",
-                padding: "0.75rem",
-                borderRadius: "6px",
-                border: "1px solid #ccc",
-                fontSize: "1rem"
-              }}
+              className="modal-input"
             />
-            <div style={{ color: "red", textAlign: "center", minHeight: "1.5em" }}>{discountError}</div>
-            <div style={{ display: "flex", justifyContent: "space-between", width: "100%", marginTop: "1.5rem" }}>
+            <div className="modal-error">{discountError}</div>
+            <div className="modal-actions">
               <button
                 onClick={handleDiscountSubmit}
-                style={{
-                  padding: "0.5rem 1.5rem",
-                  borderRadius: "6px",
-                  border: "none",
-                  background: "#007bff",
-                  color: "#fff",
-                  fontWeight: "bold",
-                  fontSize: "1rem",
-                  cursor: "pointer"
-                }}
+                className="modal-submit"
               >
                 Submit
               </button>
               <button
                 onClick={() => setShowDiscountModal(false)}
-                style={{
-                  padding: "0.5rem 1.5rem",
-                  borderRadius: "6px",
-                  border: "none",
-                  background: "#eee",
-                  color: "#333",
-                  fontWeight: "bold",
-                  fontSize: "1rem",
-                  cursor: "pointer"
-                }}
+                className="modal-back"
               >
                 Back
               </button>
@@ -169,7 +169,7 @@ export default function Cashier() {
 
       {/* Order summary area */}
       <div className="order-area">
-        <p className="order-title">ORDER: #</p>
+        <p className="order-title">ORDER: # {currOrderNumber}</p>
         <table className="orderTable order-table">
           <thead>
             <tr>

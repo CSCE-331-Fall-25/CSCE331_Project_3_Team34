@@ -42,6 +42,12 @@ app.post('/api/add-discount', (req, res) => {
   res.json({ success, acceptedDiscount: result.acceptedDiscount, discountPer: result.discountPer || 0 });
 });
 
+// API endpoint to clear the transaction
+app.post('/api/clear-transaction', (req, res) => {
+  mainPage.ClearTransaction();
+  res.json({ success: true });
+});
+
 // Simple route
 app.get("/api/users", async (req, res) => {
   try {
@@ -51,6 +57,11 @@ app.get("/api/users", async (req, res) => {
     console.error(err);
     res.status(500).json({ error: "Database query failed" });
   }
+});
+
+app.get("/api/current-state", (req, res) => {
+  let result = mainPage.GetCurrentState();
+  res.json(result);
 });
 
 const PORT = process.env.PORT || 5000;

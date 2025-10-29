@@ -15,6 +15,7 @@ class Transaction {
     NewOrder(itemID) {
        this.currOrder = new Order(itemID);
        this.orders.push(this.currOrder);
+       console.log("New order added. Total orders in transaction: " + this.orders.length);
     }
 
     

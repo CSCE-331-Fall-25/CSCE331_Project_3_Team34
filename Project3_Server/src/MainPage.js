@@ -9,6 +9,7 @@ class User {
         this.email = email;
         this.employee = employee;
     }
+    
 }
 
 
@@ -20,10 +21,15 @@ class CashierMainPage {
     constructor(user){
         this.debugging = true;
 
-            if(this.debugging) {
+        if(this.debugging) {
             console.log("Initializing Back End...");
         }
+        if(user === undefined) {
+            console.log("No user provided, creating default user.");
+            user = new User("empty", "", "", false);
+        }
         this.user = user;
+        console.log("User set to: " + this.user.username);
         this.currentUser = user;//May need to find a way to ensure only User
 
         this.currTransaction = new Transaction(null, null, null, null, user, this);
@@ -31,6 +37,7 @@ class CashierMainPage {
         this.taxRate = 0.0825;
         this.discountRate = 0;
         this.priceOff = 0;
+        
         
     }
 
@@ -56,7 +63,8 @@ class CashierMainPage {
             cost: currItem.price,
             item: currItem.itemID,
             entrees: tray.entrees,
-            side: tray.sides
+            side: tray.sides,
+            orderNumber: this.currTransaction.orderNumber
         };
     }
 
@@ -72,7 +80,13 @@ class CashierMainPage {
                 console.log("Transaction is null, cant apply discount yet");
             }
             return { acceptedDiscount: -1};
-
+        }
+        console.log("length: " + this.currTransaction.orders.length);
+        if(this.currTransaction.orders.length === 0) {
+            if(this.debugging) {
+                console.log("No items in transaction, cant apply discount yet");
+            }
+            return { acceptedDiscount: -1};
         }
         //check code validity
         // if db contains discountCode {
@@ -126,16 +140,33 @@ class CashierMainPage {
         console.log(this.GetTotalPrice())
     }
 
-    clearTransaction() {
+    ClearTransaction() {
+        console.log("Clearing current transaction...");
+        //this.user = user; //TODO: if kiosk WILL NEED TO GO BACK TO LOGIN PAGE FOR NEW CUSTOMER
+
         this.currTransaction = null;
-        this.currTransaction = new Transaction(null, null, null, null, user, this);
+        this.currTransaction = new Transaction(null, null, null, null, this.user, this);
         this.totalPrice = 0;
         this.taxRate = 0.0825;
         this.discountRate = 0;
         this.priceOff = 0;
-        this.user = user; //TODO: WILL NEED TO GO BACK TO LOGIN PAGE FOR NEW CUSTOMER
+        
     }
-
+    GetCurrentState() {
+        console.log("Getting current state...");
+        console.log(this.currTransaction.orders.length);
+        return {
+            orders: this.currTransaction.orders.map(order => ({
+                cost: order.Item.price,
+                item: order.Item.itemID,
+                entrees: order.Tray.entrees,
+                side: order.Tray.sides,
+                orderNumber: this.currTransaction.orderNumber
+            })),
+            discountRate: this.discountRate,
+            priceOff: this.priceOff
+        };
+    }
 }
 
 
