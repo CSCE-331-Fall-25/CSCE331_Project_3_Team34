@@ -42,7 +42,7 @@ export default function Cashier() {
       });
   };
   //TODO: update remove, currently a clear button
-  const handleRemoveItem = (e) => {
+  const handleClearItem = (e) => {
     console.log("Remove item clicked");
     //Tells server to clear transaction
     fetch("http://localhost:5000/api/clear-transaction", {
@@ -54,6 +54,21 @@ export default function Cashier() {
           console.log("Transaction cleared");
           //server should be clear at this point so now we clear frontend
           ResetPage();
+        }
+      });
+  }
+  const handleRemoveItem = (e) => {
+    console.log("Remove item clicked");
+    fetch("http://localhost:5000/api/remove-item", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ index: selectedRow }) // Pass the index in the body
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          console.log("Item removed");
+          UpdatePage();
         }
       });
   }
@@ -108,6 +123,18 @@ export default function Cashier() {
   //Called on page refresh, should update frontend based on what is on the server
   useEffect(() => {
     console.log("Fetching current state from server...");
+    UpdatePage();
+  }, []);
+  
+
+  // Scroll to the latest added item whenever transactionItems change
+  useEffect(() => {
+    if (lastRowRef.current) {
+      lastRowRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [transactionItems]);
+
+  const UpdatePage = () => {
     fetch("http://localhost:5000/api/current-state")
       .then((res) => res.json())
       .then((data) => {
@@ -203,20 +230,55 @@ export default function Cashier() {
               </tr>
             </thead>
             <tbody>
-              {transactionItems.map((row, idx) => (
-                <tr key={idx}
-                    ref={idx === transactionItems.length - 1 ? lastRowRef : null}
-                    className={row.type === "main" ? idx === selectedRow ? "selected-row" : "clickable-row" : ""}        
-                    onClick={row.type === "main" ? () => setSelectedRow(idx): undefined}
-                >
-                  <td>
-                    {row.type === "main" ? `$${row.cost}` : ""}
-                  </td>
-                  <td>
-                    {row.type === "main" ? row.item : row.type === "entree" ? `Entree: ${row.item}` : `Side: ${row.item}`}
-                  </td>
-                </tr>
-              ))}
+              {/* Group transactionItems by main items, then render each main with its entrees/sides as subrows */}
+              {(() => {
+                // Build grouped array: [{ main, entrees: [], sides: [] }]
+                const grouped = [];
+                let i = 0;
+                while (i < transactionItems.length) {
+                  if (transactionItems[i].type === "main") {
+                    const main = transactionItems[i];
+                    const group = { main, entrees: [], sides: [] };
+                    let j = i + 1;
+                    while (j < transactionItems.length && transactionItems[j].type !== "main") {
+                      if (transactionItems[j].type === "entree") group.entrees.push(transactionItems[j]);
+                      if (transactionItems[j].type === "side") group.sides.push(transactionItems[j]);
+                      j++;
+                    }
+                    grouped.push(group);
+                    i = j;
+                  } else {
+                    i++;
+                  }
+                }
+                return grouped.map((group, mainIdx) => (
+                  <React.Fragment key={`group-${mainIdx}`}>
+                    <tr
+                      key={`main-${mainIdx}`}
+                      ref={mainIdx === grouped.length - 1 ? lastRowRef : null}
+                      className={mainIdx === selectedRow ? "selected-row" : "clickable-row"}
+                      onClick={() => setSelectedRow(mainIdx)}
+                    >
+                      <td>{`$${group.main.cost}`}</td>
+                      <td>{group.main.item}</td>
+                    </tr>
+                    {/* Render entrees as indented subrows */}
+                    {group.entrees.map((entree, eIdx) => (
+                      <tr key={`main-${mainIdx}-entree-${eIdx}-${entree.item}`} className="subrow">
+                        <td></td>
+                        <td style={{ paddingLeft: "2em" }}>{`Entree: ${entree.item}`}</td>
+                      </tr>
+                    ))}
+                    {/* Render sides as indented subrows */}
+                    {group.sides.map((side, sIdx) => (
+                      <tr key={`main-${mainIdx}-side-${sIdx}-${side.item}`} className="subrow">
+                        <td></td>
+                        <td style={{ paddingLeft: "2em" }}>{`Side: ${side.item}`}</td>
+                      </tr>
+                    ))}
+                  </React.Fragment>
+                ));
+              })()}
             </tbody>
           </table>
         </div>
