@@ -131,15 +131,37 @@ class CashierMainPage {
         this.totalPrice = subtotal - discountAmount + tax - this.priceOff;
         return subtotal,tax, this.totalPrice;
     }
-    PurchaseButton() {
+    PrintReceipt(transaction) {
+        console.log("----- Receipt -----");
+        transaction.orders.forEach((order, index) => {
+            console.log(`${index + 1}. Item ID: ${order.Item.itemID}, Price: $${order.Item.price.toFixed(2)}`);
+        });
+        let subtotal = 0;
+        transaction.orders.forEach(order => {
+            subtotal += order.Item.price;
+        });
+        let discountAmount = subtotal * this.discountRate;
+        let tax = subtotal * this.taxRate;
+        let total = subtotal - discountAmount + tax - this.priceOff;
+        console.log(`Subtotal: $${subtotal.toFixed(2)}`);
+        console.log(`Discount: -$${discountAmount.toFixed(2)}`);
+        console.log(`Price Off: -$${this.priceOff.toFixed(2)}`);
+        console.log(`Tax: $${tax.toFixed(2)}`);
+        console.log(`Total: $${Math.ceil(total * 100) / 100}`);
+        console.log("-------------------");
+        this.ClearTransaction();
+    }
+    PurchaseTransaction() {
         // Finalize purchase logic here
         if(this.debugging) {
             console.log("Purchase button clicked. Finalizing transaction...");
         }
-        console.log("Total Price: $" + this.GetTotalPrice().toFixed(2));
-        console.log(this.GetTotalPrice())
+        console.log("Total Price: $" + Math.ceil(this.GetTotalPrice()).toFixed(2));
+        //add logic to store transaction in database, print receipt, etc.
+        this.PrintReceipt(this.currTransaction);
     }
 
+    
     ClearTransaction() {
         console.log("Clearing current transaction...");
         //this.user = user; //TODO: if kiosk WILL NEED TO GO BACK TO LOGIN PAGE FOR NEW CUSTOMER

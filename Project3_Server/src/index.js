@@ -47,6 +47,12 @@ app.post('/api/clear-transaction', (req, res) => {
   mainPage.ClearTransaction();
   res.json({ success: true });
 });
+// API endpoint to purchase the transaction
+app.post('/api/purchase', (req, res) => {
+  mainPage.PurchaseTransaction();
+  res.json({ success: true });
+  
+});
 
 // Simple route
 app.get("/api/users", async (req, res) => {

@@ -1,7 +1,9 @@
 import "../styles/Cashier.css";
 import "../styles/DiscountModal.css";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 export default function Cashier() {
+  //newestRowRef for scrolling
+  const lastRowRef = useRef(null);
   //Discount buttons
   const [showDiscountModal, setShowDiscountModal] = useState(false);
   const [discountCode, setDiscountCode] = useState("");
@@ -53,7 +55,20 @@ export default function Cashier() {
         }
       });
   }
-  const handlePurchase = () => console.log("Purchase order");
+  const handlePurchase = (e) => {
+    console.log("Purchase order");
+    fetch("http://localhost:5000/api/purchase", {
+      method: "POST",
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          console.log("Purchase successful");
+          //server should be clear at this point so now we clear frontend
+          ResetPage();
+        }
+      });
+  }
   const handleSignOut = () => console.log("Sign out");
   const handleOpenInventory = () => console.log("Open inventory");
   const handleEditMenu = () => console.log("Edit menu");
@@ -170,27 +185,30 @@ export default function Cashier() {
       {/* Order summary area */}
       <div className="order-area">
         <p className="order-title">ORDER: # {currOrderNumber}</p>
-        <table className="orderTable order-table">
-          <thead>
-            <tr>
-              <th>Cost</th>
-              <th>Item</th>
-            </tr>
-          </thead>
-          <tbody> 
-            {/* make into a scrollable table */}
-            {transactionItems.map((row, idx) => (
-              <tr key={idx}>
-                <td>
-                  {row.type === "main" ? `$${row.cost}` : ""}
-                </td>
-                <td>
-                  {row.type === "main" ? row.item : row.type === "entree" ? `Entree: ${row.item}` : `Side: ${row.item}`}
-                </td>
+        <div className="order-table-scroll">
+          <table className="orderTable order-table">
+            <thead>
+              <tr>
+                <th>Cost</th>
+                <th>Item</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {transactionItems.map((row, idx) => (
+                <tr key={idx}
+                    ref={idx === transactionItems.length - 1 ? lastRowRef : null}         
+                >
+                  <td>
+                    {row.type === "main" ? `$${row.cost}` : ""}
+                  </td>
+                  <td>
+                    {row.type === "main" ? row.item : row.type === "entree" ? `Entree: ${row.item}` : `Side: ${row.item}`}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
         <div className="order-stats">
           {/* (total price - price off) * discountPercent */}
