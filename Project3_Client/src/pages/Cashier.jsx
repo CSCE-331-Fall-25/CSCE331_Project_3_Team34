@@ -133,7 +133,7 @@ export default function Cashier() {
       .then((data) => {
         if (data.success) {
           console.log("Order customized");
-          setselectedRow(null);
+          setSelectedRow(null);
           UpdatePage();
         }
       });
