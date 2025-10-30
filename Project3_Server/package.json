@@ -1,10 +1,11 @@
 {
   "name": "project3_server",
   "version": "1.0.0",
-  "main": "index.js",
+  "type": "module",
+  "main": "src/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": ""
+    "test": "node --test",
+    "dev": "node --watch src/index.js"
   },
   "keywords": [],
   "author": "",
