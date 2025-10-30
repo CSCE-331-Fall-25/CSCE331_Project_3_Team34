@@ -13,7 +13,7 @@ export default function Cashier() {
   const [transactionItems, setTransactionItems] = useState([]);
   const handleBuyItem = (e) => {
     //console.log("Item Button ID: " + e.target.id);
-    fetch("http://localhost:5000/api/buy-item", {
+  fetch("/api/buy-item", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ itemID: e.target.id }),
@@ -46,7 +46,7 @@ export default function Cashier() {
   const handleAddDiscount = () => setShowDiscountModal(true);
 
   const handleDiscountSubmit = () => {
-    fetch("http://localhost:5000/api/add-discount", {
+  fetch("/api/add-discount", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ discountCode }),
