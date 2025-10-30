@@ -38,6 +38,7 @@ export default function Cashier() {
           ]);
           setCurrCost((prev) => prev + data.cost);
           setCurrOrderNumber(currOrderNumber);
+          UpdatePage();
         }
         //console.log("Cost is: ", data.cost)
       });

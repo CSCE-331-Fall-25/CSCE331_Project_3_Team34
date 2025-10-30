@@ -41,7 +41,7 @@ app.post('/api/add-discount', (req, res) => {
   // Get the latest discount amount from the transaction
   const state = mainPage.GetCurrentState();
   const success = !!result.acceptedDiscount;
-  res.json({ success, acceptedDiscount: result.acceptedDiscount, discountAmount: state.discountAmount || 0 });
+  res.json({ success, acceptedDiscount: result.acceptedDiscount, discountAmount: result.discountAmount || 0 });
 });
 
 // API endpoint to clear the transaction

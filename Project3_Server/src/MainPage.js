@@ -59,6 +59,7 @@ class CashierMainPage {
         const lastOrder = this.currTransaction.orders[this.currTransaction.orders.length - 1];
         const tray = lastOrder.Tray;
         if(this.debugging)console.log("Cost should be: " + currItem.price);
+        
         return {
             cost: currItem.price,
             item: currItem.itemID,
@@ -116,7 +117,8 @@ class CashierMainPage {
             this.priceOff = newPriceOff;
             this.currTransaction.discountCode = currDicountCode;
         }
-        return { acceptedDiscount: 1, discountPer: this.discountRate, priceOff: this.priceOff, discountCode: this.discountCode};
+        let discountAmount = this.GetCostInformation().discountAmount;
+        return { acceptedDiscount: 1, discountAmount: discountAmount};
         
     }
 
