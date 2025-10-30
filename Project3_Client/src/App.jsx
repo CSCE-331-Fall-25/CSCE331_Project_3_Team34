@@ -79,6 +79,7 @@ export default function App() {
         <Route path="/kitchen" element={<Kitchen />} />
         <Route path="/kiosk" element={<Kiosk />} />
         <Route path="/hub" element={<Hub />} />
+        <Route path="/" element={<Cashier />} />
       </Routes>
     </div>
   )

@@ -146,18 +146,18 @@ class CashierMainPage {
             }
 
             console.log("Returning discount with " + this.discountRate + " " + this.priceOff)
+            let discountAmount = this.GetCostInformation().discountAmount;
+            return { acceptedDiscount: 1, discountAmount: discountAmount};
 
-            return { 
-                acceptedDiscount: true, 
-                discountPer: this.discountRate, 
-                priceOff: this.priceOff, 
-                discountCode: this.currTransaction.discountCode
-            };
 
         } catch (err) {
             console.error('Error querying discounts table:', err);
             return { acceptedDiscount: false };
         }
+
+        //TODO problem is improved discountRate will overwrite priceOff and vice versa
+        // Need to store both the best percentage and best fixed discount separately
+        let currDicountCode = discountCode;
         if(newDiscountRate > this.discountRate) {
             this.discountRate = newDiscountRate;
             this.currTransaction.discountCode = currDicountCode;

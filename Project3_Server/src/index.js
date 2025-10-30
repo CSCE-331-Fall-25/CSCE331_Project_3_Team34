@@ -68,10 +68,11 @@ app.post('/api/add-discount', async (req, res) => {
       console.log('Discount result:', result);
     }
     res.json({
-      success: result.acceptedDiscount === true,
-      acceptedDiscount: result.acceptedDiscount === true,
+      success: result.acceptedDiscount,
+      acceptedDiscount: result.acceptedDiscount,
       discountPer: result.discountPer || 0,
-      priceOff: result.priceOff || 0
+      priceOff: result.priceOff || 0,
+      discountAmount: result.discountAmount || 0 
     });
   } catch (err) {
     console.error('Error applying discount:', err);
@@ -82,9 +83,9 @@ app.post('/api/add-discount', async (req, res) => {
     });
   }
   // Get the latest discount amount from the transaction
-  const state = mainPage.GetCurrentState();
-  const success = !!result.acceptedDiscount;
-  res.json({ success, acceptedDiscount: result.acceptedDiscount, discountAmount: result.discountAmount || 0 });
+  // const state = mainPage.GetCurrentState();
+  // const success = !!result.acceptedDiscount;
+  // res.json({ success, acceptedDiscount: result.acceptedDiscount, discountAmount: result.discountAmount || 0 });
 });
 
 // API endpoint to clear the transaction
