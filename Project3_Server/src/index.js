@@ -109,8 +109,8 @@ const __dirname = path.dirname(__filename);
 // ✅ Serve React build folder (adjust if you used CRA instead of Vite)
 app.use(express.static(path.join(__dirname, "../../Project3_Client/dist")));
 
-// ✅ For any non-API route, serve index.html so React handles client-side routing
-app.get("*", (req, res) => {
+// ✅ For any non-API route, serve index.html so React handles client-side routing (Express 5 compatible)
+app.get("/*", (req, res) => {
   res.sendFile(path.join(__dirname, "../../Project3_Client/dist/index.html"));
 });
 
