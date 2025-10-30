@@ -78,6 +78,12 @@ app.post('/api/remove-item', (req, res) => {
   let result = mainPage.RemoveItemByIndex(index);
   res.json({ success: true, ...result });
 });
+//API endpoint to customize an order
+app.post('/api/customize-order', (req, res) => {
+  const { index } = req.body;
+  let result = mainPage.CustomizeOrder(index);
+  res.json({ success: true, ...result });
+});
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));

@@ -70,6 +70,7 @@ export default function Cashier() {
       .then((data) => {
         if (data.success) {
           console.log("Item removed");
+          setSelectedRow(null);
           UpdatePage();
         }
       });
@@ -120,6 +121,23 @@ export default function Cashier() {
         }
       });
   };
+  const handleCustomizeOrder = () => {
+    console.log("Customize order clicked");
+    // Implement customization logic here
+    fetch("http://localhost:5000/api/customize-order", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ index: selectedRow }) // Pass the index in the body
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          console.log("Order customized");
+          setselectedRow(null);
+          UpdatePage();
+        }
+      });
+  }
 
   //Called on page refresh, should update frontend based on what is on the server
   useEffect(() => {
@@ -166,9 +184,10 @@ export default function Cashier() {
   }, [transactionItems]);
 
   const ResetPage = () => {
-  setTransactionItems([]);
-  setCurrCost(0);
-  setDiscountAmount(0);
+    setSelectedRow(null);
+    setTransactionItems([]);
+    setCurrCost(0);
+    setDiscountAmount(0);
   }  
 
   return (
@@ -322,13 +341,11 @@ export default function Cashier() {
       </div>
 
       {/* Misc button */}
-      <div className="misc-buttons-row">
-        <button onClick={handleRemoveItem} className="miscButtonFlex remove-button">
-          REMOVE
-        </button>
-        <button onClick={ResetPage} className="miscButtonFlex clear-button">
-          CLEAR TRANS
-        </button>
+      <div className="updateOrder-button-row">
+        {/* Render all orderUpdate buttons in a row here */}
+        <button onClick={handleRemoveItem} className="UpdateOrderButton">REMOVE</button>
+        <button onClick={handleClearItem} className="UpdateOrderButton">CLEAR TRANS</button>
+        <button onClick={handleCustomizeOrder} className="UpdateOrderButton">CUSTOMIZE</button>
       </div>
 
       {/* Function buttons (left sidebar) */}

@@ -123,17 +123,6 @@ class CashierMainPage {
     }
 
 
-    // GetTotalPrice() {
-    //     let subtotal = 0;
-    //     for (let order of this.currTransaction.orders) {
-    //         subtotal += order.Item.price;
-    //     }
-    //     let discountAmount = subtotal * this.discountRate;
-    //     let tax = subtotal * this.taxRate;
-    //     this.totalPrice = subtotal - discountAmount + tax - this.priceOff;
-    //     let priceOff = this.priceOff;
-    //     return subtotal,tax, this.totalPrice, priceOff;
-    // }
     PrintReceipt(transaction) {
         console.log("----- Receipt -----");
         transaction.orders.forEach((order, index) => {
@@ -227,6 +216,29 @@ class CashierMainPage {
             priceOff,
             totalPrice: total
         };
+    }
+    CustomizeOrder(index) {
+        // Implement customization logic here
+        if(this.debugging) {
+            console.log("Customize order clicked");
+        }
+        let currentOrder = this.currTransaction.orders[index];
+        if(!currentOrder) {
+            if(this.debugging) {
+                console.log("Invalid order index: " + index);
+            }
+            return { success: false, error: "Invalid order index" };
+        }
+        
+        //TODO: add customization logic, Open a customization interface or modify the current order
+
+        //temp
+        //For example change first entree from orange chicken to beef
+        currentOrder.Tray.entrees[0] = "Beef Teriyaki";
+        if(this.debugging) {
+            console.log("Order customized: " + JSON.stringify(currentOrder.Tray));
+        }
+        return { success: true, tray: currentOrder.Tray };
     }
 }
 
