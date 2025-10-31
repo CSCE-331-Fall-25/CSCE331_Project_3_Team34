@@ -2,20 +2,13 @@
 class Item {
     // constructor supports placeholders or full DB-provided values
     constructor(itemID, name = null, price = null, numberOfSides = null, numberOfEntrees = null, inventoryIDs = null, type = null, numSideL = null, numEntresL = null) {
-        // Declaring constants
-        this.itemTypes = {
-            ENTREE: 'entree',
-            SIDE: 'side',
-            FAMILY: 'family'
-        };
-
         // Updates instance variables with parameters
         this.itemID = itemID;
         this.name = name || `item-${itemID}`;
         this.price = (price !== null && price !== undefined) ? Number(price) : 9.99;
         this.numberOfEntrees = (numberOfEntrees !== null && numberOfEntrees !== undefined) ? Number(numberOfEntrees) : 3;
         this.numberOfSides = (numberOfSides !== null && numberOfSides !== undefined) ? Number(numberOfSides) : 2;
-        this.itemType = type || this.itemTypes.ENTREE;
+        this.itemType = type || null;
         this.inventoryIDs = inventoryIDs || '';
         this.numSideLarge = (numSideL !== null && numSideL !== undefined) ? Number(numSideL) : 0;
         this.numEntreeLarge = (numEntresL !== null && numEntresL !== undefined) ? Number(numEntresL) : 0;
@@ -55,4 +48,77 @@ class Item {
     }
 }
 
+class Menu {
+    // constructor supports placeholders or full DB-provided values
+    constructor(menuid, name = null, type = null, pricemod = null, inventoryids = null) {
+        // Updates instance variables with parameters
+        this.menuid = menuid;
+        this.name = name || `menu-${menuid}`;
+        this.type = type || null;
+        this.pricemod = (pricemod !== null && pricemod !== undefined) ? Number(pricemod) : 0;
+        this.inventoryids = inventoryids || '';
+    }
+
+    // Load menu item by Name (buttonId) using a pg Pool-like db
+    static async fetchByName(db, buttonId) {
+        // Checks if the database exists
+        if (!db || typeof db.query !== 'function') {
+            throw new Error('DB pool not provided or invalid');
+        }
+
+        // Creates the query
+        const q = 'SELECT * FROM menu WHERE name = $1';
+        const res = await db.query(q, [buttonId]);
+
+        // If the query didn't return enough information
+        if (!res || !res.rows || res.rows.length === 0) return null;
+        
+        // Isolate the queries first result
+        const row = res.rows[0];
+
+        // Obtain the row values
+        const menuID = row.menuid ?? buttonId;
+        const menuName = row.name ?? `menu-${menuID}`;
+        const type = row.type ?? '';
+        const priceMod = row.pricemod ?? 0;
+        const invIDs = row.inventoryids ?? '';
+
+        console.log(`Fetched Menu from DB: ID=${menuID}, Name=${menuName}, Price=${priceMod}`);
+
+        return new Menu(menuID, menuName, type, priceMod, invIDs);
+    }
+
+    // Load menu items by type using a pg Pool-like db
+    static async fetchByType(db, type) {
+        // Checks if the database exists
+        if (!db || typeof db.query !== 'function') {
+            throw new Error('DB pool not provided or invalid');
+        }
+
+        // Creates the query
+        const q = 'SELECT * FROM menu WHERE type = $1';
+        const res = await db.query(q, [type]);
+
+        // If the query didn't return enough information
+        if (!res || !res.rows || res.rows.length === 0) return null;
+        
+        // Loop through each element of the result and create Menu instances
+        const menus = [];
+        for (const row of res.rows) {
+            const menuID = row.menuid ?? -1;
+            const menuName = row.name ?? `menu-${menuID}`;
+            const type = row.type ?? '';
+            const priceMod = row.pricemod ?? 0;
+            const invIDs = row.inventoryids ?? '';
+
+            console.log(`Fetched Menu from DB: ID=${menuID}, Name=${menuName}, Price=${priceMod}`);
+
+            menus.push(new Menu(menuID, menuName, type, priceMod, invIDs));
+        }
+        
+        return menus;
+    }
+}
+
 export default Item;
+export { Menu };

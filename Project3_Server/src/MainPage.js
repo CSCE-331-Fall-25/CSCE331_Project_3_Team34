@@ -1,5 +1,5 @@
 import Transaction from './Transaction.js';
-import Item from './Item.js';
+import Item, { Menu } from './Item.js';
 
 class User {
     constructor(username, password, email, employee = false) {
@@ -292,13 +292,4 @@ class CashierMainPage {
     }
 }
 
-
-
-
-
-
 export { CashierMainPage, User };
-
-
-
-
