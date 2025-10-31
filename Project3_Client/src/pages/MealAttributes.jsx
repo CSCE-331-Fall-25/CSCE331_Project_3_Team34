@@ -2,6 +2,9 @@ import "../styles/MealAttributes.css";
 import { useState } from "react";
 export default function MealAttributes() {
   //Items (this should be pulled from the database)
+
+  
+
   const items = ["Orange Chicken", "Teriyaki Chicken", "Beijing Beef", "Honey Walnut Shrimp", "Black Pepper Steak", "Sesame Chicken", "Butter Chicken", "Black Pepper Angus Beef"];
   
 
