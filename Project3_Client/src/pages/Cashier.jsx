@@ -32,7 +32,7 @@ export default function Cashier() {
           console.log("Item bought:", e.target.id);
           setTransactionItems((prev) => [
             ...prev,
-            { cost: data.cost, item: data.item, type: "main", currOrderNumber: data.orderNumber },
+            { cost: data.cost, item: data.name, type: "main", currOrderNumber: data.orderNumber },
             ...data.entrees.map((entree) => ({ item: entree, type: "entree" })),
             ...data.side.map((side) => ({ item: side, type: "side" }))
           ]);
@@ -47,7 +47,7 @@ export default function Cashier() {
   const handleClearItem = (e) => {
     console.log("Remove item clicked");
     //Tells server to clear transaction
-    fetch("http://localhost:5000/api/clear-transaction", {
+  fetch("/api/clear-transaction", {
       method: "POST",
     })
       .then((res) => res.json())
@@ -61,7 +61,7 @@ export default function Cashier() {
   }
   const handleRemoveItem = (e) => {
     console.log("Remove item clicked");
-    fetch("http://localhost:5000/api/remove-item", {
+  fetch("/api/remove-item", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ index: selectedRow }) // Pass the index in the body
@@ -77,7 +77,7 @@ export default function Cashier() {
   }
   const handlePurchase = (e) => {
     console.log("Purchase order");
-    fetch("http://localhost:5000/api/purchase", {
+  fetch("/api/purchase", {
       method: "POST",
     })
       .then((res) => res.json())
@@ -124,7 +124,7 @@ export default function Cashier() {
   const handleCustomizeOrder = () => {
     console.log("Customize order clicked");
     // Implement customization logic here
-    fetch("http://localhost:5000/api/customize-order", {
+  fetch("/api/customize-order", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ index: selectedRow }) // Pass the index in the body
@@ -154,7 +154,7 @@ export default function Cashier() {
   }, [transactionItems]);
 
   const UpdatePage = () => {
-    fetch("http://localhost:5000/api/current-state")
+  fetch("/api/current-state")
       .then((res) => res.json())
       .then((data) => {
         //Formats orders into a flat array for display
@@ -164,6 +164,7 @@ export default function Cashier() {
             ...(order.entrees ? order.entrees.map(entree => ({ item: entree, type: "entree" })) : []),
             ...(order.side ? order.side.map(side => ({ item: side, type: "side" })) : [])
           ]);
+          console.log("Formatted Items:", formattedItems);
           //updates the front end to show current items
           setTransactionItems(formattedItems);
         } else {
@@ -279,7 +280,11 @@ export default function Cashier() {
                       onClick={() => setSelectedRow(mainIdx)}
                     >
                       <td>{`$${group.main.cost}`}</td>
-                      <td>{group.main.item}</td>
+                      <td>{
+                        group.main && typeof group.main.item === 'object' && group.main.item !== null
+                          ? group.main.item.name
+                          : group.main.item
+                      }</td>
                     </tr>
                     {/* Render entrees as indented subrows */}
                     {group.entrees.map((entree, eIdx) => (

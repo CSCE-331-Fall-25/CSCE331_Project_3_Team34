@@ -77,7 +77,7 @@ class CashierMainPage {
         // Get the last order (just added)
         const lastOrder = this.currTransaction.orders[this.currTransaction.orders.length - 1];
         const tray = lastOrder.Tray;
-        if(this.debugging)console.log("Cost should be: " + currItem.price);
+        if(this.debugging)console.log("new item name: " + currItem.name);
         
         return {
             cost: currItem.price,
@@ -257,7 +257,7 @@ class CashierMainPage {
         return {
             orders: this.currTransaction.orders.map(order => ({
                 cost: order.Item.price,
-                item: order.Item.itemID,
+                item: order.Item.name,
                 entrees: order.Tray.entrees,
                 side: order.Tray.sides,
                 orderNumber: this.currTransaction.orderNumber
