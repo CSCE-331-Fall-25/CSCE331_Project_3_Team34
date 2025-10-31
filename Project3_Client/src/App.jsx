@@ -39,7 +39,7 @@ export default function App() {
     console.log("Logging in with ID:", employeeId, "and Password:", employeePassword);
 
     if(trimmedId === 'admin' && trimmedPassword === 'password') {
-      navigate("/MealAttributes");
+      navigate("/Hub");
     } else {
       alert('Invalid Employee ID or Password.');
     }

@@ -1,6 +1,9 @@
 import "../styles/MealAttributes.css";
 import { useState } from "react";
-export default function MealAttributes({numEntree = 2, numSides = 1}) {
+import { useNavigate } from "react-router-dom";
+export default function MealAttributes({itemType = "bowl", numEntree = 3, numSides = 2}) {
+
+  const navigate = useNavigate();
 
   //Items (this should be pulled from the database)
   function foodItem(name, cost, calories, premium, ID, type) {
@@ -47,11 +50,20 @@ export default function MealAttributes({numEntree = 2, numSides = 1}) {
   // TODO: Replace these with actual React state or backend calls
   const handleFinishSelection = () => {
     if (finished) {
-      fetch("http://localhost:5000/api/buy-item", {
+      fetch("http://localhost:5000/api/buy-item", { // create item!
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ entreeList, sideList }),
       })
+
+      console.log("The Item is a " + itemType + " and it contains: ");
+      entreeList.forEach((e) => console.log(e ? e.name : "empty"));
+      sideList.forEach((e) => console.log(e ? e.name : "empty"));
+
+      navigate("/Cashier");
+    }
+    else {
+      console.log("Finish Adding Items!");
     }
   };
 
@@ -94,6 +106,20 @@ export default function MealAttributes({numEntree = 2, numSides = 1}) {
     console.log("Slots Left: " + updated_sideIndex + "/" + numSides);
   }
 
+  const removeIndex = (i, type) => {
+    if (type === "entree") {
+      const updated = [...entreeList];
+      updated[i] = null; // remove the selected item
+      setEntreeList(updated);
+      setIndexEntree(Math.max(indexEntree - 1, 0));
+    } else if (type === "side") {
+      const updated = [...sideList];
+      updated[i] = null; // remove the selected item
+      setSideList(updated);
+      setIndexSide(Math.max(indexSide - 1, 0));
+    }
+  };
+
   
   const rows_entree = [];
   for (let i = 0; i < items_entrees.length; i += 5) {
@@ -108,49 +134,89 @@ export default function MealAttributes({numEntree = 2, numSides = 1}) {
   return (
     <div className="p-4 space-y-3 container">
 
-      <div className="section section-entrees">
+      <div className="main-layout">
+        <div className="menu-wrapper">
+          <div className="section section-entrees">
 
-        <h3 className="section-title">Entrees:</h3>
+            <h3 className="section-title">Entrees:</h3>
 
-        {rows_entree.map((row, rowIndex) => (
-          <div key={rowIndex} className={`menu-row ${rowIndex > 0 ? 'spaced' : ''}`}>
-            {row.map((item, itemIndex) => (
-              <button
-                key={itemIndex}
-                id={item.name}
-                className="buy-button"
-                //onClick={() => console.log("The item is: " + item.name + " and it costs this much: " + item.cost)}
-                onClick={() => selectEntree(item)}
-              >
-                {item.name}
-              </button>
+            {rows_entree.map((row, rowIndex) => (
+              <div key={rowIndex} className={`menu-row ${rowIndex > 0 ? 'spaced' : ''}`}>
+                {row.map((item, itemIndex) => (
+                  <button
+                    key={itemIndex}
+                    id={item.name}
+                    className="buy-button"
+                    //onClick={() => console.log("The item is: " + item.name + " and it costs this much: " + item.cost)}
+                    onClick={() => selectEntree(item)}
+                  >
+                    {item.name}
+                  </button>
+                ))}
+              </div>
             ))}
+
+          </div>   
+
+          <div className="section section-sides"> 
+
+            <h3 className="section-title">Sides:</h3>
+
+              {rows_side.map((row, rowIndex) => (
+                <div key={rowIndex} className={`menu-row ${rowIndex > 0 ? 'spaced' : ''}`}>
+                  {row.map((item, itemIndex) => (
+                    <button
+                      key={itemIndex}
+                      id={item.name}
+                      className="buy-button"
+                      //onClick={() => console.log("The item is: " + item.name + " and it costs this much: " + item.cost)}
+                      onClick={() => selectSide(item)}
+                    >
+                      {item.name}
+                    </button>
+                  ))}
+                </div>
+              ))}    
+            </div>
           </div>
-        ))}
+        </div>
 
-      </div>   
+        <div className="selected-panel">
+            {/* Selected Entrees */}
+            <div className="selected-group">
+              <h3 className="section-title">Selected Entrees</h3>
+              {Array.from({ length: numEntree }).map((_, i) => (
+                <button
+                  key={i}
+                  className="selected-button"
+                  onClick={() => removeIndex(i, "entree")}
+                >
+                  {entreeList[i] ? entreeList[i].name : "NONE"}
+                </button>
+              ))}
+            </div>
 
-      <div className="section section-sides"> 
-
-        <h3 className="section-title">Sides:</h3>
-
-        {rows_side.map((row, rowIndex) => (
-          <div key={rowIndex} className={`menu-row ${rowIndex > 0 ? 'spaced' : ''}`}>
-            {row.map((item, itemIndex) => (
-              <button
-                key={itemIndex}
-                id={item.name}
-                className="buy-button"
-                //onClick={() => console.log("The item is: " + item.name + " and it costs this much: " + item.cost)}
-                onClick={() => selectSide(item)}
-              >
-                {item.name}
-              </button>
-            ))}
-          </div>
-        ))}    
+            {/* Selected Sides */}
+            <div className="selected-group">
+              <h3 className="section-title">Selected Sides</h3>
+              {Array.from({ length: numSides }).map((_, i) => (
+                <button
+                  key={i}
+                  className="selected-button"
+                  onClick={() => removeIndex(i, "side")}
+                >
+                  {sideList[i] ? sideList[i].name : "NONE"}
+                </button>
+              ))}
+            </div>
       </div>
 
+      <button
+        className="continue-button"
+        onClick={handleFinishSelection}
+      >
+        Continue
+      </button>
     </div> 
 
     
