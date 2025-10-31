@@ -26,6 +26,13 @@ export default function MealAttributes({numEntree = 2, numSides = 1}) {
   // TODO: Use for loop to populate this list
   items.push(new foodItem("Orange Chicken", 0.0, 400, true, 67, "entree"))
   items.push(new foodItem("Teriyaki Chicken", 0.0, 400, true, 68, "entree"))
+  items.push(new foodItem("Butter Chicken", 0.0, 400, true, 67, "entree"))
+  items.push(new foodItem("Bejing Beef", 0.0, 400, true, 68, "entree"))
+  items.push(new foodItem("Black Pepper Angus Beef", 0.0, 400, true, 67, "entree"))
+  items.push(new foodItem("String Bean Chicken", 0.0, 400, true, 68, "entree"))
+
+  items.push(new foodItem("Fried Rice", 0.0, 400, true, 69, "side"))
+  items.push(new foodItem("Chow Mein", 0.0, 400, true, 70, "side"))
 
   for (let i = 0; i < items.length; i++) {
     if (items.at(i).type == "entree") {
@@ -50,8 +57,10 @@ export default function MealAttributes({numEntree = 2, numSides = 1}) {
 
   const selectEntree = (item) => {
     const updated = [...entreeList];
+    let updatedIndex = indexEntree;
     if (indexEntree < numEntree) {
       updated[indexEntree] = item;
+      updatedIndex = indexEntree + 1; 
         
       setEntreeList(updated);
       setIndexEntree(indexEntree + 1)
@@ -63,14 +72,15 @@ export default function MealAttributes({numEntree = 2, numSides = 1}) {
 
     console.log("Current Entree List and index: ")
     updated.forEach((e) => console.log(e ? e.name : "empty"));
-    console.log("Slots Left: " + indexEntree + "/" + numEntree);
+    console.log("Slots Left: " + updatedIndex + "/" + numEntree);
   }
 
   const selectSide = (item) => {
     const updated_side = [...sideList];
-    if (indexSide < numSide) {
+    let updated_sideIndex = indexSide;
+    if (indexSide < numSides) {
       updated_side[indexSide] = item;
-        
+      updated_sideIndex = indexSide + 1;
       setSideList(updated_side);
       setIndexSide(indexSide + 1)
 
@@ -81,7 +91,7 @@ export default function MealAttributes({numEntree = 2, numSides = 1}) {
 
     console.log("Current Side List and index: ")
     updated_side.forEach((e) => console.log(e ? e.name : "empty"));
-    console.log("Slots Left: " + indexSide + "/" + numSide);
+    console.log("Slots Left: " + updated_sideIndex + "/" + numSides);
   }
 
   
@@ -90,24 +100,59 @@ export default function MealAttributes({numEntree = 2, numSides = 1}) {
     rows_entree.push(items_entrees.slice(i, i + 5));
   }
 
+  const rows_side = [];
+  for (let i = 0; i < items_sides.length; i += 5) {
+    rows_side.push(items_sides.slice(i, i + 5));
+  }
+
   return (
     <div className="p-4 space-y-3 container">
 
-      {rows_entree.map((row, rowIndex) => (
-        <div key={rowIndex} className={`menu-row ${rowIndex > 0 ? 'spaced' : ''}`}>
-          {row.map((item, itemIndex) => (
-            <button
-              key={itemIndex}
-              id={item.name}
-              className="buy-button"
-              //onClick={() => console.log("The item is: " + item.name + " and it costs this much: " + item.cost)}
-              onClick={() => selectEntree(item)}
-            >
-              {item.name}
-            </button>
-          ))}
-        </div>
-      ))}       
+      <div className="section section-entrees">
+
+        <h3 className="section-title">Entrees:</h3>
+
+        {rows_entree.map((row, rowIndex) => (
+          <div key={rowIndex} className={`menu-row ${rowIndex > 0 ? 'spaced' : ''}`}>
+            {row.map((item, itemIndex) => (
+              <button
+                key={itemIndex}
+                id={item.name}
+                className="buy-button"
+                //onClick={() => console.log("The item is: " + item.name + " and it costs this much: " + item.cost)}
+                onClick={() => selectEntree(item)}
+              >
+                {item.name}
+              </button>
+            ))}
+          </div>
+        ))}
+
+      </div>   
+
+      <div className="section section-sides"> 
+
+        <h3 className="section-title">Sides:</h3>
+
+        {rows_side.map((row, rowIndex) => (
+          <div key={rowIndex} className={`menu-row ${rowIndex > 0 ? 'spaced' : ''}`}>
+            {row.map((item, itemIndex) => (
+              <button
+                key={itemIndex}
+                id={item.name}
+                className="buy-button"
+                //onClick={() => console.log("The item is: " + item.name + " and it costs this much: " + item.cost)}
+                onClick={() => selectSide(item)}
+              >
+                {item.name}
+              </button>
+            ))}
+          </div>
+        ))}    
+      </div>
+
     </div> 
+
+    
   );
 }
