@@ -7,7 +7,9 @@ import Menu from './pages/Menu.jsx'
 import Kitchen from './pages/Kitchen.jsx'
 import Kiosk from './pages/Kiosk.jsx'
 import Hub from './pages/Hub.jsx'
+import MealAttributes  from './pages/MealAttributes.jsx' 
 import './styles/App.css'
+
 
 
 export default function App() {
@@ -37,7 +39,7 @@ export default function App() {
     console.log("Logging in with ID:", employeeId, "and Password:", employeePassword);
 
     if(trimmedId === 'admin' && trimmedPassword === 'password') {
-      navigate("/hub");
+      navigate("/MealAttributes");
     } else {
       alert('Invalid Employee ID or Password.');
     }
@@ -73,6 +75,7 @@ export default function App() {
       {/* Routing logic */}
       <Routes>
         <Route path="/weather" element={<WeatherScreen />} />
+        <Route path="/setmeal" element={<MealAttributes />} />
         <Route path="/cashier" element={<Cashier />} />
         <Route path="/manager" element={<Manager />} />
         <Route path="/menu" element={<Menu />} />

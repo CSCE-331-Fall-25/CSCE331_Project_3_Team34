@@ -1,0 +1,171 @@
+/* Cashier layout styles */
+.container {
+	/* Fill the entire viewport so the cashier UI is full-screen */
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100vw;
+	height: 100vh;
+	margin: 0;
+	background: #fff;
+	box-shadow: none;
+	border-radius: 0;
+	overflow: hidden;
+	font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+	box-sizing: border-box;
+}
+
+.sidebar-left {
+	background-color: #9e0303;
+	border-right: 1px solid #e71616;
+	width: 80px;
+	height: 100%;
+	position: absolute;
+	left: 0;
+	top: 0;
+}
+
+.right-bg {
+	position: absolute;
+	right: 0;
+	top: 0;
+	width: 302px;
+	height: 100%;
+	object-fit: cover;
+}
+
+.header-bar {
+	position: absolute;
+	top: 0;
+	left: 73px;
+	width: 525px;
+	height: 70px;
+	background: linear-gradient(to bottom right, #de2020, #e81515);
+	border: 1px solid #e71616;
+}
+
+.label-employee {
+	position: absolute;
+	top: 25px;
+	left: 111px;
+	color: white;
+	font-weight: 700;
+}
+
+.label-time {
+	position: absolute;
+	top: 25px;
+	left: 410px;
+	color: white;
+	font-weight: 700;
+}
+
+.order-area {
+	position: absolute;
+	right: 0;
+	top: 40px;
+	width: 302px;
+	padding: 8px 6px;
+}
+
+.order-title {
+	color: #e71616;
+	font-weight: 700;
+	margin-left: 14px;
+}
+
+.order-table {
+	width: 100%;
+	margin-top: 10px;
+	border-collapse: collapse;
+}
+.order-table th,
+.order-table td {
+	text-align: left;
+	padding: 6px 8px;
+	border-bottom: 1px solid #eee;
+}
+
+.order-stats {
+	margin-top: 15px;
+	color: #e71616;
+}
+
+.purchase-button {
+	width: 100%;
+	margin-top: 10px;
+	background: #e71616;
+	color: #fff;
+	border: none;
+	padding: 12px 8px;
+	border-radius: 6px;
+	font-weight: 700;
+	cursor: pointer;
+}
+
+.menu-area {
+	position: absolute;
+	left: 100px;
+	top: 100px;
+	display: grid;
+	gap: 20px;
+}
+.menu-row {
+	display: flex;
+	gap: 20px;
+}
+.menu-area.spaced { 
+  margin-top: 60px;
+  margin-left: 30px;
+
+}
+
+.buy-button {
+	width: 70px;
+	height: 70px;
+	background: linear-gradient(180deg,#e03030,#eaeaea);
+	border: 1px solid #ccc;
+	border-radius: 8px;
+	cursor: pointer;
+	font-weight: 600;
+}
+.buy-button:hover { transform: translateY(-3px); box-shadow: 0 8px 16px rgba(0,0,0,0.12); }
+
+.remove-button {
+	position: absolute;
+	left: 470px;
+	top: 495px;
+	width: 99px;
+	height: 62px;
+	background: #444;
+	color: #fff;
+	border: none;
+	border-radius: 8px;
+	cursor: pointer;
+}
+
+.functions-column {
+	position: absolute;
+	top: 0;
+	left: 0;
+	padding: 8px;
+}
+.function-button {
+	width: 70px;
+	height: 70px;
+	display: block;
+	margin-bottom: 8px;
+	background: #fff;
+	border: 1px solid #ddd;
+	border-radius: 6px;
+	cursor: pointer;
+	font-weight: 600;
+}
+
+.miscButtonFlex {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	border-radius: 8px;
+}
