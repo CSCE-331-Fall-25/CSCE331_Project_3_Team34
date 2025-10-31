@@ -26,7 +26,7 @@ export default function MealAttributes({itemType = "bowl", numEntree = 3, numSid
   const items_sides = [];
   const items_entrees = [];
 
-  // TODO: Use for loop to populate this list
+  // TODO: Use for loop to populate this list, USE DATABASE!!!!
   items.push(new foodItem("Orange Chicken", 0.0, 400, true, 67, "entree"))
   items.push(new foodItem("Teriyaki Chicken", 0.0, 400, true, 68, "entree"))
   items.push(new foodItem("Butter Chicken", 0.0, 400, true, 67, "entree"))
@@ -109,15 +109,30 @@ export default function MealAttributes({itemType = "bowl", numEntree = 3, numSid
   const removeIndex = (i, type) => {
     if (type === "entree") {
       const updated = [...entreeList];
-      updated[i] = null; // remove the selected item
-      setEntreeList(updated);
+      updated[i] = null; 
+
+      const compact = updated.filter(x => x !== null);
+
+      while (compact.length < numSides) {
+        compact.push(null);
+      }
+
+      setEntreeList(compact);
       setIndexEntree(Math.max(indexEntree - 1, 0));
     } else if (type === "side") {
-      const updated = [...sideList];
+      const updated = [...sideList];      
       updated[i] = null; // remove the selected item
-      setSideList(updated);
+
+      const compact = updated.filter(x => x !== null);
+
+      while (compact.length < numSides) {
+        compact.push(null);
+      }
+
+      setSideList(compact);
       setIndexSide(Math.max(indexSide - 1, 0));
     }
+    
   };
 
   
@@ -182,7 +197,6 @@ export default function MealAttributes({itemType = "bowl", numEntree = 3, numSid
         </div>
 
         <div className="selected-panel">
-            {/* Selected Entrees */}
             <div className="selected-group">
               <h3 className="section-title">Selected Entrees</h3>
               {Array.from({ length: numEntree }).map((_, i) => (
@@ -196,7 +210,7 @@ export default function MealAttributes({itemType = "bowl", numEntree = 3, numSid
               ))}
             </div>
 
-            {/* Selected Sides */}
+            
             <div className="selected-group">
               <h3 className="section-title">Selected Sides</h3>
               {Array.from({ length: numSides }).map((_, i) => (
