@@ -140,6 +140,127 @@
 	cursor: pointer;
 }
 
+/* .functions-column {
+	position: absolute;
+	top: 0;
+	left: 0;
+	padding: 8px;
+}
+.function-button {
+	width: 70px;
+	height: 70px;
+	display: block;
+	margin-bottom: 8px;
+	background: #fff;
+	border: 1px solid #ddd;
+	border-radius: 6px;
+	cursor: pointer;
+	font-weight: 600;
+} */
+
+.miscButtonFlex {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	border-radius: 8px;
+}
+
+.order-area {
+	position: absolute;
+	right: 0;
+	top: 40px;
+	width: 302px;
+	padding: 8px 6px;
+}
+
+.order-title {
+	color: #e71616;
+	font-weight: 700;
+	margin-left: 14px;
+}
+
+.order-table {
+	width: 100%;
+	margin-top: 10px;
+	border-collapse: collapse;
+}
+.order-table th,
+.order-table td {
+	text-align: left;
+	padding: 6px 8px;
+	border-bottom: 1px solid #eee;
+}
+
+.order-stats {
+	margin-top: 15px;
+	color: #e71616;
+}
+
+.purchase-button {
+	width: 100%;
+	margin-top: 10px;
+	background: #e71616;
+	color: #fff;
+	border: none;
+	padding: 12px 8px;
+	border-radius: 6px;
+	font-weight: 700;
+	cursor: pointer;
+}
+
+.menu-area {
+	position: absolute;
+	left: 100px;
+	top: 100px;
+	display: grid;
+	gap: 20px;
+}
+.menu-row {
+	display: flex;
+	gap: 20px;
+}
+.menu-area.spaced { 
+  margin-top: 60px;
+  margin-left: 30px;
+
+}
+
+/* .buy-button {
+  width: 100px;
+  height: 70px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+} */
+
+
+.buy-button {
+	width: 70px;
+	height: 70px;
+	background: linear-gradient(180deg,#e03030,#840404);
+	border: 1px solid #ccc;
+	border-radius: 8px;
+	cursor: pointer;
+  color: rgb(237, 231, 231);
+	font-weight: 600;
+}
+.buy-button:hover { transform: translateY(-3px); box-shadow: 0 8px 16px rgba(0,0,0,0.12); }
+
+.remove-button {
+	position: absolute;
+	left: 470px;
+	top: 495px;
+	width: 99px;
+	height: 62px;
+	background: #444;
+	color: #fff;
+	border: none;
+	border-radius: 8px;
+	cursor: pointer;
+}
+
 .functions-column {
 	position: absolute;
 	top: 0;
@@ -164,4 +285,188 @@
 	justify-content: center;
 	gap: 8px;
 	border-radius: 8px;
+}
+
+.section-entrees {
+  margin-bottom: 60px; 
+}
+
+.section-sides {
+  margin-top: 20px; 
+}
+
+
+
+.menu-area h3 {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.section {
+  display: flex;
+  flex-direction: column; 
+  margin-bottom: 60px;    
+}
+
+
+.section-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-bottom: 15px;  
+}
+
+.menu-row {
+  display: flex;
+  gap: 20px;       
+  margin-bottom: 5px; 
+}
+
+.menu-wrapper {
+  display: flex;
+  flex-direction: column;  
+  gap: 60px; 
+  padding-left: 30px;              
+}
+
+.main-layout {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding-right: 40px;
+}
+
+
+.selected-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 40px; 
+  position: fixed; 
+  top: 20px; 
+  right: 40px; 
+}
+
+.selected-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.selected-group .section-title {
+  margin-bottom: 15px;
+}
+
+.selected-button {
+  width: 120px;
+  height: 50px;
+  margin-bottom: 10px;
+  background-color: #f44343;
+  border: 1px solid #000000;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+}
+
+.selected-button:hover {
+  background-color: #ff0000;
+}
+
+.continue-button {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  width: 150px;
+  height: 60px;
+  background-color: #e71616;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  transition: transform 0.1s ease-in-out;
+}
+
+.continue-button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 12px rgba(0,0,0,0.25);
+}
+
+/* .modal-overlay-meal {
+	position: "fixed";
+    top: 0;
+    left: 0;
+    width: 80%;
+    height: 80%;
+    background: "rgba(0,0,0,0.6)";
+    display: "flex";
+} */
+
+/* .modal-window-meal {
+	background: "#f9f9fb";
+    padding: "2.5rem 2rem 2rem 2rem";
+    borderRadius: "16px";
+    boxShadow: "0 8px 32px rgba(0;0;0;0.25)";
+    minWidth: "340px";
+    maxWidth: "90vw";
+	position: "relative";
+    display: "flex";
+    flexDirection: "column";
+    alignItems: "center";
+} */
+
+/* Container for your modal content */
+
+.modal-menu-container {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: flex-start !important;
+  justify-content: space-between !important;
+  width: 90%;
+  max-width: 90%;
+  margin: auto;
+  gap: 30px;
+}
+
+/* Make left side (menu) take ~65% */
+.main-layout {
+  width: 65%;
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+/* Fix menu wrapper so it doesn't push down content */
+.menu-wrapper {
+  width: 100%;
+  padding-left: 0 !important;
+}
+
+/* Selected panel stays on right side */
+.selected-panel {
+  width: 15%;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  position: relative !important; /* kill fixed position */
+  top: auto !important;
+  right: auto !important;
+}
+
+/* Selected buttons span width */
+.selected-button {
+  width: 100%;
+}
+
+/* Make buttons wrap cleanly */
+.menu-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.buy-button {
+  width: 90px;
+  height: 80px;
 }
