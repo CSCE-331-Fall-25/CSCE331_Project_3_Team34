@@ -224,12 +224,15 @@ class CashierMainPage {
             return { subtotal: 0, discountAmount: 0, tax: 0, total: 0, priceOff: 0 };
         }
         this.currTransaction.orders.forEach(order => {
-            subtotal += order.Item.price;
+            // Skip any orders with missing or invalid items
+            if (order && order.Item && typeof order.Item.price === 'number') {
+                subtotal += order.Item.price;
+            }
         });
-        let discountAmount = subtotal * this.discountRate;
-        let tax = subtotal * this.taxRate;
-        let total = subtotal - discountAmount + tax - this.priceOff;
-        let priceOff = this.priceOff;
+        let discountAmount = subtotal * (this.discountRate || 0);
+        let tax = subtotal * (this.taxRate || 0.0825);
+        let total = subtotal - discountAmount + tax - (this.priceOff || 0);
+        let priceOff = this.priceOff || 0;
         return { subtotal, discountAmount, tax, total, priceOff };
     }
     GetCurrentState() {

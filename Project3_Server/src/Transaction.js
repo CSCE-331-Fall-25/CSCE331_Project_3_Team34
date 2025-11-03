@@ -10,8 +10,11 @@ class Transaction {
     }
 
     NewOrder(itemInstance) {
-        this.currOrder = new Order(itemInstance);
+        // Ensure we have a valid item instance, create a default if none provided
+        const item = itemInstance || new Item('default');
+        this.currOrder = new Order(item);
         this.orders.push(this.currOrder);
+        return this.currOrder;
     }
 }
 
@@ -27,17 +30,18 @@ class Tray {
     constructor(item) {
         this.entrees = [];
         this.sides = [];
-        this.item = item;
-        const numberOfEntrees = item?.numberOfEntrees ?? 0;
-        const numberOfSides = item?.numberOfSides ?? 0;
+        this.item = item || { numberOfEntrees: 1, numberOfSides: 1 }; // Provide default if item is null
+        const numberOfEntrees = this.item.numberOfEntrees ?? 1;
+        const numberOfSides = this.item.numberOfSides ?? 1;
 
+        // Always initialize with at least one of each
         for (let i = 0; i < numberOfEntrees; i++) {
-            this.openSelectionPage('entree'); // Placeholder
+            this.openSelectionPage('entree');
         }
         for (let j = 0; j < numberOfSides; j++) {
-            this.openSelectionPage('side'); // Placeholder
+            this.openSelectionPage('side');
         }
-        // console.log(`Tray completed with Entrees: ${this.entrees} and Sides: ${this.sides}`);
+        console.log(`Tray initialized with ${this.entrees.length} entrees and ${this.sides.length} sides`);
     }
 
     openSelectionPage(fillType) {
