@@ -2,7 +2,8 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import pkg from "pg";
-import { CashierMainPage, User } from "./MainPage.js";
+import CashierMainPage from "./MainPage.js";
+import User, {Employee, Customer} from "./User.js";
 
 dotenv.config();
 const { Pool } = pkg;
@@ -37,6 +38,7 @@ export function setPool(newPool) {
     mainPage.setDB(newPool);
   }
 }
+
 
 // Example: create a test user and main page instance (pass the pool so it has DB access)
 const user = new User("testUser", "password123", "bob@gmail.com");

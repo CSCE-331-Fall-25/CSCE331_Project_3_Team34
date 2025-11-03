@@ -1,18 +1,6 @@
 import Transaction from './Transaction.js';
-import Item, { Menu } from './Item.js';
-
-class User {
-    constructor(username, password, email, employee = false) {
-        // Initialize instance variables
-        this.username = username;
-        this.password = password;
-        this.email = email;
-        this.employee = employee;
-
-        console.log(`User created: ${username}, Employee: ${employee}`);
-    }
-    
-}
+import Item, {Menu} from './Item.js';
+import User, {Employee, Customer} from './User.js';
 
 class CashierMainPage {
     
@@ -293,4 +281,4 @@ class CashierMainPage {
     }
 }
 
-export { CashierMainPage, User };
+export default CashierMainPage;
