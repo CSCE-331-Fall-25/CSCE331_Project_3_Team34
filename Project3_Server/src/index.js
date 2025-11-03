@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import pkg from "pg";
 import CashierMainPage from "./MainPage.js";
 import User, {Employee, Customer} from "./User.js";
+import { Report } from "./Reports.js";
 
 dotenv.config();
 const { Pool } = pkg;
@@ -43,6 +44,7 @@ export function setPool(newPool) {
 // Example: create a test user and main page instance (pass the pool so it has DB access)
 const user = new User("testUser", "password123", "bob@gmail.com");
 const mainPage = new CashierMainPage(user, pool);
+const reports = new Report(pool);
 
 // API endpoint to buy an item
 app.post('/api/buy-item', async (req, res) => {
@@ -130,6 +132,92 @@ app.post('/api/customize-order', (req, res) => {
 app.get('/api/health', (req, res) => {
   res.json({ ok: true });
 });
+
+
+// Reports API endpoints
+app.post('/api/x-report-data', async (req, res) => {
+  try {
+    console.log("request recieved");
+    res.json(await reports.XReportData());
+  } catch (err) {
+    console.error('Error getting data');
+    res.json({ 
+      hour: -1, 
+      sales: -1,
+    });
+  }
+});
+
+app.get('/api/x-report-data', async (req, res) => {
+  try {
+    console.log("request recieved");
+    res.json(await reports.XReportData());
+  } catch (err) {
+    console.error('Error getting data');
+    res.json({ 
+      hour: -1, 
+      sales: -1,
+    });
+  }
+});
+
+app.get('/api/z-report-data', async (req, res) => {
+  try {
+    console.log("request recieved");
+    res.json(await reports.ZReportData());
+  } catch (err) {
+    console.error('Error getting data');
+    res.json({ 
+      hour: -1, 
+      sales: -1,
+    });
+  }
+});
+
+app.post('/api/sales-report-data', async (req, res) => {
+  try {
+    console.log("request recieved");
+    const { startTime, endTime } = req.body;
+    res.json(await reports.SalesReportData(startTime, endTime));
+  } catch (err) {
+    console.error('Error getting data');
+    res.json({ 
+      menuid: -1, 
+      name: -1, 
+      sales: -1
+    });
+  }
+});
+
+app.post('/api/product-usage-report-data', async (req, res) => {
+  try {
+    console.log("request recieved");
+    const { startTime, endTime } = req.body;
+    res.json(await reports.ProductUsageReportData(startTime, endTime));
+  } catch (err) {
+    console.error('Error getting data');
+    res.json({ 
+      inventoryid: -1, 
+      name: -1, 
+      sales: -1
+    });
+  }
+});
+
+app.get('/api/restock-report-data', async (req, res) => {
+  try {
+    console.log("request recieved");
+    res.json(await reports.RestockReportData());
+  } catch (err) {
+    console.error('Invalid input data');
+    res.json({ 
+      itemid: -1, 
+      name: -1, 
+      quantity: -1
+    });
+  }
+});
+
 
 import path from "path";
 import { fileURLToPath } from "url";

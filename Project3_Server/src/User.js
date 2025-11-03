@@ -70,6 +70,7 @@ class User {
 
         return users;
     }
+
 }
 
 class Employee extends User {
