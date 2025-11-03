@@ -1,6 +1,6 @@
 import React from "react";
-import "../styles/Cashier.css";
-import "../styles/DiscountModal.css";
+import "../styles/Cashier/Cashier.css";
+import "../styles/Cashier/DiscountModal.css";
 import { useEffect, useState, useRef } from "react";
 export default function Cashier() {
   //newestRowRef for scrolling
