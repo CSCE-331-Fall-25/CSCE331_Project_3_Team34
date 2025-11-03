@@ -235,7 +235,7 @@ app.use((req, res, next) => {
   res.sendFile(path.join(__dirname, "../../Project3_Client/dist/index.html"));
 });
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 8080;
 if (process.env.NODE_ENV !== 'test') {
   app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
 }
@@ -269,5 +269,5 @@ export default app;
 //   }
 // });
 
-// const PORT = process.env.PORT || 5000;
+// const PORT = process.env.PORT || 8080;
 // app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`))

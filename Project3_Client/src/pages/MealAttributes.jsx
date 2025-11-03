@@ -12,7 +12,7 @@ export default function MealAttributes() {
   const [transactionItems, setTransactionItems] = useState([]);
   const handleChooseItem = (e) => {
     //console.log("Item Button ID: " + e.target.id);
-    fetch("http://localhost:5000/api/buy-item", {
+  fetch("http://localhost:8080/api/buy-item", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ itemID: e.target.id }),
