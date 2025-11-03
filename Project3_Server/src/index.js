@@ -86,14 +86,10 @@ app.post('/api/add-discount', async (req, res) => {
       error: 'Failed to apply discount' 
     });
   }
-  // Get the latest discount amount from the transaction
-  // const state = mainPage.GetCurrentState();
-  // const success = !!result.acceptedDiscount;
-  // res.json({ success, acceptedDiscount: result.acceptedDiscount, discountAmount: result.discountAmount || 0 });
 });
 
 // API endpoint to clear the transaction
-app.post('/api/clear-transaction', (req, res) => {
+app.delete('/api/clear-transaction', (req, res) => {
   mainPage.ClearTransaction();
   res.json({ success: true });
 });

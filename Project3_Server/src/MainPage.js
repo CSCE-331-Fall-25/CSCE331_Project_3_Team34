@@ -67,6 +67,7 @@ class CashierMainPage {
         const tray = lastOrder.Tray;
         if(this.debugging)console.log("new item name: " + currItem.name);
         
+        //TODO: check if we even need to return anything here besides confirmation we bought the item
         return {
             cost: currItem.price,
             item: currItem.name,
