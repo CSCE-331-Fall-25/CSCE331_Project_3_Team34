@@ -16,11 +16,13 @@ export default function Cashier() {
 
   const [numEntree, setNumEntree] = useState(0);
   const [numSide, setNumSide] = useState(0);
+  const [itemType, setItemType] = useState("NULL");
   
   const [entreeList, setEntreeList] = useState(() => Array(numEntree).fill(null));
   const [sideList, setSideList] = useState(() => Array(numSide).fill(null));
   const [indexEntree, setIndexEntree] = useState(0);
-  const [indexSide, setIndexSide] = useState(0); 
+  const [indexSide, setIndexSide] = useState(0);
+   
 
   const items = [];
   
@@ -153,6 +155,7 @@ export default function Cashier() {
   }
 
   const handleBuildItem = (e) => {
+    setItemType(e.target.id);
     switch(e.target.id) {
       case "Bowl":
         setNumEntree(1);
@@ -162,7 +165,17 @@ export default function Cashier() {
         setNumEntree(2);
         setNumSide(1);
         break;
-      break;
+      case "Bigger":
+        setNumEntree(3);
+        setNumSide(1);
+        break;
+      case "Family":
+        setNumEntree(3);
+        setNumSide(2);
+        break;
+      default:
+        console.log("Not a valid type");
+        break;
     }
 
     setEntreeList(Array(numEntree).fill(null));
