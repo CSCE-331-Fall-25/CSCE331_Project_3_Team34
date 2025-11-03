@@ -2,24 +2,28 @@ import React from "react";
 import "../styles/Cashier/Cashier.css";
 import "../styles/Cashier/DiscountModal.css";
 import { useEffect, useState, useRef } from "react";
+import { CashierMainPage } from "../../../Project3_Server/src/MainPage";
 export default function Cashier() {
-  //newestRowRef for scrolling
+  //newest Row reference for auto scrolling
   const lastRowRef = useRef(null);
-  //handles selected row of items
+  //handles selected row of items (used for removal/customization)
   const [selectedRow, setSelectedRow] = useState(null);
   //Discount buttons
   const [showDiscountModal, setShowDiscountModal] = useState(false);
   const [discountCode, setDiscountCode] = useState("");
   const [discountAmount, setDiscountAmount] = useState(0);
   const [discountPriceOff, setDiscountPriceOff] = useState(0);
+  const [discountError, setDiscountError] = useState("");
+
+  //updates for orderTable
   const [currCost, setCurrCost] = useState(0);
   const [currOrderNumber, setCurrOrderNumber] = useState(1);
-  const taxRate = 0.0825;
-  const [discountError, setDiscountError] = useState("");
-  // TODO: Replace these with actual React state or backend calls
+  const TAXRATE = 0.0825;
   const [transactionItems, setTransactionItems] = useState([]);
+
+  //Button Functions
+  //TODO: Make update based on INPUT from CUSTOMIZATION MODAL (get information to start the order)
   const handleBuyItem = (e) => {
-    //console.log("Item Button ID: " + e.target.id);
   fetch("/api/buy-item", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -30,32 +34,26 @@ export default function Cashier() {
       .then((data) => {
         if (data.success) {
           console.log("Item bought:", e.target.id);
-          setTransactionItems((prev) => [
-            ...prev,
-            { cost: data.cost, item: data.name, type: "main", currOrderNumber: data.orderNumber },
-            ...data.entrees.map((entree) => ({ item: entree, type: "entree" })),
-            ...data.side.map((side) => ({ item: side, type: "side" }))
-          ]);
-          setCurrCost((prev) => prev + data.cost);
-          setCurrOrderNumber(currOrderNumber);
           UpdatePage();
+        }
+        else {
+          console.log("ERROR: Failed to buy item:", e.target.id);
         }
         //console.log("Cost is: ", data.cost)
       });
   };
-  //TODO: update remove, currently a clear button
   const handleClearItem = (e) => {
-    console.log("Remove item clicked");
+    if(CashierMainPage.debugging)console.log("Remove item clicked");
     //Tells server to clear transaction
-  fetch("/api/clear-transaction", {
-      method: "POST",
-    })
+    fetch("/api/clear-transaction", {
+        method: "delete",
+      })
       .then((res) => res.json())
       .then((data) => {
         if (data.success) {
-          console.log("Transaction cleared");
-          //server should be clear at this point so now we clear frontend
-          ResetPage();
+          if(CashierMainPage.debugging)console.log("Transaction cleared");
+          //server should be clear at this point so now we update frontend
+          UpdatePage();
         }
       });
   }
@@ -73,11 +71,14 @@ export default function Cashier() {
           setSelectedRow(null);
           UpdatePage();
         }
+        else {
+          console.log("ERROR: Failed to remove item at index:", selectedRow);
+        }
       });
   }
   const handlePurchase = (e) => {
     console.log("Purchase order");
-  fetch("/api/purchase", {
+    fetch("/api/purchase", {
       method: "POST",
     })
       .then((res) => res.json())
@@ -85,16 +86,16 @@ export default function Cashier() {
         if (data.success) {
           console.log("Purchase successful");
           //server should be clear at this point so now we clear frontend
-          ResetPage();
+          UpdatePage();
         }
       });
   }
+
   const handleSignOut = () => console.log("Sign out");
   const handleOpenInventory = () => console.log("Open inventory");
   const handleEditMenu = () => console.log("Edit menu");
   const handleEditItems = () => console.log("Edit items");
   const handleOpenEmployee = () => console.log("Open employees");
-  const handleVoidItem = () => console.log("Void item");
   const handleViewReports = () => console.log("View reports");
   const handleAddDiscount = () => setShowDiscountModal(true);
 
@@ -110,21 +111,25 @@ export default function Cashier() {
         if (data.acceptedDiscount) {
           setShowDiscountModal(false);
           setDiscountError("");
-          // Only update discountPercent if new value is greater
-          console.log("Discount Amount:", data.discountAmount);
-          setDiscountAmount(data.discountAmount);} 
+          if(CashierMainPage.debugging)console.log("Discount Amount:", data.discountAmount);
+          //setDiscountAmount(data.discountAmount);} 
+          UpdatePage();
+        }
         else if (data.acceptedDiscount === -1) {
           setDiscountError("Cannot apply discount before adding items");
+          //TODO: set ERROR modal to display error
         }
         else {
           setDiscountError("Invalid discount code");
         }
       });
   };
+
+  //TODO: Make update based on INPUT from CUSTOMIZATION MODAL
   const handleCustomizeOrder = () => {
-    console.log("Customize order clicked");
+    if(CashierMainPage.debugging)console.log("Customize order clicked");
     // Implement customization logic here
-  fetch("/api/customize-order", {
+    fetch("/api/customize-order", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ index: selectedRow }) // Pass the index in the body
@@ -171,25 +176,14 @@ export default function Cashier() {
           setTransactionItems([]);
         }
         //Calls functions to update their states
-  setCurrCost(data.totalPrice || 0);
-  setDiscountAmount(data.discountAmount || 0);
-  setDiscountPriceOff(data.priceOff || 0);
+        setCurrCost(data.totalPrice || 0);
+        setDiscountAmount(data.discountAmount || 0);
+        setDiscountPriceOff(data.priceOff || 0);
       });
   }
 
-  // Scroll to the latest added item whenever transactionItems change
-  useEffect(() => {
-    if (lastRowRef.current) {
-      lastRowRef.current.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [transactionItems]);
 
-  const ResetPage = () => {
-    setSelectedRow(null);
-    setTransactionItems([]);
-    setCurrCost(0);
-    setDiscountAmount(0);
-  }  
+
 
   return (
     <div className="main-page bkgColor cashier-container">
@@ -272,6 +266,7 @@ export default function Cashier() {
                   }
                 }
                 return grouped.map((group, mainIdx) => (
+                  // takes group and renders main row plus entrees/sides
                   <React.Fragment key={`group-${mainIdx}`}>
                     <tr
                       key={`main-${mainIdx}`}
@@ -279,12 +274,12 @@ export default function Cashier() {
                       className={mainIdx === selectedRow ? "selected-row" : "clickable-row"}
                       onClick={() => setSelectedRow(mainIdx)}
                     >
-                      <td>{`$${group.main.cost}`}</td>
-                      <td>{
-                        group.main && typeof group.main.item === 'object' && group.main.item !== null
-                          ? group.main.item.name
-                          : group.main.item
-                      }</td>
+                    <td>{`$${group.main.cost}`}</td>
+                    <td>{
+                      group.main && typeof group.main.item === 'object' && group.main.item !== null
+                        ? group.main.item.name
+                        : group.main.item
+                    }</td>
                     </tr>
                     {/* Render entrees as indented subrows */}
                     {group.entrees.map((entree, eIdx) => (
@@ -311,8 +306,8 @@ export default function Cashier() {
           {/* (total price - price off) * discountPercent */}
           <p>Total Cost: ${(currCost).toFixed(2)}</p>
           <p>Discount Amount: ${typeof discountAmount === "number" ? discountAmount.toFixed(2) : "0.00"}</p>
-          <p>Tax: ${(currCost * taxRate).toFixed(2)}</p>
-          <p>Price Total: ${((currCost - (typeof discountAmount === "number" ? discountAmount : 0)) + taxRate * currCost).toFixed(2)}</p>
+          <p>Tax: ${(currCost * TAXRATE).toFixed(2)}</p>
+          <p>Price Total: ${((currCost - (typeof discountAmount === "number" ? discountAmount : 0)) + TAXRATE * currCost).toFixed(2)}</p>
         </div>
 
         <button onClick={handlePurchase} className="miscButtonFlex purchase-button">
@@ -345,7 +340,7 @@ export default function Cashier() {
         </div>
       </div>
 
-      {/* Misc button */}
+      {/* update order buttons */}
       <div className="updateOrder-button-row">
         {/* Render all orderUpdate buttons in a row here */}
         <button onClick={handleRemoveItem} className="UpdateOrderButton">REMOVE</button>
@@ -362,7 +357,6 @@ export default function Cashier() {
           { text: "Employees", handler: handleOpenEmployee },
           { text: "Edit Items", handler: handleEditItems },
           { text: "Edit Menu", handler: handleEditMenu },
-          { text: "Void", handler: handleVoidItem },
           { text: "Sign Out", handler: handleSignOut },
         ].map((btn) => (
           <button key={btn.text} onClick={btn.handler} className="function-button">
