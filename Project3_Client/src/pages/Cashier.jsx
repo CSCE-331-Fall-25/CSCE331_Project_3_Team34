@@ -333,14 +333,14 @@ export default function Cashier() {
           ))}
         </div>
         <div className="menu-row spaced">
-          {["A'La Carte", "Appetizer"].map((item) => (
+          {["A La Carte", "Appetizer"].map((item) => (
             <button key={item} id={item} className="buy-button" onClick={handleBuyItem}>
               {item}
             </button>
           ))}
         </div>
         <div className="menu-row spaced">
-          {["SM Drink", "MD Drink", "LG Drink", "Bottle"].map((item) => (
+          {["Small Drink", "Medium Drink", "Large Drink", "Bottle"].map((item) => (
             <button key={item} id={item} className="buy-button" onClick={handleBuyItem}>
               {item}
             </button>
