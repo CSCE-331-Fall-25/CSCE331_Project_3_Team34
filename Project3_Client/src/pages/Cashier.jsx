@@ -116,9 +116,6 @@ export default function Cashier() {
           if(CashierMainPage.debugging)console.log("Discount Amount:", data.discountAmount);
           //setDiscountAmount(data.discountAmount);} 
           UpdatePage();
-          setShowMiscModal(true);
-          setMiscModalTitle("Success");
-          setMiscModalMessage("Discount applied successfully!");
         }
         else if (data.acceptedDiscount === -1) {
           if(CashierMainPage.debugging)console.log("Cannot apply discount before adding items");
