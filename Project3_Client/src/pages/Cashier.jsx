@@ -2,7 +2,7 @@ import React from "react";
 import "../styles/Cashier/Cashier.css";
 import "../styles/Cashier/DiscountModal.css";
 import { useEffect, useState, useRef } from "react";
-import { CashierMainPage } from "../../../Project3_Server/src/MainPage";
+import CashierMainPage from "../../../Project3_Server/src/MainPage";
 export default function Cashier() {
   //newest Row reference for auto scrolling
   const lastRowRef = useRef(null);
@@ -13,7 +13,7 @@ export default function Cashier() {
   const [discountCode, setDiscountCode] = useState("");
   const [discountAmount, setDiscountAmount] = useState(0);
   const [discountPriceOff, setDiscountPriceOff] = useState(0);
-  const [discountError, setDiscountError] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
 
   //updates for orderTable
   const [currCost, setCurrCost] = useState(0);
@@ -108,19 +108,25 @@ export default function Cashier() {
       .then((res) => res.json())
       .then((data) => {
         console.log("Discount response:", data);
-        if (data.acceptedDiscount) {
+        if (data.acceptedDiscount === 1) {
           setShowDiscountModal(false);
-          setDiscountError("");
+          //setErrorMessage("");
           if(CashierMainPage.debugging)console.log("Discount Amount:", data.discountAmount);
           //setDiscountAmount(data.discountAmount);} 
           UpdatePage();
+          setShowMiscModal(true);
+          setMiscModalTitle("Success");
+          setMiscModalMessage("Discount applied successfully!");
         }
         else if (data.acceptedDiscount === -1) {
-          setDiscountError("Cannot apply discount before adding items");
-          //TODO: set ERROR modal to display error
+          if(CashierMainPage.debugging)console.log("Cannot apply discount before adding items");
+          setErrorMessage("Cannot apply discount before adding items");
+          
+
         }
         else {
-          setDiscountError("Invalid discount code");
+          setErrorMessage("Invalid discount code");
+          
         }
       });
   };
@@ -143,10 +149,13 @@ export default function Cashier() {
         }
       });
   }
+  
+  
 
   //Called on page refresh, should update frontend based on what is on the server
   useEffect(() => {
     console.log("Fetching current state from server...");
+    
     UpdatePage();
   }, []);
   
@@ -204,7 +213,7 @@ export default function Cashier() {
               placeholder="Discount Code"
               className="modal-input"
             />
-            <div className="modal-error">{discountError}</div>
+            <div className="modal-error">{errorMessage}</div>
             <div className="modal-actions">
               <button
                 onClick={handleDiscountSubmit}
