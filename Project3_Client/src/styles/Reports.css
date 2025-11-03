@@ -1,0 +1,33 @@
+.flexTimes {
+    min-height: auto;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    bottom: 2.5%;
+    position: fixed;
+    width: 100%;
+}
+
+.flexReports {
+    display: flex;
+    padding: 10px;
+    flex-direction: row;
+    justify-content: center;
+    bottom: 5%;
+    width: 100%;
+    position: fixed;
+}
+
+.backButton {
+    bottom: 0%;
+    left: 93%;
+    position: fixed;
+}
+
+.timeButton {
+    padding: 10px;
+    margin-right: 30px;
+    justify-content: center;
+}

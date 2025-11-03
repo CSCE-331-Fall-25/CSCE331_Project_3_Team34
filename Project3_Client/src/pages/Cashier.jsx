@@ -1,8 +1,10 @@
 import React from "react";
 import "../styles/Cashier/Cashier.css";
 import "../styles/Cashier/DiscountModal.css";
+import { useNavigate } from 'react-router-dom';
 import { useEffect, useState, useRef } from "react";
 export default function Cashier() {
+  const navigate = useNavigate();
   //newestRowRef for scrolling
   const lastRowRef = useRef(null);
   //handles selected row of items
@@ -95,7 +97,7 @@ export default function Cashier() {
   const handleEditItems = () => console.log("Edit items");
   const handleOpenEmployee = () => console.log("Open employees");
   const handleVoidItem = () => console.log("Void item");
-  const handleViewReports = () => console.log("View reports");
+  const handleViewReports = () => navigate('/reports')
   const handleAddDiscount = () => setShowDiscountModal(true);
 
   const handleDiscountSubmit = () => {
