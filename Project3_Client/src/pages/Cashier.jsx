@@ -61,17 +61,13 @@ export default function Cashier() {
   // TODO: Replace these with actual React state or backend calls
   const handleFinishSelection = () => {
     if (finished) {
-      fetch("http://localhost:5000/api/buy-item", { // create item!
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ entreeList, sideList }),
-      })
 
-      console.log("The Item is a " + itemType + " and it contains: ");
+      // TODO: CREATE THE TRAY TO ADD TRANSACTION LIST!!! ALL YOUR INFORMATION IS PRINTED BELOW!
+      
       entreeList.forEach((e) => console.log(e ? e.name : "empty"));
       sideList.forEach((e) => console.log(e ? e.name : "empty"));
 
-      navigate("/Cashier");
+      setShowCreateMealModal(false);
     }
     else {
       console.log("Finish Adding Items!");
