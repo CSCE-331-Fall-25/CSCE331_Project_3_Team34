@@ -35,7 +35,7 @@ class Report {
 
         const data = [];
         try {
-            const q = 'SELECT time FROM transactions WHERE time BETWEEN \'' + this.HourToSQLTime(hours[0]) + '\' AND \'' + this.HourToSQLTime(hours[hours.length - 1]) + '\' ORDER BY time ASC';
+            const q = 'SELECT time FROM transactions WHERE recent = true ORDER BY time ASC';
             // const q = 'SELECT time FROM transactions WHERE time BETWEEN \'2020-1-1 10:00:00\' AND \'2020-1-1 20:00:00\' ORDER BY time ASC';
             const result = await this.db.query(q);
             if (!result.rows || result.rows.length === 0) {
@@ -64,7 +64,14 @@ class Report {
 
     async ZReportData() {
         const data = await this.XReportData();
-        this.zClear = true;
+        const q = 'UPDATE transactions SET recent = false WHERE recent = true';
+        try {
+            await this.db.query(q);
+        }
+        catch (err) {
+            console.log("Error clearing recent flags");
+            return { hour: -1, sales: -1 };
+        }
         return data;
     }
 
