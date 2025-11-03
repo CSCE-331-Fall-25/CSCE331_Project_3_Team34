@@ -35,8 +35,8 @@ class Report {
 
         const data = [];
         try {
-            // const q = 'SELECT time FROM transactions WHERE time BETWEEN \'' + this.HourToSQLTime(hours[0]) + '\' AND \'' + this.HourToSQLTime(hours[hours.length - 1]) + '\' ORDER BY time ASC';
-            const q = 'SELECT time FROM transactions WHERE time BETWEEN \'2020-1-1 10:00:00\' AND \'2020-1-1 20:00:00\' ORDER BY time ASC';
+            const q = 'SELECT time FROM transactions WHERE time BETWEEN \'' + this.HourToSQLTime(hours[0]) + '\' AND \'' + this.HourToSQLTime(hours[hours.length - 1]) + '\' ORDER BY time ASC';
+            // const q = 'SELECT time FROM transactions WHERE time BETWEEN \'2020-1-1 10:00:00\' AND \'2020-1-1 20:00:00\' ORDER BY time ASC';
             const result = await this.db.query(q);
             if (!result.rows || result.rows.length === 0) {
                 console.log("No transactions during this time");
@@ -90,8 +90,8 @@ class Report {
     async ProductUsageReportData(startTime, endTime) {
         const data = [];
         try {
-            // const q = 'SELECT i.inventoryid, i.items, COUNT(inventoryitem) AS occurrence_count FROM transactions AS t INNER JOIN orders AS o ON t.transactionid = o.transactionid INNER JOIN trays AS tr ON o.trayid = tr.trayid INNER JOIN menu AS m ON tr.menuid = m.menuid, UNNEST(inventoryids) AS inventoryitem INNER JOIN inventory AS i ON i.inventoryid = inventoryitem WHERE t.time BETWEEN \'' + startTime + '\' AND \'' + endTime + '\' GROUP BY i.inventoryid, i.items ORDER BY COUNT(inventoryitem) DESC';
-            const q = 'SELECT i.inventoryid, i.items, COUNT(inventoryitem) AS occurrence_count FROM transactions AS t INNER JOIN orders AS o ON t.transactionid = o.transactionid INNER JOIN trays AS tr ON o.trayid = tr.trayid INNER JOIN menu AS m ON tr.menuid = m.menuid, UNNEST(inventoryids) AS inventoryitem INNER JOIN inventory AS i ON i.inventoryid = inventoryitem WHERE t.time BETWEEN \'2025-01-01 10:00:00\' AND \'2025-12-01 20:00:00\' GROUP BY i.inventoryid, i.items ORDER BY COUNT(inventoryitem) DESC';
+            const q = 'SELECT i.inventoryid, i.items, COUNT(inventoryitem) AS occurrence_count FROM transactions AS t INNER JOIN orders AS o ON t.transactionid = o.transactionid INNER JOIN trays AS tr ON o.trayid = tr.trayid INNER JOIN menu AS m ON tr.menuid = m.menuid, UNNEST(inventoryids) AS inventoryitem INNER JOIN inventory AS i ON i.inventoryid = inventoryitem WHERE t.time BETWEEN \'' + startTime + '\' AND \'' + endTime + '\' GROUP BY i.inventoryid, i.items ORDER BY COUNT(inventoryitem) DESC';
+            // const q = 'SELECT i.inventoryid, i.items, COUNT(inventoryitem) AS occurrence_count FROM transactions AS t INNER JOIN orders AS o ON t.transactionid = o.transactionid INNER JOIN trays AS tr ON o.trayid = tr.trayid INNER JOIN menu AS m ON tr.menuid = m.menuid, UNNEST(inventoryids) AS inventoryitem INNER JOIN inventory AS i ON i.inventoryid = inventoryitem WHERE t.time BETWEEN \'2025-01-01 10:00:00\' AND \'2025-12-01 20:00:00\' GROUP BY i.inventoryid, i.items ORDER BY COUNT(inventoryitem) DESC';
             const result = await this.db.query(q);
             if (!result.rows || result.rows.length === 0) {
                 console.log("No items need restocking");
@@ -110,8 +110,8 @@ class Report {
     async SalesReportData(startTime, endTime) {
         const data = [];
         try {
-            // const q = 'SELECT m.menuid, m.name, COUNT(tr.menuid) AS occurrence_count FROM transactions AS t INNER JOIN orders AS o ON t.transactionid = o.transactionid INNER JOIN trays AS tr ON o.trayid = tr.trayid INNER JOIN menu AS m ON tr.menuid = m.menuid WHERE t.time BETWEEN \'' + startTime + '\' AND \'' + endTime + '\' GROUP BY m.menuid, m.name ORDER BY COUNT(tr.menuid) DESC';
-            const q = 'SELECT m.menuid, m.name, COUNT(tr.menuid) AS occurrence_count FROM transactions AS t INNER JOIN orders AS o ON t.transactionid = o.transactionid INNER JOIN trays AS tr ON o.trayid = tr.trayid INNER JOIN menu AS m ON tr.menuid = m.menuid WHERE t.time BETWEEN \'2025-01-01 10:00:00\' AND \'2025-12-01 20:00:00\' GROUP BY m.menuid, m.name ORDER BY COUNT(tr.menuid) DESC';
+            const q = 'SELECT m.menuid, m.name, COUNT(tr.menuid) AS occurrence_count FROM transactions AS t INNER JOIN orders AS o ON t.transactionid = o.transactionid INNER JOIN trays AS tr ON o.trayid = tr.trayid INNER JOIN menu AS m ON tr.menuid = m.menuid WHERE t.time BETWEEN \'' + startTime + '\' AND \'' + endTime + '\' GROUP BY m.menuid, m.name ORDER BY COUNT(tr.menuid) DESC';
+            // const q = 'SELECT m.menuid, m.name, COUNT(tr.menuid) AS occurrence_count FROM transactions AS t INNER JOIN orders AS o ON t.transactionid = o.transactionid INNER JOIN trays AS tr ON o.trayid = tr.trayid INNER JOIN menu AS m ON tr.menuid = m.menuid WHERE t.time BETWEEN \'2025-01-01 10:00:00\' AND \'2025-12-01 20:00:00\' GROUP BY m.menuid, m.name ORDER BY COUNT(tr.menuid) DESC';
             const result = await this.db.query(q);
             if (!result.rows || result.rows.length === 0) {
                 console.log("No items need restocking");
