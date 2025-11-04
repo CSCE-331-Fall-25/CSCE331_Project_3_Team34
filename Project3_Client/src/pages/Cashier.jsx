@@ -91,9 +91,9 @@ export default function Cashier() {
         }
         //console.log("Cost is: ", data.cost)
       });
-      console.log("Meal Created with the following items:");
-      entreeList.forEach((e) => console.log(e ? e.name : "empty"));
-      sideList.forEach((e) => console.log(e ? e.name : "empty"));
+      // console.log("Meal Created with the following items:");
+      // entreeList.forEach((e) => console.log(e ? e.name : "empty"));
+      // sideList.forEach((e) => console.log(e ? e.name : "empty"));
 
       setShowCreateMealModal(false);
     }
@@ -619,16 +619,16 @@ export default function Cashier() {
                     </tr>
                     {/* Render entrees as indented subrows */}
                     {group.entrees.map((entree, eIdx) => (
-                      <tr key={`main-${mainIdx}-entree-${eIdx}-${entree.item}`} className="subrow">
+                      <tr key={`main-${mainIdx}-entree-${eIdx}-${entree.item.name}`} className="subrow">
                         <td></td>
-                        <td style={{ paddingLeft: "2em" }}>{`Entree: ${entree.item}`}</td>
+                        <td style={{ paddingLeft: "2em" }}>{`Entree: ${entree.item.name}`}</td>
                       </tr>
                     ))}
                     {/* Render sides as indented subrows */}
                     {group.sides.map((side, sIdx) => (
-                      <tr key={`main-${mainIdx}-side-${sIdx}-${side.item}`} className="subrow">
+                      <tr key={`main-${mainIdx}-side-${sIdx}-${side.item.name}`} className="subrow">
                         <td></td>
-                        <td style={{ paddingLeft: "2em" }}>{`Side: ${side.item}`}</td>
+                        <td style={{ paddingLeft: "2em" }}>{`Side: ${side.item.name}`}</td>
                       </tr>
                     ))}
                   </React.Fragment>
