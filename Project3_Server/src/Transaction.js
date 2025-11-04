@@ -12,8 +12,11 @@ class Transaction {
     }
 
     NewOrder(itemInstance) {
-        this.currOrder = new Order(itemInstance);
+        // Ensure we have a valid item instance, create a default if none provided
+        const item = itemInstance || new Item('default');
+        this.currOrder = new Order(item);
         this.orders.push(this.currOrder);
+        return this.currOrder;
     }
 }
 
@@ -30,9 +33,9 @@ class Tray {
     constructor(item) {
         this.entrees = [];
         this.sides = [];
-        this.item = item;
-        // const numberOfEntrees = item?.numberOfEntrees ?? 0;
-        // const numberOfSides = item?.numberOfSides ?? 0;
+        this.item = item || { numberOfEntrees: 1, numberOfSides: 1 }; // Provide default if item is null
+        const numberOfEntrees = this.item.numberOfEntrees ?? 1;
+        const numberOfSides = this.item.numberOfSides ?? 1;
 
         // for (let i = 0; i < numberOfEntrees; i++) {
         //     this.openSelectionPage('entree'); // Placeholder
