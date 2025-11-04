@@ -51,7 +51,7 @@ app.post('/api/buy-item', async (req, res) => {
   try {
     let result;
     if (req.body && req.body.itemID) {
-      result = await mainPage.BuyItemButton(req.body.itemID);
+      result = await mainPage.BuyItemButton(req.body.itemID, req.body.entreeList, req.body.sideList);
     } else {
       result = await mainPage.BuyItemButton();
     }
