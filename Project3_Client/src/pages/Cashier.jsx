@@ -10,8 +10,27 @@ export default function Cashier() {
   const lastRowRef = useRef(null);
   //handles selected row of items (used for removal/customization)
   const [selectedRow, setSelectedRow] = useState(null);
+
+
+
+
+  //const [showCreateMeal, setShowCreateMealModal] = useState(false);
+  const [mealModalMode, setMealModalMode] = useState("meal"); // "meal", "drink", "alacarte"
+  const items_drinks = [
+    new foodItem("Small Drink", 0.0, 0, false, 71, "drink"),
+    new foodItem("Medium Drink", 0.0, 0, false, 72, "drink"),
+    new foodItem("Large Drink", 0.0, 0, false, 73, "drink"),
+    new foodItem("Bottle", 0.0, 0, false, 74, "drink"),
+  ];
+  const items_alacarte = [
+    new foodItem("A La Carte", 0.0, 0, false, 75, "alacarte"),
+    new foodItem("Appetizer", 0.0, 0, false, 76, "alacarte"),
+  ];
+
+
+
   //Discount buttons
-  const [showCreateMeal, setShowCreateMealModal] = useState(false);
+
   const [showDiscountModal, setShowDiscountModal] = useState(false);
   const [discountCode, setDiscountCode] = useState("");
   const [discountAmount, setDiscountAmount] = useState(0);
@@ -210,6 +229,29 @@ export default function Cashier() {
 
     console.log("numEntrees: " + numEntree + ", Sides: " + numSide)
     setShowCreateMealModal(true);
+  };
+  
+  const openDrinkModal = () => {
+    setMealModalMode("drink");
+    setNumEntree(0);
+    setNumSide(1);
+    setEntreeList([]);
+    setSideList([null]);
+    setIndexEntree(0);
+    setIndexSide(0);
+    setShowCreateMealModal(true);
+    setItemType("Drink");
+  };
+  const openAlacarteModal = () => {
+    setMealModalMode("alacarte");
+    setNumEntree(0);
+    setNumSide(1);
+    setEntreeList([]);
+    setSideList([null]);
+    setIndexEntree(0);
+    setIndexSide(0);
+    setShowCreateMealModal(true);
+    setItemType("A La Carte");
   };
   
   const handleBuyItem = (e) => {
@@ -657,14 +699,14 @@ export default function Cashier() {
         </div>
         <div className="menu-row spaced">
           {["A La Carte", "Appetizer"].map((item) => (
-            <button key={item} id={item} className="buy-button" onClick={handleBuyItem}>
+            <button key={item} id={item} className="buy-button" onClick={openAlacarteModal}>
               {item}
             </button>
           ))}
         </div>
         <div className="menu-row spaced">
           {["Small Drink", "Medium Drink", "Large Drink", "Bottle"].map((item) => (
-            <button key={item} id={item} className="buy-button" onClick={handleBuyItem}>
+            <button key={item} id={item} className="buy-button" onClick={openDrinkModal}>
               {item}
             </button>
           ))}
