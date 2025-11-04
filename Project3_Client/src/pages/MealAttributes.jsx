@@ -265,4 +265,5 @@ export default function MealAttributes({itemType = "bowl", numEntree = 3, numSid
 
     
   );
+  }
 }

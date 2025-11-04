@@ -31,8 +31,12 @@ class CashierMainPage {
     }
 
 
-    async BuyItemButton(givenItemID) {
+    async BuyItemButton(givenItemID, entreeList = [], sideList = []) {
         // Stores the current itemID
+        if(this.debugging) {
+            console.log("Buy Item Button clicked for itemID: " + givenItemID + "\n with Entrees: " + entreeList.map(e => e ? e.name : "empty") + "\n and Sides: " + sideList.map(s => s ? s.name : "empty"));
+            
+        }
         this.itemID = givenItemID;
 
         // Creates a new transaction if transaction is null
@@ -65,6 +69,8 @@ class CashierMainPage {
         // Get the last order (just added)
         const lastOrder = this.currTransaction.orders[this.currTransaction.orders.length - 1];
         const tray = lastOrder.Tray;
+        // Update tray with passed lists
+        tray.UpdateTray(entreeList, sideList);
         if(this.debugging)console.log("new item name: " + currItem.name);
         
         //TODO: check if we even need to return anything here besides confirmation we bought the item

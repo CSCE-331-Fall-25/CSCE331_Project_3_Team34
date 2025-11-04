@@ -33,7 +33,6 @@ export default function Cashier() {
   const [indexEntree, setIndexEntree] = useState(0);
   const [indexSide, setIndexSide] = useState(0);
    
-
   const items = [];
   
   const items_sides = [];
@@ -74,8 +73,25 @@ export default function Cashier() {
   const handleFinishSelection = () => {
     if (finished) {
 
+
       // TODO: CREATE THE TRAY TO ADD TRANSACTION LIST!!! ALL YOUR INFORMATION IS PRINTED BELOW!
-      
+      fetch("/api/buy-item", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ itemID: itemType, entreeList: entreeList, sideList: sideList }),
+      })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          console.log("Item bought:", itemType);
+          UpdatePage();
+        }
+        else {
+          console.log("ERROR: Failed to buy item:", itemType);
+        }
+        //console.log("Cost is: ", data.cost)
+      });
+      console.log("Meal Created with the following items:");
       entreeList.forEach((e) => console.log(e ? e.name : "empty"));
       sideList.forEach((e) => console.log(e ? e.name : "empty"));
 
@@ -344,6 +360,7 @@ export default function Cashier() {
       .then((res) => res.json())
       .then((data) => {
         //Formats orders into a flat array for display
+        console.log("Current State Data:", data);
         if (Array.isArray(data.orders)) {
           const formattedItems = data.orders.flatMap(order => [
             { cost: order.cost, item: order.item, type: "main", currOrderNumber: order.orderNumber },
@@ -368,6 +385,120 @@ export default function Cashier() {
 
   return (
     <div className="main-page bkgColor cashier-container">
+      {showCreateMeal && (
+      <div className="modal-overlay-meal" 
+      style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100vw",
+            height: "100vh",
+            background: "rgba(0,0,0,0.6)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000
+          }}
+      onClick={() => setShowCreateMealModal(false)}>
+        <div className="p-4 space-y-3 modal-menu-container"
+        style={{
+              background: "#f9f9fb",
+              padding: "2.5rem 2rem 2rem 2rem",
+              borderRadius: "16px",
+              boxShadow: "0 8px 32px rgba(0,0,0,0.25)",
+              minWidth: "90vw",
+              maxWidth: "90vw",
+              position: "relative",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center"
+            }}
+        onClick={e => e.stopPropagation()}>
+          <div className="main-layout">
+            <div className="menu-wrapper">
+              <div className="section section-entrees">
+
+                <h3 className="section-title">Entrees:</h3>
+
+                {rows_entree.map((row, rowIndex) => (
+                  <div key={rowIndex} className={`menu-row `}>
+                    {row.map((item, itemIndex) => (
+                      <button
+                        key={itemIndex}
+                        id={item.name}
+                        className="buy-button"
+                        //onClick={() => console.log("The item is: " + item.name + " and it costs this much: " + item.cost)}
+                        onClick={() => selectEntree(item)}
+                      >
+                        {item.name}
+                      </button>
+                    ))}
+                  </div>
+                ))}
+
+              </div>   
+
+              <div className="section section-sides"> 
+
+                <h3 className="section-title">Sides:</h3>
+
+                  {rows_side.map((row, rowIndex) => (
+                    <div key={rowIndex} className={`menu-row ${rowIndex > 0 ? 'spaced' : ''}`}>
+                      {row.map((item, itemIndex) => (
+                        <button
+                          key={itemIndex}
+                          id={item.name}
+                          className="buy-button"
+                          //onClick={() => console.log("The item is: " + item.name + " and it costs this much: " + item.cost)}
+                          onClick={() => selectSide(item)}
+                        >
+                          {item.name}
+                        </button>
+                      ))}
+                    </div>
+                  ))}    
+                </div>
+              </div>
+            </div>
+
+            <div className="selected-panel">
+                <div className="selected-group">
+                  <h3 className="section-title">Selected Entrees</h3>
+                  {Array.from({ length: numEntree }).map((_, i) => (
+                    <button
+                      key={i}
+                      className="selected-button"
+                      onClick={() => removeIndex(i, "entree")}
+                    >
+                      {entreeList[i] ? entreeList[i].name : "NONE"}
+                    </button>
+                  ))}
+                </div>
+
+                
+                <div className="selected-group">
+                  <h3 className="section-title">Selected Sides</h3>
+                  {Array.from({ length: numSide }).map((_, i) => (
+                    <button
+                      key={i}
+                      className="selected-button"
+                      onClick={() => removeIndex(i, "side")}
+                    >
+                      {sideList[i] ? sideList[i].name : "NONE"}
+                    </button>
+                  ))}
+                </div>
+          </div>
+
+          <button
+            className="continue-button"
+            onClick={handleFinishSelection}
+          >
+            Continue
+          </button>
+        </div> 
+      </div>
+      )}
       {showDiscountModal && (
         <div
           className="modal-overlay"

@@ -14,9 +14,6 @@ class Transaction {
     NewOrder(itemInstance) {
         this.currOrder = new Order(itemInstance);
         this.orders.push(this.currOrder);
-    NewOrder(itemInstance) {
-        this.currOrder = new Order(itemInstance);
-        this.orders.push(this.currOrder);
     }
 }
 
@@ -34,30 +31,34 @@ class Tray {
         this.entrees = [];
         this.sides = [];
         this.item = item;
-        const numberOfEntrees = item?.numberOfEntrees ?? 0;
-        const numberOfSides = item?.numberOfSides ?? 0;
+        // const numberOfEntrees = item?.numberOfEntrees ?? 0;
+        // const numberOfSides = item?.numberOfSides ?? 0;
 
-        for (let i = 0; i < numberOfEntrees; i++) {
-            this.openSelectionPage('entree'); // Placeholder
-        }
-        for (let j = 0; j < numberOfSides; j++) {
-            this.openSelectionPage('side'); // Placeholder
-        }
+        // for (let i = 0; i < numberOfEntrees; i++) {
+        //     this.openSelectionPage('entree'); // Placeholder
+        // }
+        // for (let j = 0; j < numberOfSides; j++) {
+        //     this.openSelectionPage('side'); // Placeholder
+        // }
         // console.log(`Tray completed with Entrees: ${this.entrees} and Sides: ${this.sides}`);
     }
-
-    openSelectionPage(fillType) {
-        switch (fillType) {
-            case 'entree':
-                this.entrees.push('Default Entree');
-                break;
-            case 'side':
-                this.sides.push('Default Side');
-                break;
-            default:
-                if (this.item?.debugging) console.log('Invalid fill type for tray selection.');
-        }
+    UpdateTray(entreeList, sideList) {
+        this.entrees = entreeList;
+        this.sides = sideList;
     }
+
+    // openSelectionPage(fillType) {
+    //     switch (fillType) {
+    //         case 'entree':
+    //             this.entrees.push('Default Entree');
+    //             break;
+    //         case 'side':
+    //             this.sides.push('Default Side');
+    //             break;
+    //         default:
+    //             if (this.item?.debugging) console.log('Invalid fill type for tray selection.');
+    //     }
+    // }
 }
 
 export default Transaction;
