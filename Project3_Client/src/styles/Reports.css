@@ -4,10 +4,28 @@
     flex-direction: row;
     align-items: center;
     justify-content: center;
+    margin-top: 10px;
     gap: 12px;
     bottom: 2.5%;
     position: fixed;
     width: 100%;
+}
+
+.InputStyle {
+    padding: 8px;
+    margin-right: 30px;
+    border: 2px solid #420202;
+    color: white;
+    background-color: #420202;
+    width: 250px;
+    border-radius: 6px;
+    font-size: 16px;
+}
+
+.InputStyle::placeholder {
+    color: #ffffff;
+    font-size: medium;
+    justify-content: center;
 }
 
 .flexReports {
@@ -15,9 +33,11 @@
     padding: 10px;
     flex-direction: row;
     justify-content: center;
-    bottom: 5%;
+    bottom: 7%;
     width: 100%;
     position: fixed;
+    
+    /*background-color: grey;*/
 }
 
 .backButton {
@@ -30,4 +50,61 @@
     padding: 10px;
     margin-right: 30px;
     justify-content: center;
+}
+
+.defaultButton {
+    padding: 10px;
+    margin-right: 30px;
+    justify-content: center;
+    background: linear-gradient(to bottom right, #f1a0a0, #e81515);
+    border: none;
+    color: rgb(255, 253, 253);
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    border-radius: 12px;
+}
+
+.defaultButton:hover {
+    background: linear-gradient(to bottom right, #ffffff, #ff9f9f);
+    color: black;
+    cursor: pointer;
+}
+
+
+.tableContainer {
+    max-height: 480px;
+    overflow-y: auto;
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    display: flex;
+    justify-content: center;
+    border-collapse: collapse;
+}
+
+.tableRow {
+    padding-right: 25px;
+    padding-left: 5px;
+    padding-bottom: 3px;
+    border-color:#ababab;
+    border-style: solid;
+}
+.tableColumn {
+    padding-right: 15px;
+    padding-left: 15px;
+    padding-bottom: 3px;
+    border-color:#ababab;
+    border-style: solid;
+    text-align: center;
+}
+
+.tableHeader {
+    padding-right: 15px;
+    padding-left: 15px;
+    padding-bottom: 3px;
+    border-color:#ababab;
+    border-style: solid;
+    text-align: center;
 }

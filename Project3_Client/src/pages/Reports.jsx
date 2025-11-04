@@ -147,13 +147,14 @@ export default function Report() {
     <div>
       <h2 style={{ textAlign: 'center' }}>Reports</h2>
 
+<div className="tableContainer">
   {columns.length > 0 && data.length > 0 && (
     <table>
       <thead>
         {table.getHeaderGroups().map((hg) => (
           <tr key={hg.id}>
             {hg.headers.map((header) => (
-              <th key={header.id}>
+              <th key={header.id} className = "tableHeader">
                 {flexRender(header.column.columnDef.header, header.getContext())}
               </th>
             ))}
@@ -164,7 +165,7 @@ export default function Report() {
         {table.getRowModel().rows.map((row) => (
           <tr key={row.id}>
             {row.getVisibleCells().map((cell) => (
-              <td key={cell.id}>
+              <td key={cell.id} className="tableRow">
                 {flexRender(cell.column.columnDef.cell, cell.getContext())}
               </td>
             ))}
@@ -173,41 +174,42 @@ export default function Report() {
       </tbody>
     </table>
   )}
+</div>
 
         <div className='flexReports'>
           <div style={{ padding: '20px' }}>
-            <button onClick={generateXReport}>Generate X Report</button>
+            <button className="defaultButton" onClick={generateXReport}>Generate X Report</button>
           </div>
           <div style={{ padding: '20px' }}>
-            <button onClick={generateZReport}>Generate Z Report</button>
+            <button className="defaultButton" onClick={generateZReport}>Generate Z Report</button>
           </div>
           <div style={{ padding: '20px' }}>
-            <button onClick={generateProductUsageChart}>Generate Product Usage Chart</button>
+            <button className="defaultButton" onClick={generateProductUsageChart}>Generate Product Usage Chart</button>
           </div>
           <div style={{ padding: '20px' }}>
-            <button onClick={generateRestockReport}>Generate Restock Report</button>
+            <button className="defaultButton" onClick={generateRestockReport}>Generate Restock Report</button>
           </div>
           <div style={{ padding: '20px' }}>
-            <button onClick={generateSalesReport}>Generate Sales Report</button>
+            <button className="defaultButton" onClick={generateSalesReport}>Generate Sales Report</button>
           </div>
         </div>
 
         <div className='flexTimes'>
-          <input
+          <input className="InputStyle"
             type="text"
-            placeholder="Start Time (YYYY-MM-DD HH:MM:SS)"
+            placeholder="Start Time (yyyy-mm-dd hh:mm:ss)"
             value={startTime ?? ''}
             onChange={handleStartChange}/>
-          <input
+          <input className="InputStyle"
             type="text"
-            placeholder="End Time (YYYY-MM-DD HH:MM:SS)"
+            placeholder="End Time (yyyy-mm-dd hh:mm:ss)"
             value={endTime ?? ''}
             onChange={handleEndChange}/>
         </div>
 
         <div className='backButton'>
           <div style={{ padding: '20px' }}>
-            <button onClick={returnToCashier}>Back</button>
+            <button onClick={returnToCashier} className="defaultButton">Back</button>
           </div>
         </div>
     </div>
