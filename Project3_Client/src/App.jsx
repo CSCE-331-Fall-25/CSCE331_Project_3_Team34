@@ -8,6 +8,7 @@ import Kitchen from './pages/Kitchen.jsx'
 import Kiosk from './pages/Kiosk.jsx'
 import Hub from './pages/Hub.jsx'
 import MealAttributes  from './pages/MealAttributes.jsx' 
+import Reports from './pages/Reports.jsx'
 import './styles/App.css'
 
 
@@ -82,6 +83,8 @@ export default function App() {
         <Route path="/kitchen" element={<Kitchen />} />
         <Route path="/kiosk" element={<Kiosk />} />
         <Route path="/hub" element={<Hub />} />
+        <Route path="/reports" element={<Reports />} />
+        <Route path="/" element={<Cashier />} />
       </Routes>
     </div>
   )

@@ -1,3 +1,16 @@
+
+/* Highlight selected main group row */
+.selected-row {
+	background-color: #ffeeba;
+	border-left: 4px solid #f0ad4e;
+}
+/* Scrollable order table container */
+.order-table-scroll {
+	max-height: 400px;
+	overflow-y: auto;
+	border: 1px solid #ccc;
+	border-radius: 4px;
+}
 /* Cashier layout styles */
 .cashier-container {
 	/* Fill the entire viewport so the cashier UI is full-screen */
@@ -63,7 +76,7 @@
 .order-area {
 	position: absolute;
 	right: 0;
-	top: 40px;
+	top: 10px;
 	width: 302px;
 	padding: 8px 6px;
 }
@@ -102,6 +115,9 @@
 	font-weight: 700;
 	cursor: pointer;
 }
+.purchase-button:hover {
+	background: #820202;
+}
 
 .menu-area {
 	position: absolute;
@@ -127,17 +143,11 @@
 }
 .buy-button:hover { transform: translateY(-3px); box-shadow: 0 8px 16px rgba(0,0,0,0.12); }
 
-.remove-button {
-	position: absolute;
-	left: 470px;
-	top: 495px;
-	width: 99px;
-	height: 62px;
-	background: #444;
-	color: #fff;
-	border: none;
-	border-radius: 8px;
-	cursor: pointer;
+
+
+.UpdateOrderButton:hover {
+	background-color: #f5a623;
+	box-shadow: 0 4px 12px rgba(0,0,0,0.12);
 }
 
 /* .functions-column {
@@ -278,13 +288,43 @@
 	cursor: pointer;
 	font-weight: 600;
 }
-
+.updateOrder-button-row {
+	display: flex;
+	flex-direction: row;
+	position: absolute;
+	left: 350px;
+	top: 495px;
+	gap: 12px;
+	justify-content: center;
+	align-items: center;
+	margin-top: 16px;
+}
 .miscButtonFlex {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
 	gap: 8px;
 	border-radius: 8px;
+	
+}
+.UpdateOrderButton{
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	border-radius: 8px;
+	width: 99px;
+	height: 62px;
+	background: #444;
+	color: #fff;
+	border: none;
+	border-radius: 8px;
+	cursor: pointer;
+}
+
+.selected-row {
+  background-color: #ffeeba; /* highlight color */
+  border-left: 4px solid #f0ad4e; /* optional visual marker */
 }
 
 .section-entrees {
