@@ -1,17 +1,10 @@
 class Report {
     constructor(db = null) {
         this.db = db;
-        this.zClear = false;
     }
 
     async XReportData() {
         const now = new Date();
-        console.log(this.zClear);
-        if (this.zClear) {
-            console.log("Z-Report cleared data");
-            this.zClear = false;
-            return { hour: -1, sales: -1 };
-        }
         let hour = now.getHours();
         const hours = new Array();
         const sales = new Array();
@@ -35,7 +28,7 @@ class Report {
 
         const data = [];
         try {
-            const q = 'SELECT time FROM transactions WHERE recent = true ORDER BY time ASC';
+            const q = 'SELECT time FROM transactions WHERE stage = 1 ORDER BY time ASC';
             // const q = 'SELECT time FROM transactions WHERE time BETWEEN \'2020-1-1 10:00:00\' AND \'2020-1-1 20:00:00\' ORDER BY time ASC';
             const result = await this.db.query(q);
             if (!result.rows || result.rows.length === 0) {
@@ -64,7 +57,7 @@ class Report {
 
     async ZReportData() {
         const data = await this.XReportData();
-        const q = 'UPDATE transactions SET recent = false WHERE recent = true';
+        const q = 'UPDATE transactions SET stage = 0';
         try {
             await this.db.query(q);
         }
