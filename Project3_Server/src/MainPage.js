@@ -27,7 +27,7 @@ class CashierMainPage {
         this.db = db;
 
         // Creates the current transaction
-        this.currTransaction = new Transaction(null, this.user, this);
+        this.currTransaction = new Transaction(this.user);
     }
 
 
@@ -38,7 +38,7 @@ class CashierMainPage {
         // Creates a new transaction if transaction is null
         if(this.currTransaction == null) {
             console.log("Transaction is null, creating new transaction...");
-            this.currTransaction = new Transaction(null, null, null, null, this.user, this);
+            this.currTransaction = new Transaction(this.user);
         }
 
         // Instantiates the item based on the given item id 
@@ -187,6 +187,18 @@ class CashierMainPage {
             console.log("Purchase button clicked. Finalizing transaction...");
         }
         const { total } = this.GetCostInformation();
+
+        // Ensure the transaction has the correct employee assigned (if current user is an employee)
+        if (this.user && typeof this.user.employeeID !== 'undefined') {
+            this.currTransaction.employee = this.user;
+        }
+
+        Transaction.AddToDatabase(this.db, this.currTransaction).then((transactionID) => {
+            console.log("Transaction stored in database with ID: " + transactionID);
+        }).catch((err) => {
+            console.error("Error storing transaction in database: ", err);
+        });
+
         console.log("Total Price: $" + Math.ceil(total).toFixed(2));
         //add logic to store transaction in database, print receipt, etc.
         this.PrintReceipt(this.currTransaction);
@@ -215,7 +227,7 @@ class CashierMainPage {
         //this.user = user; //TODO: if kiosk WILL NEED TO GO BACK TO LOGIN PAGE FOR NEW CUSTOMER
 
         this.currTransaction = null;
-        this.currTransaction = new Transaction(null, null, null, null, this.user, this);
+        this.currTransaction = new Transaction(this.user);
         this.totalPrice = 0;
         this.taxRate = 0.0825;
         this.discountRate = 0;
