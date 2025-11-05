@@ -40,7 +40,8 @@ export default function App() {
     console.log("Logging in with ID:", employeeId, "and Password:", employeePassword);
 
     if(trimmedId === 'admin' && trimmedPassword === 'password') {
-      navigate("/Hub");
+      // navigate to the hub route (use lowercase route path to match route definition)
+      navigate("/hub");
     } else {
       alert('Invalid Employee ID or Password.');
     }
@@ -70,6 +71,9 @@ export default function App() {
             />
             <button type="submit">Login</button>
           </form>
+          <button onClick={() => navigate("/hub")}>
+            Debugging Skip Login
+          </button>
         </div>
       )}
 
@@ -84,7 +88,11 @@ export default function App() {
         <Route path="/kiosk" element={<Kiosk />} />
         <Route path="/hub" element={<Hub />} />
         <Route path="/reports" element={<Reports />} />
-        <Route path="/" element={<Cashier />} />
+        {/* Root path shows the login UI (App displays the login form when pathname === "/").
+            Keep the route lightweight so the login form isn't duplicated with another page. */}
+        <Route path="/" element={<div />} />
+        <Route path="*" element={<div>404 Not Found</div>} />
+        {/* Removed invalid Route that used `this` as element. */}
       </Routes>
     </div>
   )

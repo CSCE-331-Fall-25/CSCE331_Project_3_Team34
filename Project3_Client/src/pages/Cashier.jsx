@@ -280,11 +280,13 @@ export default function Cashier() {
       });
   }
 
-  const handleSignOut = () => console.log("Sign out");
-  const handleOpenInventory = () => console.log("Open inventory");
-  const handleEditMenu = () => console.log("Edit menu");
-  const handleEditItems = () => console.log("Edit items");
-  const handleOpenEmployee = () => console.log("Open employees");
+  // Navigate back to the top-level login page (App shows login UI when pathname === '/')
+  const handleSignOut = () => navigate('/');
+  //modal to confirm sign out
+  const [showSignOutModal, setShowSignOutModal] = useState(false);
+
+
+
   const handleViewReports = () => navigate('/reports')
   const handleAddDiscount = () => setShowDiscountModal(true);
   const handleCreateMeal = () => setShowCreateMealModal(true);
@@ -501,34 +503,10 @@ export default function Cashier() {
       {showDiscountModal && (
         <div
           className="modal-overlay"
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            width: "100vw",
-            height: "100vh",
-            background: "rgba(0,0,0,0.6)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 1000
-          }}
           onClick={() => setShowDiscountModal(false)}
         >
           <div
             className="modal-window"
-            style={{
-              background: "#f9f9fb",
-              padding: "2.5rem 2rem 2rem 2rem",
-              borderRadius: "16px",
-              boxShadow: "0 8px 32px rgba(0,0,0,0.25)",
-              minWidth: "340px",
-              maxWidth: "90vw",
-              position: "relative",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center"
-            }}
             onClick={e => e.stopPropagation()}
           >
             <h2 className="modal-title">Enter Discount Code</h2>
@@ -553,6 +531,25 @@ export default function Cashier() {
               >
                 Back
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showSignOutModal && (
+        <div
+          className="modal-overlay"
+          onClick={() => setShowSignOutModal(false)}
+            >
+          <div className="modal-window" onClick={e => e.stopPropagation()}>
+            <div className="modal-title">
+              <h2>Confirm Sign Out</h2>
+            <div>
+              Are you sure you want to sign out?
+            </div>
+            </div>
+            <div className= "modal-actions">
+              <button className="button" onClick={handleSignOut}>Yes</button>
+              <button className="button" onClick={() => setShowSignOutModal(false)}>No</button>
             </div>
           </div>
         </div>
@@ -687,11 +684,11 @@ export default function Cashier() {
         {[
           { text: "Discount", handler: handleAddDiscount },
           { text: "Reports", handler: handleViewReports },
-          { text: "Inventory", handler: handleOpenInventory },
-          { text: "Employees", handler: handleOpenEmployee },
-          { text: "Edit Items", handler: handleEditItems },
-          { text: "Edit Menu", handler: handleEditMenu },
-          { text: "Sign Out", handler: handleSignOut },
+          // { text: "Inventory", handler: handleOpenInventory },
+          // { text: "Employees", handler: handleOpenEmployee },
+          // { text: "Edit Items", handler: handleEditItems },
+          // { text: "Edit Menu", handler: handleEditMenu },
+          { text: "Sign Out", handler: setShowSignOutModal },
         ].map((btn) => (
           <button key={btn.text} onClick={btn.handler} className="function-button">
             {btn.text}

@@ -1,5 +1,6 @@
 import React from 'react';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import "../styles/Manager/Manager.css";
 
 export default function Manager() {
@@ -12,6 +13,16 @@ export default function Manager() {
   const [showManagementModal, setShowManagementModal] = useState(false);
   const [managmentType, setManagmentType] = useState("");
   const [inputContent, setInputContent] = useState("Test");
+
+  // Router navigation
+  const navigate = useNavigate();
+
+  // Navigate back to the top-level login page (App shows login UI when pathname === '/')
+  const handleSignOut = () => navigate('/');
+
+  //modal to confirm sign out
+  const [showSignOutModal, setShowSignOutModal] = useState(false);
+
   return (
     <div className = "manager-page-container">
       {showReportModal &&(
@@ -57,6 +68,25 @@ export default function Manager() {
           </div>
         )
       }
+      {showSignOutModal && (
+        <div
+          className="modal-overlay"
+          onClick={() => setShowSignOutModal(false)}
+            >
+          <div className="modal-window" onClick={e => e.stopPropagation()}>
+            <div className="modal-title">
+              <h2>Confirm Sign Out</h2>
+            <div>
+              Are you sure you want to sign out?
+            </div>
+            </div>
+            <div className= "modal-actions">
+              <button className="button" onClick={handleSignOut}>Yes</button>
+              <button className="button" onClick={() => setShowSignOutModal(false)}>No</button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className = "manager-subheader"><h1>Welcome, {employeeName}!</h1></div>
 
       <div className = "manager-buttons-container">
@@ -84,6 +114,7 @@ export default function Manager() {
         </button>
         {/* Can be used for accessability settings in the future */}
         <button className = "button manager-button">Settings</button>
+  <button className = "button manager-button" onClick={() => setShowSignOutModal(true)}>Sign Out</button>
       </div>
       
     </div>
