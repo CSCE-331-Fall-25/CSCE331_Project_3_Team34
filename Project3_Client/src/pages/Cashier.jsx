@@ -20,7 +20,6 @@ export default function Cashier() {
 
   //updates for orderTable
   const [currCost, setCurrCost] = useState(0);
-  const [currOrderNumber, setCurrOrderNumber] = useState(1);
   const TAXRATE = 0.0825;
   const [transactionItems, setTransactionItems] = useState([]);
 
@@ -363,9 +362,9 @@ export default function Cashier() {
         console.log("Current State Data:", data);
         if (Array.isArray(data.orders)) {
           const formattedItems = data.orders.flatMap(order => [
-            { cost: order.cost, item: order.item, type: "main", currOrderNumber: order.orderNumber },
-            ...(order.entrees ? order.entrees.map(entree => ({ item: entree, type: "entree" })) : []),
-            ...(order.side ? order.side.map(side => ({ item: side, type: "side" })) : [])
+            { cost: order.cost, item: order.item, type: "main"},
+            ...(order.entrees ? order.entrees.map(entree => ({ item: (typeof entree === 'string' ? { name: entree } : entree), type: "entree" })) : []),
+            ...(order.sides ? order.sides.map(side => ({ item: (typeof side === 'string' ? { name: side } : side), type: "side" })) : [])
           ]);
           console.log("Formatted Items:", formattedItems);
           //updates the front end to show current items
@@ -570,7 +569,6 @@ export default function Cashier() {
 
       {/* Order summary area */}
       <div className="order-area">
-        <p className="order-title">ORDER: # {currOrderNumber}</p>
         <div className="order-table-scroll">
           <table className="orderTable order-table">
             <thead>

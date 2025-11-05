@@ -1,4 +1,4 @@
-import Transaction from './Transaction.js';
+import Transaction, {Order, Tray} from './Transaction.js';
 import Item, {Menu} from './Item.js';
 import User, {Employee, Customer} from './User.js';
 
@@ -35,7 +35,6 @@ class CashierMainPage {
         // Stores the current itemID
         if(this.debugging) {
             console.log("Buy Item Button clicked for itemID: " + givenItemID + "\n with Entrees: " + entreeList.map(e => e ? e.name : "empty") + "\n and Sides: " + sideList.map(s => s ? s.name : "empty"));
-            
         }
         this.itemID = givenItemID;
 
@@ -64,8 +63,8 @@ class CashierMainPage {
         }
 
         // Creates a new order with the item 
-        const currOrder = this.currTransaction.NewOrder(currItem);
-        currOrder.AddTrays();
+    const currOrder = this.currTransaction.NewOrder(currItem);
+    await currOrder.AddTrays(this.db, entreeList, sideList);
 
         // Get the last order (just added)
         if(this.debugging)console.log("new item name: " + currItem.name);
@@ -74,7 +73,11 @@ class CashierMainPage {
         return {
             cost: currItem.price,
             item: currItem.name,
-            trays: currOrder.trays,
+            entrees: currOrder.entrees.map(e => e.menu?.name || 'Select Entree'),
+            sides: currOrder.sides.map(s => s.menu?.name || 'Select Side'),
+            requirements: {
+                numberOfTrays: (currOrder.entrees?.length || 0) + (currOrder.sides?.length || 0)
+            },
             orderNumber: this.currTransaction.orderNumber
         };
     }
@@ -253,7 +256,8 @@ class CashierMainPage {
             orders: this.currTransaction.orders.map(order => ({
                 cost: order.item.price,
                 item: order.item.name,
-                trays: order.trays
+                entrees: order.entrees.map(e => e.menu?.name || 'Select Entree'),
+                sides: order.sides.map(s => s.menu?.name || 'Select Side'),
             })),
             discountAmount,
             priceOff,

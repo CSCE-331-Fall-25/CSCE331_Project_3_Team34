@@ -1,3 +1,5 @@
+import { Menu } from './Item.js';
+
 class Transaction {
     constructor(employee) {
         this.employee = employee;
@@ -20,34 +22,48 @@ class Order {
         this.item = item;
         this.transaction = transaction;
         
-        this.trays = [];
+        this.entrees = [];
+        this.sides = [];
     }
 
     NewTray(menu, type) {
         const newTray = new Tray(this, menu, type);
-        this.trays.push(newTray);
+        // Initialize arrays if they don't exist
+        this.entrees = this.entrees || [];
+        this.sides = this.sides || [];
+        
+        if (type === 'side') {
+            this.sides.push(newTray);
+        } else {
+            this.entrees.push(newTray);
+        }
+        return newTray;
     }
 
-    AddTrays() {
-        for (let i = 0; i < this.item.numEntrees; i++) {
-            this.NewTray('entree', 'default');
+    async AddTrays(db, entreeList = [], sideList = []) {
+        // Helper to get a name whether caller passed a string or { name }
+        const getName = (x) => (typeof x === 'string' ? x : x?.name);
+
+        // Always add all provided entrees
+        for (const entree of (entreeList || [])) {
+            const name = getName(entree);
+            if (!name) continue;
+            let menu = await Menu.fetchByName(db, name);
+            if (!menu) menu = { name };
+            this.NewTray(menu, 'entree');
         }
 
-        for (let i = 0; i < this.item.numSides; i++) {
-            this.NewTray('side', 'default');
+        // Always add all provided sides
+        for (const side of (sideList || [])) {
+            const name = getName(side);
+            if (!name) continue;
+            let menu = await Menu.fetchByName(db, name);
+            if (!menu) menu = { name };
+            this.NewTray(menu, 'side');
         }
 
-        for (let i = 0; i < this.item.numLargeEntrees; i++) {
-            this.NewTray('entree', 'large');
-        }
-
-        for (let i = 0; i < this.item.numLargeSides; i++) {
-            this.NewTray('side', 'large');
-        }
-
-        if (this.item.numEntrees === 0 && this.item.numSides === 0 && this.item.numLargeEntrees === 0 && this.item.numLargeSides === 0) {
-            this.NewTray('none', 'none');
-        }
+        // If nothing was provided (e.g., non-meal items), do nothing here.
+        // Such items are typically handled elsewhere, or have zero trays.
     }
 }
 
