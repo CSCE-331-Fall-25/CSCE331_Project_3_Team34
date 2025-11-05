@@ -33,9 +33,6 @@ class CashierMainPage {
 
     async BuyItemButton(givenItemID, entreeList = [], sideList = []) {
         // Stores the current itemID
-        if(this.debugging) {
-            console.log("Buy Item Button clicked for itemID: " + givenItemID + "\n with Entrees: " + entreeList.map(e => e ? e.name : "empty") + "\n and Sides: " + sideList.map(s => s ? s.name : "empty"));
-        }
         this.itemID = givenItemID;
 
         // Creates a new transaction if transaction is null
@@ -170,7 +167,9 @@ class CashierMainPage {
         // This breaks because we havent started outputting to database yet
         console.log("----- Receipt -----");
         transaction.orders.forEach((order, index) => {
-            console.log(`${index + 1}. Item ID: ${order.Item.itemID}, Price: $${order.Item.price.toFixed(2)}`);
+            const itemId = order.item?.itemID ?? order.item?.name ?? 'unknown';
+            const price = typeof order.item?.price === 'number' ? order.item.price : Number(order.item?.price) || 0;
+            console.log(`${index + 1}. Item ID: ${itemId}, Price: $${price.toFixed(2)}`);
         });
         this.GetCostInformation();
         let { subtotal, discountAmount, tax, total } = this.GetCostInformation();
@@ -227,13 +226,16 @@ class CashierMainPage {
     GetCostInformation(){
         let subtotal = 0;
         if (!this.currTransaction || !this.currTransaction.orders) {
+            console.log("No current transaction or orders found.");
             return { subtotal: 0, discountAmount: 0, tax: 0, total: 0, priceOff: 0 };
         }
+        
         this.currTransaction.orders.forEach(order => {
-            // Skip any orders with missing or invalid items
-            if (order && order.Item && typeof order.Item.price === 'number') {
-                subtotal += order.Item.price;
-            }
+            // Avoid stringifying the whole order (it contains circular references).
+            const itemId = order.item?.itemID ?? order.item?.name ?? 'unknown';
+            const price = typeof order.item?.price === 'number' ? order.item.price : Number(order.item?.price) || 0;
+            // Skip any orders with missing or invalid items (treat missing price as 0)
+            subtotal += price;
         });
         let discountAmount = subtotal * (this.discountRate || 0);
         let tax = subtotal * (this.taxRate || 0.0825);
@@ -242,8 +244,8 @@ class CashierMainPage {
         return { subtotal, discountAmount, tax, total, priceOff };
     }
     GetCurrentState() {
-        console.log("Getting current state...");
         if (!this.currTransaction || !this.currTransaction.orders) {
+            console.log("No current transaction or orders found.");
             return {
                 orders: [],
                 discountAmount: 0,
