@@ -141,7 +141,10 @@
 	cursor: pointer;
 	font-weight: 600;
 }
-.buy-button:hover { transform: translateY(-3px); box-shadow: 0 8px 16px rgba(0,0,0,0.12); }
+.buy-button:hover { 
+	transform: translateY(-3px); 
+	box-shadow: 0 8px 16px rgba(0,0,0,0.12); 
+}
 
 
 
