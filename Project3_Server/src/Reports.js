@@ -71,11 +71,11 @@ class Report {
     async RestockReportData() {
         const data = [];
         try {
-            const q = 'SELECT inventoryid, items, quantity from inventory WHERE quantity > minstock ORDER BY quantity ASC';
+            const q = 'SELECT inventoryid, items, quantity from inventory WHERE quantity < minstock ORDER BY quantity ASC';
             const result = await this.db.query(q);
             if (!result.rows || result.rows.length === 0) {
                 console.log("No items need restocking");
-                return { itemid: -1, name: -1, quantity: -1 };
+                return { itemid: 0, name: 0, quantity: 0 };
             }
             for (const row of result.rows) {
                 data.push({ itemid: row.inventoryid, name: row.items, quantity: row.quantity });
@@ -89,19 +89,35 @@ class Report {
 
     async ProductUsageReportData(startTime, endTime) {
         const data = [];
+        const now = new Date();
         try {
-            const q = 'SELECT i.inventoryid, i.items, COUNT(inventoryitem) AS occurrence_count FROM transactions AS t INNER JOIN orders AS o ON t.transactionid = o.transactionid INNER JOIN trays AS tr ON o.trayid = tr.trayid INNER JOIN menu AS m ON tr.menuid = m.menuid, UNNEST(inventoryids) AS inventoryitem INNER JOIN inventory AS i ON i.inventoryid = inventoryitem WHERE t.time BETWEEN \'' + startTime + '\' AND \'' + endTime + '\' GROUP BY i.inventoryid, i.items ORDER BY COUNT(inventoryitem) DESC';
+            let q = '';
+            console.log(startTime + " " + endTime);
+            if (startTime == '' || endTime == '') {
+                q = 'SELECT i.inventoryid, i.items, COUNT(inventoryitem) AS occurrence_count FROM transactions AS t INNER JOIN orders AS o ON t.transactionid = o.transactionid INNER JOIN trays AS tr ON o.orderid = tr.orderid INNER JOIN menu AS m ON tr.menuid = m.menuid, UNNEST(inventoryids) AS inventoryitem INNER JOIN inventory AS i ON i.inventoryid = inventoryitem WHERE t.time BETWEEN \'' + `${now.getFullYear()}-${now.getMonth()}-${now.getDate()} 01:00:00` + '\' AND \'' + `${now.getFullYear()}-${now.getMonth()}-${now.getDate()} 22:00:00` + '\' GROUP BY i.inventoryid, i.items ORDER BY COUNT(inventoryitem) DESC';
+            }
+            else if (startTime.length < 19 || endTime.length < 19) {
+                console.log("who broke it");
+                return { inventoryid: -1, name: -1, sales: -1 };
+            }
+            else if (isNaN(parseInt(startTime.substring(0, 4), 10)) || isNaN(parseInt(startTime.substring(5, 7), 10)) || isNaN(parseInt(startTime.substring(8, 10), 10)) || isNaN(parseInt(startTime.substring(11, 13), 10)) || isNaN(parseInt(startTime.substring(14, 16), 10)) || isNaN(parseInt(startTime.substring(17, 19), 10)) || isNaN(parseInt(endTime.substring(0, 4), 10)) || isNaN(parseInt(endTime.substring(5, 7), 10)) || isNaN(parseInt(endTime.substring(8, 10), 10)) || isNaN(parseInt(endTime.substring(11, 13), 10)) || isNaN(parseInt(endTime.substring(14, 16), 10)) || isNaN(parseInt(endTime.substring(17, 19), 10))) {
+                console.log("Invalid time format");
+                return { inventoryid: -1, name: -1, sales: -1 };
+            }
+            else {
+                q = 'SELECT i.inventoryid, i.items, COUNT(inventoryitem) AS occurrence_count FROM transactions AS t INNER JOIN orders AS o ON t.transactionid = o.transactionid INNER JOIN trays AS tr ON o.orderid = tr.orderid INNER JOIN menu AS m ON tr.menuid = m.menuid, UNNEST(inventoryids) AS inventoryitem INNER JOIN inventory AS i ON i.inventoryid = inventoryitem WHERE t.time BETWEEN \'' + this.SafeSQLTime(startTime) + '\' AND \'' + this.SafeSQLTime(endTime) + '\' GROUP BY i.inventoryid, i.items ORDER BY COUNT(inventoryitem) DESC';
+            }
             // const q = 'SELECT i.inventoryid, i.items, COUNT(inventoryitem) AS occurrence_count FROM transactions AS t INNER JOIN orders AS o ON t.transactionid = o.transactionid INNER JOIN trays AS tr ON o.trayid = tr.trayid INNER JOIN menu AS m ON tr.menuid = m.menuid, UNNEST(inventoryids) AS inventoryitem INNER JOIN inventory AS i ON i.inventoryid = inventoryitem WHERE t.time BETWEEN \'2025-01-01 10:00:00\' AND \'2025-12-01 20:00:00\' GROUP BY i.inventoryid, i.items ORDER BY COUNT(inventoryitem) DESC';
             const result = await this.db.query(q);
             if (!result.rows || result.rows.length === 0) {
-                console.log("No items need restocking");
-                return { inventoryid: -1, name: -1, sales: -1 };
+                console.log("Empty query");
+                return { inventoryid: 0, name: 0, sales: 0 };
             }
             for (const row of result.rows) {
                 data.push({ inventoryid: row.inventoryid, name: row.items, sales: row.occurrence_count });
             }
         } catch (err) {
-            console.log("Invalid input data");
+            console.log("Invalid input dataa" + err);
             return { inventoryid: -1, name: -1, sales: -1 };
         }
         return data;
@@ -109,13 +125,28 @@ class Report {
 
     async SalesReportData(startTime, endTime) {
         const data = [];
+        const now = new Date();
         try {
-            const q = 'SELECT m.menuid, m.name, COUNT(tr.menuid) AS occurrence_count FROM transactions AS t INNER JOIN orders AS o ON t.transactionid = o.transactionid INNER JOIN trays AS tr ON o.trayid = tr.trayid INNER JOIN menu AS m ON tr.menuid = m.menuid WHERE t.time BETWEEN \'' + startTime + '\' AND \'' + endTime + '\' GROUP BY m.menuid, m.name ORDER BY COUNT(tr.menuid) DESC';
+            let q = '';
+            if (startTime == '' || endTime == '') {
+                q = 'SELECT m.menuid, m.name, COUNT(tr.menuid) AS occurrence_count FROM transactions AS t INNER JOIN orders AS o ON t.transactionid = o.transactionid INNER JOIN trays AS tr ON o.orderid = tr.orderid INNER JOIN menu AS m ON tr.menuid = m.menuid WHERE t.time BETWEEN \'' + `${now.getFullYear()}-${now.getMonth()}-${now.getDate()} 01:00:00` + '\' AND \'' + `${now.getFullYear()}-${now.getMonth()}-${now.getDate()} 23:00:00` + '\' GROUP BY m.menuid, m.name ORDER BY COUNT(tr.menuid) DESC';
+            }
+            else if (startTime.length < 19 || endTime.length < 19) {
+                console.log("who broke it");
+                return { menuid: -1, name: -1, sales: -1 };
+            }
+            else if (isNaN(parseInt(startTime.substring(0, 4), 10)) || isNaN(parseInt(startTime.substring(5, 7), 10)) || isNaN(parseInt(startTime.substring(8, 10), 10)) || isNaN(parseInt(startTime.substring(11, 13), 10)) || isNaN(parseInt(startTime.substring(14, 16), 10)) || isNaN(parseInt(startTime.substring(17, 19), 10)) || isNaN(parseInt(endTime.substring(0, 4), 10)) || isNaN(parseInt(endTime.substring(5, 7), 10)) || isNaN(parseInt(endTime.substring(8, 10), 10)) || isNaN(parseInt(endTime.substring(11, 13), 10)) || isNaN(parseInt(endTime.substring(14, 16), 10)) || isNaN(parseInt(endTime.substring(17, 19), 10))) {
+                console.log("Invalid time format");
+                return { menuid: -1, name: -1, sales: -1 };
+            }
+            else {
+                q = 'SELECT m.menuid, m.name, COUNT(tr.menuid) AS occurrence_count FROM transactions AS t INNER JOIN orders AS o ON t.transactionid = o.transactionid INNER JOIN trays AS tr ON o.orderid = tr.orderid INNER JOIN menu AS m ON tr.menuid = m.menuid WHERE t.time BETWEEN \'' + this.SafeSQLTime(startTime) + '\' AND \'' + this.SafeSQLTime(endTime) + '\' GROUP BY m.menuid, m.name ORDER BY COUNT(tr.menuid) DESC';
+            }
             // const q = 'SELECT m.menuid, m.name, COUNT(tr.menuid) AS occurrence_count FROM transactions AS t INNER JOIN orders AS o ON t.transactionid = o.transactionid INNER JOIN trays AS tr ON o.trayid = tr.trayid INNER JOIN menu AS m ON tr.menuid = m.menuid WHERE t.time BETWEEN \'2025-01-01 10:00:00\' AND \'2025-12-01 20:00:00\' GROUP BY m.menuid, m.name ORDER BY COUNT(tr.menuid) DESC';
             const result = await this.db.query(q);
             if (!result.rows || result.rows.length === 0) {
-                console.log("No items need restocking");
-                return { menuid: -1, name: -1, sales: -1 };
+                console.log("Empty query");
+                return { menuid: 0, name: 0, sales: 0 };
             }
             for (const row of result.rows) {
                 data.push({ menuid: row.menuid, name: row.name, sales: row.occurrence_count });
@@ -130,6 +161,15 @@ class Report {
     HourToSQLTime(hour) {
         const now = new Date();
         return `${now.getFullYear()}-${now.getMonth()}-${now.getDate()} ${hour}:00:00`;
+    }
+
+    CurrentDaySQLTime() {
+        const now = new Date();
+        return `${now.getFullYear()}-${now.getMonth()}-${now.getDate()} 00:00:00`;
+    }
+
+    SafeSQLTime(startTime) {
+        return startTime.substring(0, 4) + "-" + startTime.substring(5, 7) + "-" + startTime.substring(8, 10) + " " + startTime.substring(11, 13) + ":" + startTime.substring(14, 16) + ":" + startTime.substring(17, 19);
     }
 }
 
