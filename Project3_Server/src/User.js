@@ -6,7 +6,7 @@ class User {
         this.isEmployee = isEmployee;
     }
 
-    static async fetchByUsername(db, username, password) {
+    static async FetchByUsername(db, username, password) {
         if (!db || typeof db.query !== 'function') {
             throw new Error('DB pool not provided or invalid');
         }
@@ -35,7 +35,7 @@ class User {
         }
     }
 
-    static async fetchAllUsers(db) {
+    static async FetchAllUsers(db) {
         if (!db || typeof db.query !== 'function') {
             throw new Error('DB pool not provided or invalid');
         }
@@ -70,6 +70,7 @@ class User {
 
         return users;
     }
+
 }
 
 class Employee extends User {
@@ -83,7 +84,7 @@ class Employee extends User {
         this.isManager = isManager;
     }
 
-    static async fetchByUsername(db, username, password, email) {
+    static async FetchByUsername(db, username, password, email) {
         if (!db || typeof db.query !== 'function') {
             throw new Error('DB pool not provided or invalid');
         }
@@ -107,7 +108,7 @@ class Employee extends User {
         return new Employee(username, password, email, true, employeeID, name, role, wage, isManager);
     }
 
-    static async fetchAllEmployees(db) {
+    static async FetchAllEmployees(db) {
         if (!db || typeof db.query !== 'function') {
             throw new Error('DB pool not provided or invalid');
         }
@@ -151,7 +152,7 @@ class Customer extends User {
         console.log(`Customer created: ${username}`);
     }
 
-    static async fetchByUsername(db, username, password, email) {
+    static async FetchByUsername(db, username, password, email) {
         if (!db || typeof db.query !== 'function') {
             throw new Error('DB pool not provided or invalid');
         }
@@ -173,7 +174,7 @@ class Customer extends User {
         return new Customer(username, password, email, false, name, rewardsPoints, phoneNumber);
     }
 
-    static async fetchAllCustomers(db) {
+    static async FetchAllCustomers(db) {
         if (!db || typeof db.query !== 'function') {
             throw new Error('DB pool not provided or invalid');
         }

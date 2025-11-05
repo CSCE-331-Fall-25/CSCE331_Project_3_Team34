@@ -46,6 +46,36 @@ class Item {
 
         return new Item(itemId, itemName, itemPrice, numSides, numEntrees, invIDs, type, numSideL, numEntresL);
     }
+
+    static async fetchAllItems(db) {
+        // Checks if the database exists
+        if (!db || typeof db.query !== 'function') {
+            throw new Error('DB pool not provided or invalid');
+        }
+
+        // Creates the query
+        const q = 'SELECT * FROM items';
+        const res = await db.query(q);
+        if (!res || !res.rows || res.rows.length === 0) return [];
+        const items = [];
+        
+        // Loop through each element of the result and create Item instances
+        for (const row of res.rows) {
+            const itemName = row.name ?? `item-${row.itemid}`;
+            const itemPrice = row.price ?? null;
+            const numEntrees = row.numentrees ?? null;
+            const numSides = row.numsides ?? null;
+            const itemId = row.itemid ?? -1;
+            const type = row.type ?? '';
+            const numSideL = row.numlargesides ?? 0;
+            const numEntresL = row.numlargeentrees ?? 0;
+            const invIDs = row.inventoryids ?? '';
+            console.log(`Fetched Item from DB: ID=${itemId}, Name=${itemName}, Price=${itemPrice}`);
+            items.push(new Item(itemId, itemName, itemPrice, numSides, numEntrees, invIDs, type, numSideL, numEntresL));
+        }
+
+        return items;
+    } 
 }
 
 class Menu {
@@ -116,6 +146,31 @@ class Menu {
             menus.push(new Menu(menuID, menuName, type, priceMod, invIDs));
         }
         
+        return menus;
+    }
+
+    static async fetchAllMenus(db) {
+        // Checks if the database exists
+        if (!db || typeof db.query !== 'function') {
+            throw new Error('DB pool not provided or invalid');
+        }
+
+        // Creates the query
+        const q = 'SELECT * FROM menu';
+        const res = await db.query(q);
+        if (!res || !res.rows || res.rows.length === 0) return [];
+
+        // Loop through each element of the result and create Menu instances
+        const menus = [];
+        for (const row of res.rows) {
+            const menuID = row.menuid ?? -1;
+            const menuName = row.name ?? `menu-${menuID}`;
+            const type = row.type ?? '';
+            const priceMod = row.pricemod ?? 0;
+            const invIDs = row.inventoryids ?? '';
+            console.log(`Fetched Menu from DB: ID=${menuID}, Name=${menuName}, Price=${priceMod}`);
+            menus.push(new Menu(menuID, menuName, type, priceMod, invIDs));
+        }
         return menus;
     }
 }

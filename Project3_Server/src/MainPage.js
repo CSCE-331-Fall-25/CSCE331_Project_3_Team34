@@ -31,8 +31,12 @@ class CashierMainPage {
     }
 
 
-    async BuyItemButton(givenItemID) {
+    async BuyItemButton(givenItemID, entreeList = [], sideList = []) {
         // Stores the current itemID
+        if(this.debugging) {
+            console.log("Buy Item Button clicked for itemID: " + givenItemID + "\n with Entrees: " + entreeList.map(e => e ? e.name : "empty") + "\n and Sides: " + sideList.map(s => s ? s.name : "empty"));
+            
+        }
         this.itemID = givenItemID;
 
         // Creates a new transaction if transaction is null
@@ -60,19 +64,17 @@ class CashierMainPage {
         }
 
         // Creates a new order with the item 
-        this.currTransaction.NewOrder(currItem);
+        const currOrder = this.currTransaction.NewOrder(currItem);
+        currOrder.AddTrays();
 
         // Get the last order (just added)
-        const lastOrder = this.currTransaction.orders[this.currTransaction.orders.length - 1];
-        const tray = lastOrder.Tray;
         if(this.debugging)console.log("new item name: " + currItem.name);
         
         //TODO: check if we even need to return anything here besides confirmation we bought the item
         return {
             cost: currItem.price,
             item: currItem.name,
-            entrees: tray.entrees,
-            side: tray.sides,
+            trays: currOrder.trays,
             orderNumber: this.currTransaction.orderNumber
         };
     }
@@ -162,6 +164,7 @@ class CashierMainPage {
 
 
     PrintReceipt(transaction) {
+        // This breaks because we havent started outputting to database yet
         console.log("----- Receipt -----");
         transaction.orders.forEach((order, index) => {
             console.log(`${index + 1}. Item ID: ${order.Item.itemID}, Price: $${order.Item.price.toFixed(2)}`);
@@ -224,12 +227,15 @@ class CashierMainPage {
             return { subtotal: 0, discountAmount: 0, tax: 0, total: 0, priceOff: 0 };
         }
         this.currTransaction.orders.forEach(order => {
-            subtotal += order.Item.price;
+            // Skip any orders with missing or invalid items
+            if (order && order.Item && typeof order.Item.price === 'number') {
+                subtotal += order.Item.price;
+            }
         });
-        let discountAmount = subtotal * this.discountRate;
-        let tax = subtotal * this.taxRate;
-        let total = subtotal - discountAmount + tax - this.priceOff;
-        let priceOff = this.priceOff;
+        let discountAmount = subtotal * (this.discountRate || 0);
+        let tax = subtotal * (this.taxRate || 0.0825);
+        let total = subtotal - discountAmount + tax - (this.priceOff || 0);
+        let priceOff = this.priceOff || 0;
         return { subtotal, discountAmount, tax, total, priceOff };
     }
     GetCurrentState() {
@@ -245,11 +251,9 @@ class CashierMainPage {
         const { subtotal, discountAmount, tax, total, priceOff } = this.GetCostInformation();
         return {
             orders: this.currTransaction.orders.map(order => ({
-                cost: order.Item.price,
-                item: order.Item.name,
-                entrees: order.Tray.entrees,
-                side: order.Tray.sides,
-                orderNumber: this.currTransaction.orderNumber
+                cost: order.item.price,
+                item: order.item.name,
+                trays: order.trays
             })),
             discountAmount,
             priceOff,
