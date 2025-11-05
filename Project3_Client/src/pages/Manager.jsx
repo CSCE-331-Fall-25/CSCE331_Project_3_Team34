@@ -11,6 +11,7 @@ export default function Manager() {
   // Managment modal
   const [showManagementModal, setShowManagementModal] = useState(false);
   const [managmentType, setManagmentType] = useState("");
+  const [inputContent, setInputContent] = useState("Test");
   return (
     <div className = "manager-page-container">
       {showReportModal &&(
@@ -18,6 +19,7 @@ export default function Manager() {
             <div className="modal-content">
               <h2>Reports</h2>
               <div className= "report-buttons-container">
+                {/* Set up reports based on reports.jsx implemetation */}
                 <button className="button">X-Report</button>
                 <button className="button">Z-Report</button>
                 <button className="button">Product Usage Chart</button>
@@ -29,12 +31,26 @@ export default function Manager() {
           </div>
         )
       }
+      {/* This is for all update stuff EX: adding/removing an item from menu, inventory, employee management
+      I want it to be stored in a selectable table that can be clicked on to edit/remove entries
+      For adding I want either 1 of 2 things, a text area to add an entry OR click add, opens a small modal with the text fields to be filled */}
       {showManagementModal &&(
           <div className="modal-overlay">
             <div className="modal-content">
-              
-              <h2>Inventory Management</h2>
+              {/* managmentType defines what screen to open and what is going to be updated, use this variable to change funtionality on react */}
+              <h2>{managmentType} Management</h2>
+              <div className="input-container">
+                <input
+                  type="text"
+                  value={inputContent}
+                  onChange={e => setInputContent(e.target.value)}
+                  aria-label={`${managmentType} input`}
+                />
+              </div>
               <div className= "report-buttons-container">
+                <button className="button">Add </button>
+                <button className="button">Remove </button>
+                <button className="button">Update </button>
                 <button className="button" onClick={() => setShowManagementModal(false)}>Close</button>
               </div>
             </div>
@@ -46,13 +62,27 @@ export default function Manager() {
       <div className = "manager-buttons-container">
         <button className = "button manager-button" onClick={() => setShowReportModal(true)}>View Reports</button>
         <button className = "button manager-button" onClick={()=> {
-            setManagmentType("Inv");
+            setManagmentType("Inventory");
             setShowManagementModal(true);}
           }
         >
           Manage Inventory
         </button>
-        <button className = "button manager-button">Employee Management</button>
+        <button className = "button manager-button"onClick={()=> {
+            setManagmentType("Employee");
+            setShowManagementModal(true);}
+          }
+        >
+          Employee Management
+        </button>
+        <button className = "button manager-button"onClick={()=> {
+            setManagmentType("Menu");
+            setShowManagementModal(true);}
+          }
+        >
+          Menu Management
+        </button>
+        {/* Can be used for accessability settings in the future */}
         <button className = "button manager-button">Settings</button>
       </div>
       
