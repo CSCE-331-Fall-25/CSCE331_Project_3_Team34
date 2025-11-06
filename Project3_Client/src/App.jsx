@@ -1,6 +1,7 @@
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom'
 import { useState } from 'react'
 import WeatherScreen from './pages/WeatherScreen.jsx'
+import pandaLogo from './assets/PandaLogo.svg'
 import Cashier from './pages/Cashier.jsx'
 import Manager from './pages/Manager.jsx'
 import Menu from './pages/Menu.jsx'
@@ -53,8 +54,8 @@ export default function App() {
         <div className="login-container">
           <img
             className="login-logo"
-            src={new URL('./assets/PandaLogo.svg', import.meta.url).href}
-            alt="Panda Express Logo Vector@clipartmax.com"
+            src={pandaLogo}
+            alt="Panda Express Logo"
           />
           <form onSubmit={handleLogin} className="login-form">
             <input

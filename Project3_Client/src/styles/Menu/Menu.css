@@ -1,0 +1,80 @@
+/* Remove default page margins so the container can reach the viewport edges */
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+.menu-page-container {
+  padding: 20px;
+  width: 100vw;
+  min-height: 100vh;
+  box-sizing: border-box;
+  font-family: Arial, sans-serif;
+  background-color: rgb(216, 24, 24);
+}
+.menu-content {
+  display: flex;
+  flex-direction: row;
+  gap: 30px;
+  padding: 10px;
+  
+}
+.menu-content-viewport {
+  width: 100%;
+  height: 100%;
+  overflow: hidden; /* hide scrollbars when we scale down */
+}
+
+.menu-content-wrapper {
+  transform-origin: top left;
+  transition: transform 120ms ease-out;
+  display: inline-block; /* shrinkwrap the scaled content */
+}
+.menu-list {
+  border: 1px solid #ccc;
+  padding: 15px;
+  border-radius: 8px;
+  background-color: #f9f9f9;
+  min-width: 180px;
+  /* use grid so items can wrap nicely */
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 12px;
+}
+
+.menu-item {
+  display: flex;
+  flex-direction: column; /* image on top, text underneath */
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  padding: 8px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  text-align: center;
+}
+
+.menu-item-image {
+  max-width: 80px;
+  max-height: 80px;
+  aspect-ratio: 1 / 1;
+  object-fit: contain;
+  display: block;
+}
+
+.menu-item-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.menu-item-price {
+  color: #666;
+  font-size: 0.85rem;
+}
+
+@media (max-width: 600px) {
+  .menu-item-image { width: 56px; height: 56px; }
+  .menu-list { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }
+}
