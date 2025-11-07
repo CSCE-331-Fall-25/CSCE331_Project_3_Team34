@@ -1,13 +1,16 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 export default function Kiosk() {
+
+  // --- Inactivity timer logic --- //
+
   const navigate = useNavigate();
   const timerRef = useRef(null);
 
   function startTimer() {
     clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => navigate('/weather'), 10000);
+    timerRef.current = setTimeout(() => navigate('/weather'), 10000000);
   }
 
   useEffect(() => {
@@ -27,11 +30,26 @@ export default function Kiosk() {
     }; // Cleanup on unmount
   }, [navigate]);
 
+  // --- Item button generate logic --- //
+
+  const [entrees, setEntrees] = useState([]);
+
+  useEffect(() => {
+    fetch("/api/get-entrees")
+      .then(res => res.json())
+      .then(data => setEntrees(data))
+      .catch(err => console.error(err));
+  }, []);
+
   return (
     <div>
-      <h2>Kiosk (placeholder)</h2>
-      <p>This is a simple placeholder component for the Kiosk view.</p>
-      <p>This will time out in 10 (after last click) seconds to show functionality.</p>
+      {entrees.map(item => (
+        <button
+          key={item.id}
+        >
+          {item.name}
+        </button>
+      ))}
     </div>
   );
 }
