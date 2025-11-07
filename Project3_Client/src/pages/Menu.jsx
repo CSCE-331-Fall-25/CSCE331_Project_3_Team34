@@ -1,8 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import "../styles/Menu/Menu.css";
 import pandaLogo from '../assets/PandaLogo.svg';
+import { useNavigate } from 'react-router-dom';
 
 export default function Menu() {
+  // Router navigation for sign out
+   const navigate = useNavigate();
+   const handleSignOut = () => navigate('/');
+   // modal to confirm sign out
+   const [showSignOutModal, setShowSignOutModal] = useState(false);
+  
   const ListItems = [
     // Placeholder for menu items
     { id: 1, name: "Bowl", type: "Item", image: pandaLogo, price: 5.00 },
@@ -35,6 +42,25 @@ export default function Menu() {
 
   return (
     <div className="menu-page-container">
+       {showSignOutModal && (
+        <div
+          className="modal-overlay"
+          onClick={() => setShowSignOutModal(false)}
+            >
+          <div className="modal-window" onClick={e => e.stopPropagation()}>
+            <div className="modal-title">
+              <h2>Confirm Sign Out</h2>
+            <div>
+              Are you sure you want to sign out?
+            </div>
+            </div>
+            <div className= "modal-actions">
+              <button className="button" onClick={handleSignOut}>Yes</button>
+              <button className="button" onClick={() => setShowSignOutModal(false)}>No</button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="menu-content">
         <div className="menu-list items-list">
           <h3>Menu Items</h3>
@@ -88,6 +114,7 @@ export default function Menu() {
           ))}
         </div>
       </div>
+  <button className = "sign-out-button" onClick={() => setShowSignOutModal(true)}>Sign Out</button>
     </div>
   );
 }
