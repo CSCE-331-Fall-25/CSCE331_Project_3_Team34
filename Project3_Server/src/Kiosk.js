@@ -9,7 +9,7 @@ const kioskRouter = express.Router();
 
 kioskRouter.get('/get-entrees', async (req, res) => {
     try {
-        const result = await pool.query("SELECT * FROM menu");
+        const result = await pool.query("SELECT * FROM menu WHERE type = 'entree'");
         res.json(result.rows);
     } catch (err) {
         console.error(err);
