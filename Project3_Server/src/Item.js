@@ -141,11 +141,11 @@ class Menu {
             const priceMod = row.pricemod ?? 0;
             const invIDs = row.inventoryids ?? '';
 
-            console.log(`Fetched Menu from DB: ID=${menuID}, Name=${menuName}, Price=${priceMod}`);
-
             menus.push(new Menu(menuID, menuName, type, priceMod, invIDs));
         }
-        
+
+        console.log(`Fetched ${menus.length} Menus of type=${type} from DB`);
+
         return menus;
     }
 

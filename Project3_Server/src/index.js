@@ -5,6 +5,7 @@ import pkg from "pg";
 import CashierMainPage from "./MainPage.js";
 import User, {Employee, Customer} from "./User.js";
 import { Report } from "./Reports.js";
+import { Menu } from "./Item.js";
 
 dotenv.config();
 const { Pool } = pkg;
@@ -218,6 +219,23 @@ app.get('/api/restock-report-data', async (req, res) => {
   }
 });
 
+app.post('/api/fetch-menus-by-type', async (req, res) => {
+  try {
+    const { type } = req.body;
+
+    // Validate input
+    if (!type) {
+      return res.status(400).json({ error: "Menu type is required" });
+    }
+
+  // Fetch menus from the database (pass the Postgres pool). If DB is unavailable, fall back to an empty list.
+  const menus = pool ? await Menu.fetchByType(pool, type) : [];
+  res.json(menus || []);
+  } catch (err) {
+    console.error('Error fetching menus by type:', err);
+    res.status(500).json({ error: "Failed to fetch menus" });
+  }
+});
 
 import path from "path";
 import { fileURLToPath } from "url";

@@ -2,7 +2,9 @@ import React from "react";
 import "../styles/Cashier/Cashier.css";
 import "../styles/Cashier/DiscountModal.css";
 import { useEffect, useState, useRef } from "react";
-import CashierMainPage from "../../../Project3_Server/src/MainPage.js";
+// don't import server code into the client bundle
+// replace server-side debugging checks with a local flag
+const debugging = false;
 import { useNavigate } from 'react-router-dom';
 export default function Cashier() {
   const navigate = useNavigate();
@@ -32,37 +34,53 @@ export default function Cashier() {
   const [indexEntree, setIndexEntree] = useState(0);
   const [indexSide, setIndexSide] = useState(0);
    
-  const items = [];
-  
   const items_sides = [];
   const items_entrees = [];
+  const [extraMenus, setExtraMenus] = useState([]);
 
-  
-  function foodItem(name, cost, calories, premium, ID, type) {
-    this.name = name;
-    this.cost = cost;
-    this.calories = calories;
-    this.premium = premium;
-    this.ID = ID;
-    this.type = type;
-  } 
+  // TODO: Use for loop to populate this list from the DB
+  // (removed erroneous `items.push` calls — `items` was not defined and caused runtime errors)
 
-  // TODO: Use for loop to populate this list, USE DATABASE!!!!
-  items.push(new foodItem("Orange Chicken", 0.0, 400, true, 67, "entree"))
-  items.push(new foodItem("Teriyaki Chicken", 0.0, 400, true, 68, "entree"))
-  items.push(new foodItem("Butter Chicken", 0.0, 400, true, 67, "entree"))
-  items.push(new foodItem("Bejing Beef", 0.0, 400, true, 68, "entree"))
-  items.push(new foodItem("Black Pepper Angus Beef", 0.0, 400, true, 67, "entree"))
-  items.push(new foodItem("String Bean Chicken", 0.0, 400, true, 68, "entree"))
+  // Use fetch menus by type and populate items list
+  const fetchMenusByType = async (type) => {
+    try {
+      const response = await fetch("/api/fetch-menus-by-type", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type }),
+      });
+      const data = await response.json();
+      if (response.ok) {
+        return data;
+      } else {
+        console.error("Error fetching menus:", data.error);
+        return [];
+      }
+    } catch (error) {
+      console.error("Error fetching menus:", error);
+      return [];
+    }
+  };
 
-  items.push(new foodItem("Fried Rice", 0.0, 400, true, 69, "side"))
-  items.push(new foodItem("Chow Mein", 0.0, 400, true, 70, "side"))
+  // Fetch extra menus once on mount and merge with baseItems
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      const fetchedEntrees = await fetchMenusByType("entree");
+      const fetchedSides = await fetchMenusByType("side");
+      if (!mounted) return;
+      // fetched lists may be arrays of plain objects with name/type
+      setExtraMenus([...(fetchedEntrees || []), ...(fetchedSides || [])]);
+    })();
+    return () => { mounted = false; };
+  }, []);
 
-  for (let i = 0; i < items.length; i++) {
-    if (items.at(i).type == "entree") {
-      items_entrees.push(items.at(i));
+  const combinedItems = [...extraMenus];
+  for (let i = 0; i < combinedItems.length; i++) {
+    if (combinedItems[i].type == "entree") {
+      items_entrees.push(combinedItems[i]);
     } else {
-      items_sides.push(items.at(i));
+      items_sides.push(combinedItems[i]);
     }
   }
 
@@ -232,7 +250,7 @@ export default function Cashier() {
       });
   };
   const handleClearItem = (e) => {
-    if(CashierMainPage.debugging)console.log("Remove item clicked");
+  if (debugging) console.log("Remove item clicked");
     //Tells server to clear transaction
     fetch("/api/clear-transaction", {
         method: "delete",
@@ -240,7 +258,7 @@ export default function Cashier() {
       .then((res) => res.json())
       .then((data) => {
         if (data.success) {
-          if(CashierMainPage.debugging)console.log("Transaction cleared");
+          if (debugging) console.log("Transaction cleared");
           //server should be clear at this point so now we update frontend
           UpdatePage();
         }
@@ -308,7 +326,7 @@ export default function Cashier() {
           UpdatePage();
         }
         else if (data.acceptedDiscount === -1) {
-          if(CashierMainPage.debugging)console.log("Cannot apply discount before adding items");
+    if (debugging) console.log("Cannot apply discount before adding items");
           setErrorMessage("Cannot apply discount before adding items");
           
 
@@ -322,7 +340,7 @@ export default function Cashier() {
 
   //TODO: Make update based on INPUT from CUSTOMIZATION MODAL
   const handleCustomizeOrder = () => {
-    if(CashierMainPage.debugging)console.log("Customize order clicked");
+  if (debugging) console.log("Customize order clicked");
     // Implement customization logic here
     fetch("/api/customize-order", {
       method: "POST",
