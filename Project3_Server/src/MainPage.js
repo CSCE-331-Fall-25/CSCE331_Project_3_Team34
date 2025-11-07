@@ -181,7 +181,7 @@ class CashierMainPage {
         console.log("-------------------");
         this.ClearTransaction();
     }
-    PurchaseTransaction() {
+    async PurchaseTransaction() {
         // Finalize purchase logic here
         if(this.debugging) {
             console.log("Purchase button clicked. Finalizing transaction...");
