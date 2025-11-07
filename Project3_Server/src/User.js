@@ -1,5 +1,5 @@
 class User {
-    constructor(username, password, email, isEmployee) {
+    constructor(username = '', password = '', email = '', isEmployee = false) {
         this.username = username;
         this.password = password;
         this.email = email;
@@ -74,8 +74,8 @@ class User {
 }
 
 class Employee extends User {
-    constructor(username, password, email, isEmployee, employeeID, name, role, wage, isManager) {
-        super(username, password, email, isEmployee);
+    constructor(username = '', password = '', email = '', employeeID = -1, name = '', role = '', wage = 0, isManager = false) {
+        super(username, password, email, true);
 
         this.employeeID = employeeID;
         this.name = name;
@@ -105,7 +105,7 @@ class Employee extends User {
         
 
         console.log(`Fetched Employee from DB: Username=${username}, ID=${employeeID}`);
-        return new Employee(username, password, email, true, employeeID, name, role, wage, isManager);
+        return new Employee(username, password, email, employeeID, name, role, wage, isManager);
     }
 
     static async FetchAllEmployees(db) {
@@ -131,7 +131,7 @@ class Employee extends User {
             const wage = row.wage ?? 0;
             const isManager = row.ismanager ?? false;
 
-            const employee = new Employee(username, pass, email, true, employeeID, name, role, wage, isManager);
+            const employee = new Employee(username, pass, email, employeeID, name, role, wage, isManager);
             employees.push(employee);
 
             console.log(`Fetched Employee from DB: Username=${username}, ID=${employeeID}`);
@@ -142,8 +142,8 @@ class Employee extends User {
 }
 
 class Customer extends User {
-    constructor(username, password, email, isEmployee, name, rewardsPoints, phoneNumber) {
-        super(username, password, email, isEmployee);
+    constructor(username, password, email, name, rewardsPoints, phoneNumber) {
+        super(username, password, email, false);
 
         this.name = name;
         this.rewardsPoints = rewardsPoints;
@@ -171,7 +171,7 @@ class Customer extends User {
 
         console.log(`Fetched Customer from DB: Username=${username}`);
 
-        return new Customer(username, password, email, false, name, rewardsPoints, phoneNumber);
+        return new Customer(username, password, email, name, rewardsPoints, phoneNumber);
     }
 
     static async FetchAllCustomers(db) {
@@ -195,7 +195,7 @@ class Customer extends User {
             const rewardsPoints = row.rewardspoints ?? 0;
             const phoneNumber = row.phonenumber ?? '';
 
-            const customer = new Customer(username, pass, email, false, name, rewardsPoints, phoneNumber);
+            const customer = new Customer(username, pass, email, name, rewardsPoints, phoneNumber);
             customers.push(customer);
 
             console.log(`Fetched Customer from DB: Username=${username}`);
