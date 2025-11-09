@@ -1,0 +1,35 @@
+Sprint Planning Meeting
+    Week 1: 
+        Avi - look into database connectivity with fullstack javascript development
+        Ethan - Research and learn about React, Express, and Node
+        Connor - Start Developing cashier screen
+        Tyler - Refactor database
+        Vincent - Set up development environment and techstack
+    Week 2:
+        Avi - add database connectivity to transactions
+        Ethan - Finish the cashier screen
+        Connor - Start the other screens
+        Tyler - Finish the report screens
+        Vincent - Start development of the Kiosk
+
+Daily Scrum meetings
+    Meeting 1:
+        10:01 Group discussion on what the tech stack should be
+        10:12 Connor delegated tasks and made a formal plan
+        10:16 finished up and made plans for next meeting
+
+    Meeting 2:
+        10:01 Everyone gave task updates and mentioned issues holding them back
+        10:08 Team worked on helping Ethan run the development environment
+        10:16 team finished up and made plans for the next meeting
+
+    Meeting 3:
+        10:01 Team went around and stated what they had accomplished as well as what they were going to work on and what was holding them back
+        10:10 Connor Russi gave a plan for sprint 2
+        10:16 Team planned next meeting and congratulated each other on a finished sprint
+
+
+
+Sprint Retrospective Meeting
+    Team talked about how we could distribute the work better and communicated strengths and weaknesses.
+    Made plans and talked about how we could improve our scrum schedule
