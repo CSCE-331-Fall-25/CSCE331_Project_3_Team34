@@ -154,11 +154,12 @@ app.post('/api/sales-report-data', async (req, res) => {
     const { startTime, endTime } = req.body;
     res.json(await reports.SalesReportData(startTime, endTime));
   } catch (err) {
-    console.error('Error getting data');
+    console.error('Error getting data' + err);
     res.json({ 
       menuid: -1, 
       name: -1, 
-      sales: -1
+      sales: -1,
+      code: 4096
     });
   }
 });
@@ -169,11 +170,12 @@ app.post('/api/product-usage-report-data', async (req, res) => {
     const { startTime, endTime } = req.body;
     res.json(await reports.ProductUsageReportData(startTime, endTime));
   } catch (err) {
-    console.error('Error getting data');
+    console.error('Error getting data' + err);
     res.json({ 
       inventoryid: -1, 
       name: -1, 
-      sales: -1
+      sales: -1,
+      code: 4096
     });
   }
 });
