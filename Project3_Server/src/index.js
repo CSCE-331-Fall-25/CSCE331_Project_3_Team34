@@ -5,7 +5,9 @@ import { pool, setPool } from "./db.js";
 import CashierMainPage from "./MainPage.js";
 import User, {Employee, Customer} from "./User.js";
 import { Report } from "./Reports.js";
-import kioskRouter from "./kiosk.js";
+// Kiosk router file is named `Kiosk.js` (capital K). Use the exact filename so imports work
+// on case-sensitive filesystems (e.g. Linux used by many CI/CD hosts).
+import kioskRouter from "./Kiosk.js";
 
 dotenv.config();
 
