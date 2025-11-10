@@ -7,6 +7,12 @@ import { useNavigate } from 'react-router-dom';
 
 //components
 import SignOutButton from "../Components/SignOut.jsx";
+import DiscountModal from "../Components/DiscountModal.jsx";
+import CashierCostTable from "../Components/CashierCostTable.jsx";
+import ClearTransactionButton from "../Components/ClearTransactionButton.jsx";
+import RemoveItemButton from "../Components/RemoveItemButton.jsx";
+import PurchaseButton from "../Components/PurchaseButton.jsx";
+import BuyItemButton from "../Components/BuyItemButton.jsx";
 export default function Cashier() {
   const navigate = useNavigate();
   //newest Row reference for auto scrolling
@@ -34,13 +40,10 @@ export default function Cashier() {
 
 
 
-  //Discount buttons
-
+  // Discount buttons/state
   const [showDiscountModal, setShowDiscountModal] = useState(false);
-  const [discountCode, setDiscountCode] = useState("");
   const [discountAmount, setDiscountAmount] = useState(0);
   const [discountPriceOff, setDiscountPriceOff] = useState(0);
-  const [errorMessage, setErrorMessage] = useState("");
 
   //updates for orderTable
   const [currCost, setCurrCost] = useState(0);
@@ -334,34 +337,7 @@ export default function Cashier() {
   const handleAddDiscount = () => setShowDiscountModal(true);
   const handleCreateMeal = () => setShowCreateMealModal(true);
 
-  const handleDiscountSubmit = () => {
-  fetch("/api/add-discount", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ discountCode }),
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        console.log("Discount response:", data);
-        if (data.acceptedDiscount === 1) {
-          setShowDiscountModal(false);
-          //setErrorMessage("");
-          if(CashierMainPage.debugging)console.log("Discount Amount:", data.discountAmount);
-          //setDiscountAmount(data.discountAmount);} 
-          UpdatePage();
-        }
-        else if (data.acceptedDiscount === -1) {
-          if(CashierMainPage.debugging)console.log("Cannot apply discount before adding items");
-          setErrorMessage("Cannot apply discount before adding items");
-          
-
-        }
-        else {
-          setErrorMessage("Invalid discount code");
-          
-        }
-      });
-  };
+ 
 
   //TODO: Make update based on INPUT from CUSTOMIZATION MODAL
   const handleCustomizeOrder = () => {
@@ -543,41 +519,17 @@ export default function Cashier() {
         </div> 
       </div>
       )}
-      {showDiscountModal && (
-        <div
-          className="modal-overlay"
-          onClick={() => setShowDiscountModal(false)}
-        >
-          <div
-            className="modal-window"
-            onClick={e => e.stopPropagation()}
-          >
-            <h2 className="modal-title">Enter Discount Code</h2>
-            <input
-              type="text"
-              value={discountCode}
-              onChange={e => setDiscountCode(e.target.value)}
-              placeholder="Discount Code"
-              className="modal-input"
-            />
-            <div className="modal-error">{errorMessage}</div>
-            <div className="modal-actions">
-              <button
-                onClick={handleDiscountSubmit}
-                className="modal-submit"
-              >
-                Submit
-              </button>
-              <button
-                onClick={() => setShowDiscountModal(false)}
-                className="modal-back"
-              >
-                Back
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <DiscountModal
+        show={showDiscountModal}
+        onClose={() => setShowDiscountModal(false)}
+        onApplied={({ discountAmount: amt, priceOff: off, discountPer }) => {
+          // update local discount view and refresh state from server
+          setShowDiscountModal(false);
+          setDiscountAmount(amt || 0);
+          setDiscountPriceOff(off || 0);
+          UpdatePage();
+        }}
+      />
       {showSignOutModal && (
         <SignOutButton onClose={() => setShowSignOutModal(false)} />
       )}
@@ -591,92 +543,25 @@ export default function Cashier() {
       <div className="label-employee">Employee:</div>
       <div className="label-time">Time:</div>
 
-      {/* Order summary area */}
+      {/* Order summary area (moved to CashierCostTable for clarity) */}
       <div className="order-area">
-        <div className="order-table-scroll">
-          <table className="orderTable order-table">
-            <thead>
-              <tr>
-                <th>Cost</th>
-                <th>Item</th>
-              </tr>
-            </thead>
-            <tbody>
-              {/* Group transactionItems by main items, then render each main with its entrees/sides as subrows */}
-              {(() => {
-                // Build grouped array: [{ main, entrees: [], sides: [] }]
-                const grouped = [];
-                let i = 0;
-                while (i < transactionItems.length) {
-                  if (transactionItems[i].type === "main") {
-                    const main = transactionItems[i];
-                    const group = { main, entrees: [], sides: [] };
-                    let j = i + 1;
-                    while (j < transactionItems.length && transactionItems[j].type !== "main") {
-                      if (transactionItems[j].type === "entree") group.entrees.push(transactionItems[j]);
-                      if (transactionItems[j].type === "side") group.sides.push(transactionItems[j]);
-                      j++;
-                    }
-                    grouped.push(group);
-                    i = j;
-                  } else {
-                    i++;
-                  }
-                }
-                return grouped.map((group, mainIdx) => (
-                  // takes group and renders main row plus entrees/sides
-                  <React.Fragment key={`group-${mainIdx}`}>
-                    <tr
-                      key={`main-${mainIdx}`}
-                      ref={mainIdx === grouped.length - 1 ? lastRowRef : null}
-                      className={mainIdx === selectedRow ? "selected-row" : "clickable-row"}
-                      onClick={() => setSelectedRow(mainIdx)}
-                    >
-                    <td>{`$${group.main.cost}`}</td>
-                    <td>{
-                      group.main && typeof group.main.item === 'object' && group.main.item !== null
-                        ? group.main.item.name
-                        : group.main.item
-                    }</td>
-                    </tr>
-                    {/* Render entrees as indented subrows */}
-                    {group.entrees.map((entree, eIdx) => (
-                      <tr key={`main-${mainIdx}-entree-${eIdx}-${entree.item.name}`} className="subrow">
-                        <td></td>
-                        <td style={{ paddingLeft: "2em" }}>{`Entree: ${entree.item.name}`}</td>
-                      </tr>
-                    ))}
-                    {/* Render sides as indented subrows */}
-                    {group.sides.map((side, sIdx) => (
-                      <tr key={`main-${mainIdx}-side-${sIdx}-${side.item.name}`} className="subrow">
-                        <td></td>
-                        <td style={{ paddingLeft: "2em" }}>{`Side: ${side.item.name}`}</td>
-                      </tr>
-                    ))}
-                  </React.Fragment>
-                ));
-              })()}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="order-stats">
-          {/* (total price - price off) * discountPercent */}
-          <p>Total Cost: ${(currCost).toFixed(2)}</p>
-          <p>Discount Amount: ${typeof discountAmount === "number" ? discountAmount.toFixed(2) : "0.00"}</p>
-          <p>Tax: ${(currCost * TAXRATE).toFixed(2)}</p>
-          <p>Price Total: ${((currCost - (typeof discountAmount === "number" ? discountAmount : 0)) + TAXRATE * currCost).toFixed(2)}</p>
-        </div>
-
-        <button onClick={handlePurchase} className="miscButtonFlex purchase-button">
-          Purchase
-        </button>
+        <CashierCostTable
+          transactionItems={transactionItems}
+          selectedRow={selectedRow}
+          setSelectedRow={setSelectedRow}
+          lastRowRef={lastRowRef}
+          currCost={currCost}
+          TAXRATE={TAXRATE}
+          discountAmount={discountAmount}
+          discountPriceOff={discountPriceOff}
+          onPurchase={handlePurchase}
+        />
       </div>
 
       {/* Menu buttons */}
       <div className="menu-area">
         <div className="menu-row">
-          {["Bowl", "Plate", "Bigger", "Family"].map((item) => ( //Can we set this to be filled by the DB?
+          {["Bowl", "Plate", "Bigger", "Family"].map((item) => (
             <button key={item} id={item} className="buy-button" onClick={handleBuildItem}>
               {item}
             </button>
@@ -698,13 +583,14 @@ export default function Cashier() {
         </div>
       </div>
 
-      {/* update order buttons */}
+      {/* update order buttons (extracted components) */}
       <div className="updateOrder-button-row">
-        {/* Render all orderUpdate buttons in a row here */}
-        <button onClick={handleRemoveItem} className="UpdateOrderButton">REMOVE</button>
-        <button onClick={handleClearItem} className="UpdateOrderButton">CLEAR TRANS</button>
+        <RemoveItemButton index={selectedRow} onRemoved={() => { setSelectedRow(null); UpdatePage(); }} />
+        <ClearTransactionButton onCleared={() => { UpdatePage(); }} />
         <button onClick={handleCustomizeOrder} className="UpdateOrderButton">CUSTOMIZE</button>
       </div>
+
+      {/* Purchase handled inside CashierCostTable to preserve original layout */}
 
       {/* Function buttons (left sidebar) */}
       <div className="functions-column">

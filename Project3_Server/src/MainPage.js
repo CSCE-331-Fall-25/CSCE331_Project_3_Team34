@@ -293,13 +293,27 @@ class CashierMainPage {
         
         //TODO: add customization logic, Open a customization interface or modify the current order
 
-        //temp
-        //For example change first entree from orange chicken to beef
-        currentOrder.Tray.entrees[0] = "Beef Teriyaki";
-        if(this.debugging) {
-            console.log("Order customized: " + JSON.stringify(currentOrder.Tray));
+        // temp: example customization - change first entree to a different name
+        try {
+            if (currentOrder.Tray && Array.isArray(currentOrder.Tray.entrees)) {
+                currentOrder.Tray.entrees[0] = "Beef Teriyaki";
+            } else if (Array.isArray(currentOrder.entrees)) {
+                // fallback if structure differs
+                currentOrder.entrees[0] = "Beef Teriyaki";
+            }
+        } catch (err) {
+            console.error('Error applying temp customization:', err);
         }
-        return { success: true, tray: currentOrder.Tray };
+
+        // Build a safe summary to return (avoid circular structures)
+        const traySummary = {
+            entrees: (currentOrder.entrees || currentOrder.Tray?.entrees || []).map(e => (e?.menu?.name || e?.name || e || null)),
+            sides: (currentOrder.sides || currentOrder.Tray?.sides || []).map(s => (s?.menu?.name || s?.name || s || null))
+        };
+        if (this.debugging) {
+            console.log('Order customized (summary):', traySummary);
+        }
+        return { success: true, tray: traySummary };
     }
 }
 
