@@ -266,12 +266,23 @@ class CashierMainPage {
             };
         }
         const { subtotal, discountAmount, tax, total, priceOff } = this.GetCostInformation();
+        // For better client-side rendering, include both the tray name and a displayType for each tray.
+        // displayType will be used on the receipt (e.g., 'A La Carte', 'Appetizer', 'Drink', 'Bottle')
+        // while the client still groups trays by entree/side.
         return {
             orders: this.currTransaction.orders.map(order => ({
                 cost: order.item.price,
                 item: order.item.name,
-                entrees: order.entrees.map(e => e.menu?.name || 'Select Entree'),
-                sides: order.sides.map(s => s.menu?.name || 'Select Side'),
+                // Entrees: include name and an optional displayType. If the parent order's item
+                // is one of the single-item types, use that as displayType; otherwise default to 'Entree'.
+                entrees: (order.entrees || []).map(e => ({
+                    name: e.menu?.name || 'Select Entree',
+                    displayType: ['A La Carte', 'Appetizer', 'Drink', 'Bottle'].includes(order.item?.name) ? order.item?.name : 'Entree'
+                })),
+                sides: (order.sides || []).map(s => ({
+                    name: s.menu?.name || 'Select Side',
+                    displayType: 'Side'
+                })),
             })),
             discountAmount,
             priceOff,

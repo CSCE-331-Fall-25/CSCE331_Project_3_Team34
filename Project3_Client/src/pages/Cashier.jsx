@@ -150,16 +150,32 @@ export default function Cashier() {
 
 
       // TODO: CREATE THE TRAY TO ADD TRANSACTION LIST!!! ALL YOUR INFORMATION IS PRINTED BELOW!
+      // Build the payload entree list. For non-meal single-item types (A La Carte, Appetizer, Drink, Bottle)
+      // we want to send a tray via the `entreeList` so the backend will create a Tray for it.
+      const payloadEntreeList = Array.isArray(entreeList) ? [...entreeList] : [];
+
+      // If in A La Carte mode, the selected ALC items should be sent as entrees (trays)
+      if (itemType === "A La Carte") {
+        alcList.forEach(it => { if (it) payloadEntreeList.push(it); });
+      }
+
+      // If Appetizer should be treated as a tray, push appList into entree list
+      if (itemType === "Appetizer") {
+        appList.forEach(it => { if (it) payloadEntreeList.push(it); });
+      }
+
+      // Drinks and Bottles should also be sent as a tray in the entreeList
+      if (itemType === "Drink" || itemType === "Bottle") {
+        drinkList.forEach(it => { if (it) payloadEntreeList.push(it); });
+      }
+
       fetch("/api/buy-item", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           itemID: itemType,
-          entreeList: entreeList,
-          sideList: sideList,
-          appList: appList,
-          drinkList: drinkList,
-          alcList: alcList
+          entreeList: payloadEntreeList,
+          sideList: sideList
         }),
       })
       .then((res) => res.json())
@@ -979,9 +995,10 @@ export default function Cashier() {
                     const main = transactionItems[i];
                     const group = { main, entrees: [], sides: [] };
                     let j = i + 1;
+                    // transactionItems types are lowercase ('entree', 'side') as produced in UpdatePage
                     while (j < transactionItems.length && transactionItems[j].type !== "main") {
-                      if (transactionItems[j].type === "Entree") group.entrees.push(transactionItems[j]);
-                      if (transactionItems[j].type === "Side") group.sides.push(transactionItems[j]);
+                      if (transactionItems[j].type === "entree") group.entrees.push(transactionItems[j]);
+                      if (transactionItems[j].type === "side") group.sides.push(transactionItems[j]);
                       j++;
                     }
                     grouped.push(group);
@@ -1007,19 +1024,27 @@ export default function Cashier() {
                     }</td>
                     </tr>
                     {/* Render entrees as indented subrows */}
-                    {group.entrees.map((entree, eIdx) => (
-                      <tr key={`main-${mainIdx}-entree-${eIdx}-${entree.item.name}`} className="subrow">
-                        <td></td>
-                        <td style={{ paddingLeft: "2em" }}>{`Entree: ${entree.item.name}`}</td>
-                      </tr>
-                    ))}
+                    {group.entrees.map((entree, eIdx) => {
+                      const label = (entree.item && entree.item.displayType) ? entree.item.displayType : 'Entree';
+                      const name = (entree.item && entree.item.name) ? entree.item.name : (typeof entree.item === 'string' ? entree.item : 'Select Entree');
+                      return (
+                        <tr key={`main-${mainIdx}-entree-${eIdx}-${name}`} className="subrow">
+                          <td></td>
+                          <td style={{ paddingLeft: "2em" }}>{`${label}: ${name}`}</td>
+                        </tr>
+                      );
+                    })}
                     {/* Render sides as indented subrows */}
-                    {group.sides.map((side, sIdx) => (
-                      <tr key={`main-${mainIdx}-side-${sIdx}-${side.item.name}`} className="subrow">
-                        <td></td>
-                        <td style={{ paddingLeft: "2em" }}>{`Side: ${side.item.name}`}</td>
-                      </tr>
-                    ))}
+                    {group.sides.map((side, sIdx) => {
+                      const label = (side.item && side.item.displayType) ? side.item.displayType : 'Side';
+                      const name = (side.item && side.item.name) ? side.item.name : (typeof side.item === 'string' ? side.item : 'Select Side');
+                      return (
+                        <tr key={`main-${mainIdx}-side-${sIdx}-${name}`} className="subrow">
+                          <td></td>
+                          <td style={{ paddingLeft: "2em" }}>{`${label}: ${name}`}</td>
+                        </tr>
+                      );
+                    })}
                   </React.Fragment>
                 ));
               })()}
