@@ -29,18 +29,6 @@ export default function Cashier() {
 
   const [showCreateMeal, setShowCreateMealModal] = useState(false);
   const [mealModalMode, setMealModalMode] = useState("meal"); // "meal", "drink", "alacarte"
-  const items_drinks = [
-    new foodItem("Small Drink", 0.0, 0, false, 71, "drink"),
-    new foodItem("Medium Drink", 0.0, 0, false, 72, "drink"),
-    new foodItem("Large Drink", 0.0, 0, false, 73, "drink"),
-    new foodItem("Bottle", 0.0, 0, false, 74, "drink"),
-  ];
-  const items_alacarte = [
-    new foodItem("A La Carte", 0.0, 0, false, 75, "alacarte"),
-    new foodItem("Appetizer", 0.0, 0, false, 76, "alacarte"),
-  ];
-
-
 
   // Discount buttons/state
   const [showDiscountModal, setShowDiscountModal] = useState(false);
@@ -577,9 +565,6 @@ export default function Cashier() {
 
   // Navigate back to the top-level login page (App shows login UI when pathname === '/')
   const handleSignOut = () => navigate('/');
-  //modal to confirm sign out
-  const [showSignOutModal, setShowSignOutModal] = useState(false);
-
   const handleReset = () => {
     setShowAlcGUI(false);
     setShowMealGUI(false);
