@@ -20,7 +20,8 @@ const user = new User("testUser", "password123", "bob@gmail.com");
 const mainPage = new CashierMainPage(user, pool);
 const reports = new Report(pool);
 
-app.use('/api', kioskRouter);
+import kioskRouter from "./kiosk.js";
+app.use('/api/kiosk', kioskRouter);
 
 // API endpoint to buy an item
 app.post('/api/buy-item', async (req, res) => {

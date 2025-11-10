@@ -7,9 +7,19 @@ import { pool } from './db.js';
 
 const kioskRouter = express.Router();
 
+kioskRouter.get('/get-items', async (req, res) => {
+    try {
+        const result = await pool.query("SELECT name FROM items");
+        res.json(result.rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Database query failed" });
+    }
+});
+
 kioskRouter.get('/get-entrees', async (req, res) => {
     try {
-        const result = await pool.query("SELECT * FROM menu WHERE type = 'entree'");
+        const result = await pool.query("SELECT * FROM menu");
         res.json(result.rows);
     } catch (err) {
         console.error(err);
