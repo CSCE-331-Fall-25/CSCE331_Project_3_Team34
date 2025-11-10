@@ -20,6 +20,12 @@ export default function Cashier() {
   const [discountPriceOff, setDiscountPriceOff] = useState(0);
   const [errorMessage, setErrorMessage] = useState("");
 
+  // Shows items depending on what button is pressed - meal, appetizer, alc, drink
+  const [showMealGUI, setShowMealGUI] = useState(false);
+  const [showAppGUI, setShowAppGUI] = useState(false);
+  const [showDrinkGUI, setShowDrinkGUI] = useState(false);
+  const [showAlcGUI, setShowAlcGUI] = useState(false);
+
   //updates for orderTable
   const [currCost, setCurrCost] = useState(0);
   const TAXRATE = 0.0825;
@@ -28,15 +34,34 @@ export default function Cashier() {
   const [numEntree, setNumEntree] = useState(0);
   const [numSide, setNumSide] = useState(0);
   const [itemType, setItemType] = useState("NULL");
+  const [numApp, setNumApp] = useState(0);
+  const [numDrink, setNumDrink] = useState(0);
+  const [numALC, setNumALC] = useState(0);
   
   const [entreeList, setEntreeList] = useState(() => Array(numEntree).fill(null));
   const [sideList, setSideList] = useState(() => Array(numSide).fill(null));
+  const [appList, setAppList] = useState(() => Array(numApp).fill(null));
+  const [drinkList, setDrinkList] = useState(() => Array(numDrink).fill(null));
   const [indexEntree, setIndexEntree] = useState(0);
   const [indexSide, setIndexSide] = useState(0);
    
-  const items_sides = [];
-  const items_entrees = [];
+  const [indexApp, setIndexApp] = useState(0);
+  const [indexDrink, setIndexDrink] = useState(0);
+  const [sizeMod, setSizeMod] = useState(0);
+  const [indexALC, setIndexALC] = useState(0);
+  const [alcList, setAlcList] = useState(() => Array(numALC).fill(null));
+  const [alcMode, setAlcMode] = useState(false);
   const [extraMenus, setExtraMenus] = useState([]);
+
+  const items = []; 
+  const items_entrees = [];
+  const items_sides = [];
+  const items_apps = [];
+  const items_drinks = [];
+  const items_alc_small = [];
+  const items_alc_medium = [];
+  const items_alc_large = [];
+  const itemRowSize = 8;
 
   // TODO: Use for loop to populate this list from the DB
   // (removed erroneous `items.push` calls — `items` was not defined and caused runtime errors)
@@ -68,26 +93,53 @@ export default function Cashier() {
     (async () => {
       const fetchedEntrees = await fetchMenusByType("entree");
       const fetchedSides = await fetchMenusByType("side");
+      const fetchedApps = await fetchMenusByType("appetizer");
       if (!mounted) return;
       // fetched lists may be arrays of plain objects with name/type
-      setExtraMenus([...(fetchedEntrees || []), ...(fetchedSides || [])]);
+      setExtraMenus([...(fetchedEntrees || []), ...(fetchedSides || []), ...(fetchedApps || [])]);
     })();
     return () => { mounted = false; };
   }, []);
 
   const combinedItems = [...extraMenus];
   for (let i = 0; i < combinedItems.length; i++) {
-    if (combinedItems[i].type == "entree") {
+    const t = (combinedItems[i].type || '').toLowerCase();
+    if (t === 'entree') {
       items_entrees.push(combinedItems[i]);
+    } else if (t === 'side') {
+      items_sides.push(combinedItems[i]);
+    } else if (t === 'appetizer' || t === 'app') {
+      items_apps.push(combinedItems[i]);
+    } else if (t === 'drink') {
+      items_drinks.push(combinedItems[i]);
     } else {
+      // unknown type: push to sides as a fallback
       items_sides.push(combinedItems[i]);
     }
   }
 
-  const finished = (indexEntree === numEntree) && (indexSide === numSide);
+  // A La Carte items should include all entrees and sides
+  const items_alc = [...items_entrees, ...items_sides];
 
   // TODO: Replace these with actual React state or backend calls
   const handleFinishSelection = () => {
+    // compute finished dynamically from current state values depending on itemType
+    let finished = false;
+    const mealTypes = ["Bowl", "Plate", "Bigger", "Family"];
+    const drinkTypes = ["Small Drink", "Medium Drink", "Large Drink", "Bottle"];
+    if (mealTypes.includes(itemType)) {
+      finished = (indexEntree === numEntree) && (indexSide === numSide);
+    } else if (itemType === "A La Carte") {
+      finished = (indexALC === numALC);
+    } else if (itemType === "Appetizer") {
+      finished = (indexApp === numApp);
+    } else if (drinkTypes.includes(itemType)) {
+      finished = (indexDrink === numDrink);
+    } else {
+      // default: require entree+side
+      finished = (indexEntree === numEntree) && (indexSide === numSide);
+    }
+    console.log("Finish check:", { itemType, indexEntree, numEntree, indexSide, numSide, indexApp, numApp, indexDrink, numDrink, indexALC, numALC, finished });
     if (finished) {
 
 
@@ -95,7 +147,14 @@ export default function Cashier() {
       fetch("/api/buy-item", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ itemID: itemType, entreeList: entreeList, sideList: sideList }),
+        body: JSON.stringify({
+          itemID: itemType,
+          entreeList: entreeList,
+          sideList: sideList,
+          appList: appList,
+          drinkList: drinkList,
+          alcList: alcList
+        }),
       })
       .then((res) => res.json())
       .then((data) => {
@@ -112,69 +171,95 @@ export default function Cashier() {
       // entreeList.forEach((e) => console.log(e ? e.name : "empty"));
       // sideList.forEach((e) => console.log(e ? e.name : "empty"));
 
-      setShowCreateMealModal(false);
+      // close UI immediately after sending request
+      handleReset();
     }
     else {
-      console.log("Finish Adding Items!");
+      console.log("Finish Adding Items! not finished yet");
     }
   };
 
-  const selectEntree = (item) => {
-    const updated = [...entreeList];
-    let updatedIndex = indexEntree;
-    if (indexEntree < numEntree) {
-      updated[indexEntree] = item;
-      updatedIndex = indexEntree + 1; 
-        
-      setEntreeList(updated);
-      setIndexEntree(indexEntree + 1)
-
-      console.log("Item Added: " + item.name);
-    } else {
-      console.log("No more slots")
+  const selectAttribute = (item) => {
+    // If we're in A La Carte mode, treat every click as adding to alcList
+    if (alcMode) {
+      setIndexALC(prevIndex => {
+        if (prevIndex >= numALC) return prevIndex;
+        setAlcList(prevList => {
+          const updated = [...prevList];
+          updated[prevIndex] = item;
+          return updated;
+        });
+        console.log("ALC Item Added: " + item.name);
+        return prevIndex + 1;
+      });
+      return;
     }
-
-    console.log("Current Entree List and index: ")
-    updated.forEach((e) => console.log(e ? e.name : "empty"));
-    console.log("Slots Left: " + updatedIndex + "/" + numEntree);
-  }
-
-  const selectSide = (item) => {
-    const updated_side = [...sideList];
-    let updated_sideIndex = indexSide;
-    if (indexSide < numSide) {
-      updated_side[indexSide] = item;
-      updated_sideIndex = indexSide + 1;
-      setSideList(updated_side);
-      setIndexSide(indexSide + 1)
-
-      console.log("Item Added: " + item.name);
-    } else {
-      console.log("No more slots")
+    const t = (item.type || '').toLowerCase();
+    console.log(item.type);
+    if (t === "entree") {
+      // use functional updates to avoid stale closures
+      setIndexEntree(prevIndex => {
+        if (prevIndex >= numEntree) return prevIndex;
+        setEntreeList(prevList => {
+          const updated = [...prevList];
+          updated[prevIndex] = item;
+          return updated;
+        });
+        console.log("Item Added: " + item.name);
+        return prevIndex + 1;
+      });
+    } else if (t === "side") {
+      setIndexSide(prevIndex => {
+        if (prevIndex >= numSide) return prevIndex;
+        setSideList(prevList => {
+          const updated = [...prevList];
+          updated[prevIndex] = item;
+          return updated;
+        });
+        console.log("Item Added: " + item.name);
+        return prevIndex + 1;
+      });
+    } else if (t === "appetizer") {
+      setIndexApp(prevIndex => {
+        if (prevIndex >= numApp) return prevIndex;
+        setAppList(prevList => {
+          const updated = [...prevList];
+          updated[prevIndex] = item;
+          return updated;
+        });
+        console.log("Item Added: " + item.name);
+        return prevIndex + 1;
+      });
+    } else if (t === "drink") {
+      setIndexDrink(prevIndex => {
+        if (prevIndex >= numDrink) return prevIndex;
+        setDrinkList(prevList => {
+          const updated = [...prevList];
+          updated[prevIndex] = item;
+          return updated;
+        });
+        console.log("Item Added: " + item.name);
+        return prevIndex + 1;
+      });
     }
-
-    console.log("Current Side List and index: ")
-    updated_side.forEach((e) => console.log(e ? e.name : "empty"));
-    console.log("Slots Left: " + updated_sideIndex + "/" + numSide);
   }
 
   const removeIndex = (i, type) => {
-    if (type === "entree") {
+    if (type === "Entree") {
       const updated = [...entreeList];
       updated[i] = null; 
-
       const compact = updated.filter(x => x !== null);
 
-      while (compact.length < numSide) {
+      while (compact.length < numEntree) {
         compact.push(null);
       }
 
       setEntreeList(compact);
       setIndexEntree(Math.max(indexEntree - 1, 0));
-    } else if (type === "side") {
+    } 
+    else if (type === "Side") {
       const updated = [...sideList];      
       updated[i] = null; // remove the selected item
-
       const compact = updated.filter(x => x !== null);
 
       while (compact.length < numSide) {
@@ -183,50 +268,146 @@ export default function Cashier() {
 
       setSideList(compact);
       setIndexSide(Math.max(indexSide - 1, 0));
+    } 
+    else if (type === "Appetizer") {
+      const updated = [...appList];      
+      updated[i] = null; // remove the selected item
+      const compact = updated.filter(x => x !== null);
+
+      while (compact.length < numApp) {
+        compact.push(null);
+      }
+
+      setAppList(compact);
+      setIndexApp(Math.max(indexApp - 1, 0));
+    } 
+    else if (type === "Drink") {
+      const updated = [...drinkList];      
+      updated[i] = null; // remove the selected item
+      const compact = updated.filter(x => x !== null);
+
+      while (compact.length < numDrink) {
+        compact.push(null);
+      }
+
+      setDrinkList(compact);
+      setIndexDrink(Math.max(indexDrink - 1, 0));
     }
-    
+    else if (type === "A La Carte") {
+      const updated = [...alcList];
+      updated[i] = null;
+      const compact = updated.filter(x => x !== null);
+      while (compact.length < numALC) {
+        compact.push(null);
+      }
+      setAlcList(compact);
+      setIndexALC(Math.max(indexALC - 1, 0));
+    }
   };
- 
+
   const rows_entree = [];
-  for (let i = 0; i < items_entrees.length; i += 5) {
-    rows_entree.push(items_entrees.slice(i, i + 5));
+  for (let i = 0; i < items_entrees.length; i += itemRowSize) {
+    rows_entree.push(items_entrees.slice(i, i + itemRowSize));
   }
 
   const rows_side = [];
-  for (let i = 0; i < items_sides.length; i += 5) {
-    rows_side.push(items_sides.slice(i, i + 5));
+  for (let i = 0; i < items_sides.length; i += itemRowSize) {
+    rows_side.push(items_sides.slice(i, i + itemRowSize));
+  }
+
+  const rows_app = [];
+  for (let i = 0; i < items_apps.length; i += itemRowSize) {
+    rows_app.push(items_apps.slice(i, i + itemRowSize));
+  }
+
+  const rows_drink = [];
+  for (let i = 0; i < items_drinks.length; i += itemRowSize) {
+    rows_drink.push(items_drinks.slice(i, i + itemRowSize));
+  }
+
+  // rows for A La Carte (items_alc may be populated later)
+  const rows_alc = [];
+  for (let i = 0; i < items_alc.length; i += itemRowSize) {
+    rows_alc.push(items_alc.slice(i, i + itemRowSize));
+  }
+
+  const handleSetSizeMod = (e) => {
+  
   }
 
   const handleBuildItem = (e) => {
-    setItemType(e.target.id);
-    switch(e.target.id) {
+    const id = e.target.id;
+    setItemType(id);
+
+    // compute new counts locally to avoid async state update races
+    let newNumEntree = numEntree;
+    let newNumSide = numSide;
+    let newNumApp = numApp;
+    let newNumDrink = numDrink;
+    let newNumALC = numALC;
+
+    switch(id) {
       case "Bowl":
-        setNumEntree(1);
-        setNumSide(1);
+        newNumEntree = 1;
+        newNumSide = 1;
+        setSizeMod(0);
+        setShowMealGUI(true);
         break;
       case "Plate":
-        setNumEntree(2);
-        setNumSide(1);
+        newNumEntree = 2;
+        newNumSide = 1;
+        setSizeMod(0);
+        setShowMealGUI(true);
         break;
       case "Bigger":
-        setNumEntree(3);
-        setNumSide(1);
+        newNumEntree = 3;
+        newNumSide = 1;
+        setSizeMod(0);
+        setShowMealGUI(true);
         break;
       case "Family":
-        setNumEntree(3);
-        setNumSide(2);
+        newNumEntree = 3;
+        newNumSide = 2;
+        setSizeMod(0);
+        setShowMealGUI(true);
+        break;
+      case "A La Carte":
+        newNumALC = 1;
+        handleSetSizeMod(id);
+        // show the A La Carte menu and the selected panel
+        setShowAppGUI(false);
+        setShowAlcGUI(true);
+        setAlcMode(true);
+        break; 
+      case "Appetizer":
+        newNumApp = 1;
+        handleSetSizeMod(id);
+        setShowAppGUI(true);
         break;
       default:
         console.log("Not a valid type");
         break;
     }
 
-    setEntreeList(Array(numEntree).fill(null));
-    setSideList(Array(numSide).fill(null));
+    // apply computed counts to state and initialize lists correctly
+    setNumEntree(newNumEntree);
+    setNumSide(newNumSide);
+    setNumApp(newNumApp);
+    setNumDrink(newNumDrink);
+    setNumALC(newNumALC);
+
+    setEntreeList(Array(newNumEntree).fill(null));
+    setSideList(Array(newNumSide).fill(null));
+    setAppList(Array(newNumApp).fill(null));
+    setDrinkList(Array(newNumDrink).fill(null));
+    setAlcList(Array(newNumALC).fill(null));
+
     setIndexEntree(0);
     setIndexSide(0);
+    setIndexApp(0);
+    setIndexDrink(0);
+    setIndexALC(0);
 
-    console.log("numEntrees: " + numEntree + ", Sides: " + numSide)
     setShowCreateMealModal(true);
   };
   
@@ -303,8 +484,19 @@ export default function Cashier() {
   //modal to confirm sign out
   const [showSignOutModal, setShowSignOutModal] = useState(false);
 
+  const handleReset = () => {
+    setShowAlcGUI(false);
+    setShowMealGUI(false);
+    setShowDrinkGUI(false);
+    setShowAppGUI(false);
+    setShowCreateMealModal(false);
+    setAlcMode(false);
+  }
 
-
+  const handleOpenInventory = () => console.log("Open inventory");
+  const handleEditMenu = () => console.log("Edit menu");
+  const handleEditItems = () => console.log("Edit items");
+  const handleOpenEmployee = () => console.log("Open employees");
   const handleViewReports = () => navigate('/reports')
   const handleAddDiscount = () => setShowDiscountModal(true);
   const handleCreateMeal = () => setShowCreateMealModal(true);
@@ -321,7 +513,7 @@ export default function Cashier() {
         if (data.acceptedDiscount === 1) {
           setShowDiscountModal(false);
           //setErrorMessage("");
-          if(CashierMainPage.debugging)console.log("Discount Amount:", data.discountAmount);
+          if (debugging) console.log("Discount Amount:", data.discountAmount);
           //setDiscountAmount(data.discountAmount);} 
           UpdatePage();
         }
@@ -418,7 +610,7 @@ export default function Cashier() {
             justifyContent: "center",
             zIndex: 1000
           }}
-      onClick={() => setShowCreateMealModal(false)}>
+      onClick={() => handleReset()}>
         <div className="p-4 space-y-3 modal-menu-container"
         style={{
               background: "#f9f9fb",
@@ -433,81 +625,156 @@ export default function Cashier() {
               alignItems: "center"
             }}
         onClick={e => e.stopPropagation()}>
-          <div className="main-layout">
-            <div className="menu-wrapper">
-              <div className="section section-entrees">
-
-                <h3 className="section-title">Entrees:</h3>
-
-                {rows_entree.map((row, rowIndex) => (
-                  <div key={rowIndex} className={`menu-row `}>
-                    {row.map((item, itemIndex) => (
-                      <button
-                        key={itemIndex}
-                        id={item.name}
-                        className="buy-button"
-                        //onClick={() => console.log("The item is: " + item.name + " and it costs this much: " + item.cost)}
-                        onClick={() => selectEntree(item)}
-                      >
-                        {item.name}
-                      </button>
+          {showMealGUI && (
+            <>
+              <div className="main-layout">
+                <div className="menu-wrapper">
+                  <div className="section section-entrees">                
+                    <h3 className="section-title">Entrees:</h3>
+                    {rows_entree.map((row, rowIndex) => (
+                      <div key={rowIndex} className={`menu-row `}>
+                        {row.map((item, itemIndex) => (
+                          <button
+                            key={itemIndex}
+                            id={item.name}
+                            className="buy-button"
+                            //onClick={() => console.log("The item is: " + item.name + " and it costs this much: " + item.cost)}
+                            onClick={() => selectAttribute(item)}
+                          >
+                            {item.name}
+                          </button>
+                        ))}
+                      </div>
                     ))}
+                  </div>  
+                  <div className="section section-sides"> 
+                    <h3 className="section-title">Sides:</h3>
+                      {rows_side.map((row, rowIndex) => (
+                        <div key={rowIndex} className={`menu-row ${rowIndex > 0 ? 'spaced' : ''}`}>
+                          {row.map((item, itemIndex) => (
+                            <button
+                              key={itemIndex}
+                              id={item.name}
+                              className="buy-button"
+                              //onClick={() => console.log("The item is: " + item.name + " and it costs this much: " + item.cost)}
+                              onClick={() => selectAttribute(item)}
+                            >
+                              {item.name}
+                            </button>
+                          ))}
+                        </div>
+                      ))}    
                   </div>
-                ))}
+                </div>
+              </div>
 
-              </div>   
-
-              <div className="section section-sides"> 
-
-                <h3 className="section-title">Sides:</h3>
-
-                  {rows_side.map((row, rowIndex) => (
-                    <div key={rowIndex} className={`menu-row ${rowIndex > 0 ? 'spaced' : ''}`}>
-                      {row.map((item, itemIndex) => (
+              <div className="selected-panel">
+                    <div className="selected-group">
+                      <h3 className="section-title">Selected Entrees</h3>
+                      {Array.from({ length: numEntree }).map((_, i) => (
                         <button
-                          key={itemIndex}
-                          id={item.name}
-                          className="buy-button"
-                          //onClick={() => console.log("The item is: " + item.name + " and it costs this much: " + item.cost)}
-                          onClick={() => selectSide(item)}
+                          key={i}
+                          className="selected-button"
+                          onClick={() => removeIndex(i, "Entree")}
                         >
-                          {item.name}
+                          {entreeList[i] ? entreeList[i].name : "NONE"}
                         </button>
                       ))}
                     </div>
-                  ))}    
-                </div>
+                    <div className="selected-group">
+                      <h3 className="section-title">Selected Sides</h3>
+                      {Array.from({ length: numSide }).map((_, i) => (
+                        <button
+                          key={i}
+                          className="selected-button"
+                          onClick={() => removeIndex(i, "Side")}
+                        >
+                          {sideList[i] ? sideList[i].name : "NONE"}
+                        </button>
+                      ))}
+                    </div>
               </div>
-            </div>
-
-            <div className="selected-panel">
-                <div className="selected-group">
-                  <h3 className="section-title">Selected Entrees</h3>
-                  {Array.from({ length: numEntree }).map((_, i) => (
-                    <button
-                      key={i}
-                      className="selected-button"
-                      onClick={() => removeIndex(i, "entree")}
-                    >
-                      {entreeList[i] ? entreeList[i].name : "NONE"}
-                    </button>
-                  ))}
+            </>
+            )}
+            
+            {showAlcGUI && (
+              <>
+                <div className="main-layout">
+                  <div className="menu-wrapper">
+                    <div className="section section-entrees">
+                      <h3 className="section-title">A La Carte</h3>
+                      {rows_alc.map((row, rowIndex) => (
+                        <div key={rowIndex} className={`menu-row `}>
+                          {row.map((item, itemIndex) => (
+                            <button
+                              key={itemIndex}
+                              id={item.name}
+                              className="buy-button"
+                              onClick={() => selectAttribute(item)}
+                            >
+                              {item.name}
+                            </button>
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
 
-                
-                <div className="selected-group">
-                  <h3 className="section-title">Selected Sides</h3>
-                  {Array.from({ length: numSide }).map((_, i) => (
-                    <button
-                      key={i}
-                      className="selected-button"
-                      onClick={() => removeIndex(i, "side")}
-                    >
-                      {sideList[i] ? sideList[i].name : "NONE"}
-                    </button>
-                  ))}
+                <div className="selected-panel">
+                  <div className="selected-group">
+                    <h3 className="section-title">Selected Item</h3>
+                    {Array.from({ length: numALC }).map((_, i) => (
+                      <button
+                        key={i}
+                        className="selected-button"
+                        onClick={() => removeIndex(i, "A La Carte")}
+                      >
+                        {alcList[i] ? alcList[i].name : "NONE"}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-          </div>
+              </>
+            )}
+            {showAppGUI && (
+            <>
+              <div className="main-layout">
+                <div className="menu-wrapper">
+                  <div className="section section-entrees">                
+                    <h3 className="section-title">Appetizers:</h3>
+                    {rows_app.map((row, rowIndex) => (
+                      <div key={rowIndex} className={`menu-row `}>
+                        {row.map((item, itemIndex) => (
+                          <button
+                            key={itemIndex}
+                            id={item.name}
+                            className="buy-button"
+                            onClick={() => selectAttribute(item)}
+                          >
+                            {item.name}
+                          </button>
+                        ))}
+                      </div>
+                    ))}
+                  </div>  
+              </div>
+              </div>
+              <div className="selected-panel">
+                    <div className="selected-group">
+                      <h3 className="section-title">Selected Appetizer</h3>
+                      {Array.from({ length: numApp }).map((_, i) => (
+                        <button
+                          key={i}
+                          className="selected-button"
+                          onClick={() => removeIndex(i, "Appetizer")}>
+                          {appList[i] ? appList[i].name : "NONE"}
+                        </button>
+                      ))}
+                    </div>
+              </div>
+            </>
+            )}
 
           <button
             className="continue-button"
@@ -604,8 +871,8 @@ export default function Cashier() {
                     const group = { main, entrees: [], sides: [] };
                     let j = i + 1;
                     while (j < transactionItems.length && transactionItems[j].type !== "main") {
-                      if (transactionItems[j].type === "entree") group.entrees.push(transactionItems[j]);
-                      if (transactionItems[j].type === "side") group.sides.push(transactionItems[j]);
+                      if (transactionItems[j].type === "Entree") group.entrees.push(transactionItems[j]);
+                      if (transactionItems[j].type === "Side") group.sides.push(transactionItems[j]);
                       j++;
                     }
                     grouped.push(group);
@@ -675,14 +942,14 @@ export default function Cashier() {
         </div>
         <div className="menu-row spaced">
           {["A La Carte", "Appetizer"].map((item) => (
-            <button key={item} id={item} className="buy-button" onClick={handleBuyItem}>
+            <button key={item} id={item} className="buy-button" onClick={handleBuildItem}>
               {item}
             </button>
           ))}
         </div>
         <div className="menu-row spaced">
           {["Small Drink", "Medium Drink", "Large Drink", "Bottle"].map((item) => (
-            <button key={item} id={item} className="buy-button" onClick={handleBuyItem}>
+            <button key={item} id={item} className="buy-button" onClick={handleBuildItem}>
               {item}
             </button>
           ))}
