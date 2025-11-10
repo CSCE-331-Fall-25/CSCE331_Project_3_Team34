@@ -124,24 +124,23 @@ class Menu {
         if (!db || typeof db.query !== 'function') {
             throw new Error('DB pool not provided or invalid');
         }
-
-        // Creates the query
-        const q = 'SELECT * FROM menu WHERE type = $1';
+        // Case-insensitive query: match type regardless of capitalization
+        const q = 'SELECT * FROM menu WHERE LOWER(type) = LOWER($1)';
         const res = await db.query(q, [type]);
 
-        // If the query didn't return enough information
-        if (!res || !res.rows || res.rows.length === 0) return null;
-        
+        // If the query returned no rows, return an empty array (client expects an array)
+        if (!res || !res.rows || res.rows.length === 0) return [];
+
         // Loop through each element of the result and create Menu instances
         const menus = [];
         for (const row of res.rows) {
             const menuID = row.menuid ?? -1;
             const menuName = row.name ?? `menu-${menuID}`;
-            const type = row.type ?? '';
+            const rowType = row.type ?? '';
             const priceMod = row.pricemod ?? 0;
             const invIDs = row.inventoryids ?? '';
 
-            menus.push(new Menu(menuID, menuName, type, priceMod, invIDs));
+            menus.push(new Menu(menuID, menuName, rowType, priceMod, invIDs));
         }
 
         console.log(`Fetched ${menus.length} Menus of type=${type} from DB`);

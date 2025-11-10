@@ -24,6 +24,7 @@ export default function Cashier() {
   const [showMealGUI, setShowMealGUI] = useState(false);
   const [showAppGUI, setShowAppGUI] = useState(false);
   const [showDrinkGUI, setShowDrinkGUI] = useState(false);
+  const [showBottleGUI, setShowBottleGUI] = useState(false);
   const [showAlcGUI, setShowAlcGUI] = useState(false);
 
   //updates for orderTable
@@ -58,6 +59,7 @@ export default function Cashier() {
   const items_sides = [];
   const items_apps = [];
   const items_drinks = [];
+  const items_bottles = [];
   const items_alc_small = [];
   const items_alc_medium = [];
   const items_alc_large = [];
@@ -94,9 +96,11 @@ export default function Cashier() {
       const fetchedEntrees = await fetchMenusByType("entree");
       const fetchedSides = await fetchMenusByType("side");
       const fetchedApps = await fetchMenusByType("appetizer");
+      const fetchedDrinks = await fetchMenusByType("drink");
+      const fetchedBottles = await fetchMenusByType("bottle");
       if (!mounted) return;
       // fetched lists may be arrays of plain objects with name/type
-      setExtraMenus([...(fetchedEntrees || []), ...(fetchedSides || []), ...(fetchedApps || [])]);
+      setExtraMenus([...(fetchedEntrees || []), ...(fetchedSides || []), ...(fetchedApps || []), ...(fetchedDrinks || []), ...(fetchedBottles || [])]);
     })();
     return () => { mounted = false; };
   }, []);
@@ -112,6 +116,8 @@ export default function Cashier() {
       items_apps.push(combinedItems[i]);
     } else if (t === 'drink') {
       items_drinks.push(combinedItems[i]);
+    } else if (t === 'bottle') {
+      items_bottles.push(combinedItems[i]);
     } else {
       // unknown type: push to sides as a fallback
       items_sides.push(combinedItems[i]);
@@ -126,7 +132,7 @@ export default function Cashier() {
     // compute finished dynamically from current state values depending on itemType
     let finished = false;
     const mealTypes = ["Bowl", "Plate", "Bigger", "Family"];
-    const drinkTypes = ["Small Drink", "Medium Drink", "Large Drink", "Bottle"];
+  const drinkTypes = ["Drink", "Bottle"];
     if (mealTypes.includes(itemType)) {
       finished = (indexEntree === numEntree) && (indexSide === numSide);
     } else if (itemType === "A La Carte") {
@@ -230,7 +236,7 @@ export default function Cashier() {
         console.log("Item Added: " + item.name);
         return prevIndex + 1;
       });
-    } else if (t === "drink") {
+    } else if (t === "drink" || t === "bottle") {
       setIndexDrink(prevIndex => {
         if (prevIndex >= numDrink) return prevIndex;
         setDrinkList(prevList => {
@@ -325,6 +331,11 @@ export default function Cashier() {
     rows_drink.push(items_drinks.slice(i, i + itemRowSize));
   }
 
+  const rows_bottle = [];
+  for (let i = 0; i < items_bottles.length; i += itemRowSize) {
+    rows_bottle.push(items_bottles.slice(i, i + itemRowSize));
+  }
+
   // rows for A La Carte (items_alc may be populated later)
   const rows_alc = [];
   for (let i = 0; i < items_alc.length; i += itemRowSize) {
@@ -379,6 +390,25 @@ export default function Cashier() {
         setShowAlcGUI(true);
         setAlcMode(true);
         break; 
+      case "Drink":
+        newNumDrink = 1;
+        handleSetSizeMod(id);
+        // hide other menus and show drink selection
+        setShowMealGUI(false);
+        setShowAppGUI(false);
+        setShowAlcGUI(false);
+        setAlcMode(false);
+        setShowDrinkGUI(true);
+        break;
+      case "Bottle":
+        newNumDrink = 1;
+        handleSetSizeMod(id);
+        setShowMealGUI(false);
+        setShowAppGUI(false);
+        setShowAlcGUI(false);
+        setAlcMode(false);
+        setShowBottleGUI(true);
+        break;
       case "Appetizer":
         newNumApp = 1;
         handleSetSizeMod(id);
@@ -488,6 +518,7 @@ export default function Cashier() {
     setShowAlcGUI(false);
     setShowMealGUI(false);
     setShowDrinkGUI(false);
+    setShowBottleGUI(false);
     setShowAppGUI(false);
     setShowCreateMealModal(false);
     setAlcMode(false);
@@ -690,6 +721,84 @@ export default function Cashier() {
                           onClick={() => removeIndex(i, "Side")}
                         >
                           {sideList[i] ? sideList[i].name : "NONE"}
+                        </button>
+                      ))}
+                    </div>
+              </div>
+            </>
+            )}
+            {showDrinkGUI && (
+            <>
+              <div className="main-layout">
+                <div className="menu-wrapper">
+                  <div className="section section-drinks">                
+                    <h3 className="section-title">Drinks:</h3>
+                    {rows_drink.map((row, rowIndex) => (
+                      <div key={rowIndex} className={`menu-row `}>
+                        {row.map((item, itemIndex) => (
+                          <button
+                            key={itemIndex}
+                            id={item.name}
+                            className="buy-button"
+                            onClick={() => selectAttribute(item)}
+                          >
+                            {item.name}
+                          </button>
+                        ))}
+                      </div>
+                    ))}
+                  </div>  
+              </div>
+              </div>
+              <div className="selected-panel">
+                    <div className="selected-group">
+                      <h3 className="section-title">Selected Drink</h3>
+                      {Array.from({ length: numDrink }).map((_, i) => (
+                        <button
+                          key={i}
+                          className="selected-button"
+                          onClick={() => removeIndex(i, "Drink")}
+                        >
+                          {drinkList[i] ? drinkList[i].name : "NONE"}
+                        </button>
+                      ))}
+                    </div>
+              </div>
+            </>
+            )}
+            {showBottleGUI && (
+            <>
+              <div className="main-layout">
+                <div className="menu-wrapper">
+                  <div className="section section-drinks">                
+                    <h3 className="section-title">Bottles:</h3>
+                    {rows_bottle.map((row, rowIndex) => (
+                      <div key={rowIndex} className={`menu-row `}>
+                        {row.map((item, itemIndex) => (
+                          <button
+                            key={itemIndex}
+                            id={item.name}
+                            className="buy-button"
+                            onClick={() => selectAttribute(item)}
+                          >
+                            {item.name}
+                          </button>
+                        ))}
+                      </div>
+                    ))}
+                  </div>  
+              </div>
+              </div>
+              <div className="selected-panel">
+                    <div className="selected-group">
+                      <h3 className="section-title">Selected Bottle</h3>
+                      {Array.from({ length: numDrink }).map((_, i) => (
+                        <button
+                          key={i}
+                          className="selected-button"
+                          onClick={() => removeIndex(i, "Drink")}
+                        >
+                          {drinkList[i] ? drinkList[i].name : "NONE"}
                         </button>
                       ))}
                     </div>
@@ -948,7 +1057,7 @@ export default function Cashier() {
           ))}
         </div>
         <div className="menu-row spaced">
-          {["Small Drink", "Medium Drink", "Large Drink", "Bottle"].map((item) => (
+          {["Drink", "Bottle"].map((item) => (
             <button key={item} id={item} className="buy-button" onClick={handleBuildItem}>
               {item}
             </button>
