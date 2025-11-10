@@ -1,51 +1,26 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import pkg from "pg";
+import { pool, setPool } from "./db.js";
 import CashierMainPage from "./MainPage.js";
 import User, {Employee, Customer} from "./User.js";
 import { Report } from "./Reports.js";
 import { Menu } from "./Item.js";
+// Kiosk router file is named `Kiosk.js` (capital K). Use the exact filename so imports work
+// on case-sensitive filesystems (e.g. Linux used by many CI/CD hosts).
+import kioskRouter from "./Kiosk.js";
 
 dotenv.config();
-const { Pool } = pkg;
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Connect to PostgreSQL (assignable so tests can inject a mock)
-// Create a Postgres pool if we can. Use DATABASE_URL from environment (.env) with a standard
-// postgres://user:pass@host:port/dbname format. If connection fails (wrong creds or network)
-// we log a clear message and continue with `pool = null` so the server doesn't crash.
-let pool = null;
-const connectionString = process.env.DATABASE_URL || "postgres://team_34:bobross@csce-315-db.engr.tamu.edu:5432/team_34_db";
-
-try {
-  // Attempt to create a pool and run a quick test query. Use top-level await semantics.
-  pool = new Pool({ connectionString });
-  await pool.query('SELECT 1');
-  console.log('Connected to Postgres');
-} catch (pgErr) {
-  console.error('Postgres connection failed — DB will be disabled for this run.');
-  // Log succinct error to help debugging (avoid printing secrets)
-  console.error(pgErr && pgErr.message ? pgErr.message : pgErr);
-  pool = null;
-}
-
-// Allow tests or runtime code to inject a mock pool
-export function setPool(newPool) {
-  pool = newPool;
-  if (typeof mainPage !== 'undefined' && mainPage && typeof mainPage.setDB === 'function') {
-    mainPage.setDB(newPool);
-  }
-}
-
-
 // Example: create a test user and main page instance (pass the pool so it has DB access)
 const user = new User("testUser", "password123", "bob@gmail.com");
 const mainPage = new CashierMainPage(user, pool);
 const reports = new Report(pool);
+app.use('/api/kiosk', kioskRouter);
 
 // API endpoint to buy an item
 app.post('/api/buy-item', async (req, res) => {
@@ -181,11 +156,12 @@ app.post('/api/sales-report-data', async (req, res) => {
     const { startTime, endTime } = req.body;
     res.json(await reports.SalesReportData(startTime, endTime));
   } catch (err) {
-    console.error('Error getting data');
+    console.error('Error getting data' + err);
     res.json({ 
       menuid: -1, 
       name: -1, 
-      sales: -1
+      sales: -1,
+      code: 4096
     });
   }
 });
@@ -196,11 +172,12 @@ app.post('/api/product-usage-report-data', async (req, res) => {
     const { startTime, endTime } = req.body;
     res.json(await reports.ProductUsageReportData(startTime, endTime));
   } catch (err) {
-    console.error('Error getting data');
+    console.error('Error getting data' + err);
     res.json({ 
       inventoryid: -1, 
       name: -1, 
-      sales: -1
+      sales: -1,
+      code: 4096
     });
   }
 });

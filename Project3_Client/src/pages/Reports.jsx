@@ -43,7 +43,6 @@ export default function Report() {
     }
     else {
       const newData = await response.json();
-      console.log("WE GOT THERE");
       setTableColumns([{ accessorKey: "hour", header: "Hour", cell: info => info.getValue() },
       { accessorKey: "sales", header: "Sales", cell: info => info.getValue() }]);
       console.log(JSON.stringify(newData));
@@ -62,7 +61,6 @@ export default function Report() {
     }
     else {
       const newData = await response.json();
-      console.log("WE GOT THERE");
       setTableColumns([{ accessorKey: "hour", header: "Hour", cell: info => info.getValue() },
       { accessorKey: "sales", header: "Sales", cell: info => info.getValue() }]);
       console.log(JSON.stringify(newData));
