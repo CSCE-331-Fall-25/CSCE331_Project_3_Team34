@@ -4,6 +4,9 @@ import "../styles/Cashier/DiscountModal.css";
 import { useEffect, useState, useRef } from "react";
 import CashierMainPage from "../../../Project3_Server/src/MainPage.js";
 import { useNavigate } from 'react-router-dom';
+
+//components
+import SignOutButton from "../Components/SignOut.jsx";
 export default function Cashier() {
   const navigate = useNavigate();
   //newest Row reference for auto scrolling
@@ -11,10 +14,12 @@ export default function Cashier() {
   //handles selected row of items (used for removal/customization)
   const [selectedRow, setSelectedRow] = useState(null);
 
+  //modal to confirm sign out
+  const [showSignOutModal, setShowSignOutModal] = useState(false);
 
 
 
-  //const [showCreateMeal, setShowCreateMealModal] = useState(false);
+  const [showCreateMeal, setShowCreateMealModal] = useState(false);
   const [mealModalMode, setMealModalMode] = useState("meal"); // "meal", "drink", "alacarte"
   const items_drinks = [
     new foodItem("Small Drink", 0.0, 0, false, 71, "drink"),
@@ -322,11 +327,7 @@ export default function Cashier() {
       });
   }
 
-  // Navigate back to the top-level login page (App shows login UI when pathname === '/')
-  const handleSignOut = () => navigate('/');
-  //modal to confirm sign out
-  const [showSignOutModal, setShowSignOutModal] = useState(false);
-
+  
 
 
   const handleViewReports = () => navigate('/reports')
@@ -578,23 +579,7 @@ export default function Cashier() {
         </div>
       )}
       {showSignOutModal && (
-        <div
-          className="modal-overlay"
-          onClick={() => setShowSignOutModal(false)}
-            >
-          <div className="modal-window" onClick={e => e.stopPropagation()}>
-            <div className="modal-title">
-              <h2>Confirm Sign Out</h2>
-            <div>
-              Are you sure you want to sign out?
-            </div>
-            </div>
-            <div className= "modal-actions">
-              <button className="button" onClick={handleSignOut}>Yes</button>
-              <button className="button" onClick={() => setShowSignOutModal(false)}>No</button>
-            </div>
-          </div>
-        </div>
+        <SignOutButton onClose={() => setShowSignOutModal(false)} />
       )}
       {/* Sidebar */}
       <div className="sidebar-left" />
@@ -730,7 +715,7 @@ export default function Cashier() {
           // { text: "Employees", handler: handleOpenEmployee },
           // { text: "Edit Items", handler: handleEditItems },
           // { text: "Edit Menu", handler: handleEditMenu },
-          { text: "Sign Out", handler: setShowSignOutModal },
+          { text: "Sign Out", handler: () => setShowSignOutModal(true) },
         ].map((btn) => (
           <button key={btn.text} onClick={btn.handler} className="function-button">
             {btn.text}

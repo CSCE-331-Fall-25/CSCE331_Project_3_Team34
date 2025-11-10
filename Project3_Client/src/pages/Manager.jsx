@@ -4,6 +4,9 @@ import { useNavigate } from 'react-router-dom';
 import "../styles/Manager/Manager.css";
 import { flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table'
 
+//Component imports
+import SignOutButton from '../Components/SignOut.jsx';
+
 export default function Manager() {
 
   //Reports
@@ -18,8 +21,7 @@ export default function Manager() {
   // Router navigation
   const navigate = useNavigate();
 
-  // Navigate back to the top-level login page (App shows login UI when pathname === '/')
-  const handleSignOut = () => navigate('/');
+ 
 
   //modal to confirm sign out
   const [showSignOutModal, setShowSignOutModal] = useState(false);
@@ -397,25 +399,7 @@ export default function Manager() {
           </div>
         )
       }
-      {showSignOutModal && (
-        <div
-          className="modal-overlay"
-          onClick={() => setShowSignOutModal(false)}
-            >
-          <div className="modal-window" onClick={e => e.stopPropagation()}>
-            <div className="modal-title">
-              <h2>Confirm Sign Out</h2>
-            <div>
-              Are you sure you want to sign out?
-            </div>
-            </div>
-            <div className= "modal-actions">
-              <button className="button" onClick={handleSignOut}>Yes</button>
-              <button className="button" onClick={() => setShowSignOutModal(false)}>No</button>
-            </div>
-          </div>
-        </div>
-      )}
+      {showSignOutModal && <SignOutButton />}
       <div className = "manager-subheader"><h1>Welcome, {employeeName}!</h1></div>
 
       <div className = "manager-buttons-container">
