@@ -7,7 +7,10 @@ export default function PurchaseButton({ onPurchased }) {
     if (loading) return;
     setLoading(true);
     try {
-      const res = await fetch("/api/purchase", { method: "POST" });
+      const res = await fetch("/api/purchase", { 
+        method: "POST",
+        credentials: 'include' // Include cookies with this request
+      });
       const data = await res.json();
       if (data && data.success) {
         console.log("Purchase successful");

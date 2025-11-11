@@ -1,6 +1,8 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import session from "express-session";
+import cookieParser from "cookie-parser";
 import { pool, setPool } from "./db.js";
 import CashierMainPage from "./MainPage.js";
 import User, {Employee, Customer} from "./User.js";
@@ -12,18 +14,62 @@ import kioskRouter from "./Kiosk.js";
 dotenv.config();
 
 const app = express();
-app.use(cors());
-app.use(express.json());
 
-// Example: create a test user and main page instance (pass the pool so it has DB access)
-const user = new User("testUser", "password123", "bob@gmail.com");
-const mainPage = new CashierMainPage(user, pool);
+// Enable CORS with credentials so cookies work across origins
+app.use(cors({
+  origin: 'http://localhost:5173', // Your Vite dev server
+  credentials: true
+}));
+app.use(express.json());
+app.use(cookieParser());
+
+// Session middleware - this creates a unique session for each user
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'your-secret-key-change-in-production',
+  resave: false,
+  saveUninitialized: true, // CHANGED: Create session immediately even if empty
+  cookie: {
+    secure: false, // set to true if using HTTPS
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    sameSite: 'lax' // ADDED: Allow cookies in cross-origin requests
+  }
+}));
+
+// Instead of one global mainPage, we'll create one per session
+// This Map stores sessionID -> CashierMainPage instance
+const sessionStore = new Map();
+
+// Helper function to get or create a mainPage for the current session
+function getMainPageForSession(req) {
+  const sessionID = req.sessionID; // Express-session provides this
+  
+  console.log(`Request sessionID: ${sessionID}, Existing sessions: ${sessionStore.size}`);
+  
+  if (!sessionStore.has(sessionID)) {
+    // First time this session is accessing - create a new user & mainPage
+    const user = new User(`session-${sessionID}`, "password", "session@example.com");
+    const mainPage = new CashierMainPage(user, pool);
+    sessionStore.set(sessionID, mainPage);
+    
+    // Mark session as initialized so it gets saved
+    req.session.initialized = true;
+    
+    console.log(`Created new session for ${sessionID}`);
+  } else {
+    console.log(`Reusing existing session for ${sessionID}`);
+  }
+  
+  return sessionStore.get(sessionID);
+}
+
 const reports = new Report(pool);
 app.use('/api/kiosk', kioskRouter);
 
 // API endpoint to buy an item
 app.post('/api/buy-item', async (req, res) => {
   try {
+    const mainPage = getMainPageForSession(req); // Get session-specific instance
     let result;
     if (req.body && req.body.itemID) {
       result = await mainPage.BuyItemButton(req.body.itemID, req.body.entreeList, req.body.sideList);
@@ -39,6 +85,7 @@ app.post('/api/buy-item', async (req, res) => {
 
 // API endpoint to add a discount
 app.post('/api/add-discount', async (req, res) => {
+  const mainPage = getMainPageForSession(req); // Get session-specific instance
   const { discountCode } = req.body;
   let result = { acceptedDiscount: false };
   try {
@@ -65,11 +112,13 @@ app.post('/api/add-discount', async (req, res) => {
 
 // API endpoint to clear the transaction
 app.delete('/api/clear-transaction', (req, res) => {
+  const mainPage = getMainPageForSession(req); // Get session-specific instance
   mainPage.ClearTransaction();
   res.json({ success: true });
 });
 // API endpoint to purchase the transaction
 app.post('/api/purchase', (req, res) => {
+  const mainPage = getMainPageForSession(req); // Get session-specific instance
   mainPage.PurchaseTransaction();
   res.json({ success: true });
   
@@ -88,17 +137,20 @@ app.get("/api/users", async (req, res) => {
 
 // API endpoint to get current state
 app.get("/api/current-state", (req, res) => {
+  const mainPage = getMainPageForSession(req); // Get session-specific instance
   let result = mainPage.GetCurrentState();
   res.json(result);
 });
 // API endpoint to remove an item by index
 app.post('/api/remove-item', (req, res) => {
+  const mainPage = getMainPageForSession(req); // Get session-specific instance
   const { index } = req.body;
   let result = mainPage.RemoveItemByIndex(index);
   res.json({ success: true, ...result });
 });
 //API endpoint to customize an order
 app.post('/api/customize-order', (req, res) => {
+  const mainPage = getMainPageForSession(req); // Get session-specific instance
   const { index } = req.body;
   let result = mainPage.CustomizeOrder(index);
   res.json({ success: true, ...result });

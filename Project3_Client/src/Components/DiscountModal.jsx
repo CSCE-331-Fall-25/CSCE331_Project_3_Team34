@@ -14,6 +14,7 @@ export default function DiscountModal({ show, onClose, onApplied }) {
       const res = await fetch("/api/add-discount", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: 'include', // Include cookies with this request
         body: JSON.stringify({ discountCode }),
       });
       const data = await res.json();

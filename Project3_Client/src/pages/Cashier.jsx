@@ -104,6 +104,7 @@ export default function Cashier() {
       fetch("/api/buy-item", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: 'include', // Include cookies with this request
         body: JSON.stringify({ itemID: itemType, entreeList: entreeList, sideList: sideList }),
       })
       .then((res) => res.json())
@@ -266,6 +267,7 @@ export default function Cashier() {
   fetch("/api/buy-item", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      credentials: 'include', // Include cookies with this request
       body: JSON.stringify({ itemID: e.target.id }),
      
     })
@@ -286,6 +288,7 @@ export default function Cashier() {
     //Tells server to clear transaction
     fetch("/api/clear-transaction", {
         method: "delete",
+        credentials: 'include', // Include cookies with this request
       })
       .then((res) => res.json())
       .then((data) => {
@@ -301,6 +304,7 @@ export default function Cashier() {
   fetch("/api/remove-item", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      credentials: 'include', // Include cookies with this request
       body: JSON.stringify({ index: selectedRow }) // Pass the index in the body
     })
       .then((res) => res.json())
@@ -315,19 +319,11 @@ export default function Cashier() {
         }
       });
   }
-  const handlePurchase = (e) => {
-    console.log("Purchase order");
-    fetch("/api/purchase", {
-      method: "POST",
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success) {
-          console.log("Purchase successful");
-          //server should be clear at this point so now we clear frontend
-          UpdatePage();
-        }
-      });
+  const handlePurchase = () => {
+    // PurchaseButton component already makes the API call
+    // This just updates the UI after purchase completes
+    console.log("Purchase completed, updating page");
+    UpdatePage();
   }
 
   
@@ -346,6 +342,7 @@ export default function Cashier() {
     fetch("/api/customize-order", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      credentials: 'include', // Include cookies with this request
       body: JSON.stringify({ index: selectedRow }) // Pass the index in the body
     })
       .then((res) => res.json())
@@ -376,7 +373,9 @@ export default function Cashier() {
   }, [transactionItems]);
 
   const UpdatePage = () => {
-  fetch("/api/current-state")
+  fetch("/api/current-state", {
+    credentials: 'include' // Include cookies with this request
+  })
       .then((res) => res.json())
       .then((data) => {
         //Formats orders into a flat array for display
