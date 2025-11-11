@@ -66,9 +66,10 @@ class CashierMainPage {
         // Get the last order (just added)
         if(this.debugging)console.log("new item name: " + currItem.name);
         
+        console.log("new order price: " + currOrder.price);
         //TODO: check if we even need to return anything here besides confirmation we bought the item
         return {
-            cost: currItem.price,
+            cost: currOrder.price,
             item: currItem.name,
             entrees: currOrder.entrees.map(e => e.menu?.name || 'Select Entree'),
             sides: currOrder.sides.map(s => s.menu?.name || 'Select Side'),
@@ -271,7 +272,7 @@ class CashierMainPage {
         // while the client still groups trays by entree/side.
         return {
             orders: this.currTransaction.orders.map(order => ({
-                cost: order.item.price,
+                cost: order.price,
                 item: order.item.name,
                 // Entrees: include name and an optional displayType. If the parent order's item
                 // is one of the single-item types, use that as displayType; otherwise default to 'Entree'.
@@ -286,7 +287,7 @@ class CashierMainPage {
             })),
             discountAmount,
             priceOff,
-            totalPrice: total
+            totalPrice: this.currTransaction.amount
         };
     }
     CustomizeOrder(index) {

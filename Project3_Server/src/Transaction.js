@@ -12,8 +12,8 @@ class Transaction {
         this.customerID = null;
     }
 
-    NewOrder(item) {
-        this.currOrder = new Order(this, item);
+    NewOrder(item, size = null) {
+        this.currOrder = new Order(this, item, size);
         this.orders.push(this.currOrder);
         return this.currOrder;
     }
@@ -47,13 +47,32 @@ class Transaction {
 
         return transactionID;
     }
+
+    async calculateTotals(db) {
+        let totalAmount = 0;
+        let totalProfit = 0;
+
+        for (const order of this.orders) {
+            const orderPrice = await order.calculatePrice(db);
+            totalAmount += orderPrice;
+            // For simplicity, assume profit is 20% of the price
+            totalProfit += orderPrice * 0.2;
+        }
+
+        this.amount = totalAmount;
+        this.profit = totalProfit;
+
+        return this.amount;
+    }
 }
 
 class Order {
-    constructor(transaction, item) {
+    constructor(transaction, item, size = null) {
         this.item = item;
         this.transaction = transaction;
-        
+        this.size = size;
+        this.price = 0;
+
         this.entrees = [];
         this.sides = [];
     }
@@ -69,6 +88,7 @@ class Order {
         } else {
             this.entrees.push(newTray);
         }
+
         return newTray;
     }
 
@@ -97,6 +117,7 @@ class Order {
 
         // If nothing was provided (e.g., non-meal items), do nothing here.
         // Such items are typically handled elsewhere, or have zero trays.
+        await this.transaction.calculateTotals(db);
     }
 
     static async AddToDatabase(db, transactionID, order) {
@@ -123,6 +144,19 @@ class Order {
             await Tray.AddToDatabase(db, orderID, tray);
         }
     }
+
+    async calculatePrice(db) {
+        let price = this.item.price || 0;
+        if (this.item.type === 'drink' || this.item.type === 'a la carte') {
+            price = 0;
+        }
+
+        for (const tray of [...(this.entrees || []), ...(this.sides || [])]) {
+            price += await tray.calculatePrice(db);
+        }
+        this.price = price;
+        return price;
+    }
 }
 
 class Tray {
@@ -130,6 +164,7 @@ class Tray {
         this.order = order;
         this.menu = menu;
         this.type = type;
+        this.price = 0;
     }
 
     static async AddToDatabase(db, orderID, tray) {
@@ -156,6 +191,33 @@ class Tray {
             tray.type
         ]);
     }
+
+    async calculatePrice(db) {
+        if (this.price !== 0) {
+            return this.price;
+        }
+        // Fetch menu item price from DB if not already present
+        let price = 0;
+        if (this.type === 'a la carte' || this.type === 'drink') {
+            // Query the price from the sizemod table with the size
+            const sizeQuery = 'SELECT price FROM sizemod WHERE name = $1 AND size = $2';
+            
+            let type = this.type;
+            if (this.menu.pricemod !== 0) {
+                type = 'premium';
+            }
+
+            const sizeRes = await db.query(sizeQuery, [type, this.size]);
+            if (sizeRes && sizeRes.rows && sizeRes.rows.length > 0) {
+                price += sizeRes.rows[0].pricemod || 0;
+            }
+        } else {
+            price += this.menu.pricemod;
+        }
+        this.price = price;
+        return price;
+    }
+
 }
 
 export default Transaction;

@@ -24,9 +24,6 @@ export default function Cashier() {
 
   //modal to confirm sign out
   const [showSignOutModal, setShowSignOutModal] = useState(false);
-
-
-
   const [showCreateMeal, setShowCreateMealModal] = useState(false);
   const [mealModalMode, setMealModalMode] = useState("meal"); // "meal", "drink", "alacarte"
 
