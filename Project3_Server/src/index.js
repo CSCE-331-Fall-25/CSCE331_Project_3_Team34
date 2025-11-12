@@ -15,61 +15,64 @@ dotenv.config();
 
 const app = express();
 
-// Enable CORS with credentials so cookies work across origins
+const clientOrigin = process.env.CLIENT_ORIGIN || "http://localhost:5173";
+const sessionPrefab = session({
+  secret: process.env.SESSION_SECRET || 'default_secret', //TODO: change to strong secret in production AND save to gitsecrets
+  resave: false, //don't save session if unmodified
+  saveUninitialized: true, //creates session immediately to set cookies
+  cookie:{
+    // only true when using HTTPS in production
+    secure: process.env.NODE_ENV === 'production', // only sends cookie over https when in production
+    httpOnly: true, //prevents client-side JS from accessing cookie
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', 
+    //^ options are either lax, strict, none
+    //lax:default, allows some cross-site cookie sending for top-level navigation(GET)
+    //strict: only sends cookies for same-site requests
+    //none: sends cookies for all requests, cross-site included (must be secure:true)
+    maxAge: 60 * 60 * 1000 //1 hour
+  }
+});
 app.use(cors({
-  origin: 'http://localhost:5173', // Your Vite dev server
-  credentials: true
+  origin: clientOrigin, //supposed to be https://localhost:5173
+  credentials: true,
 }));
 app.use(express.json());
+
 app.use(cookieParser());
+app.use(sessionPrefab);
 
-// Session middleware - this creates a unique session for each user
-app.use(session({
-  secret: process.env.SESSION_SECRET || 'your-secret-key-change-in-production',
-  resave: false,
-  saveUninitialized: true, // CHANGED: Create session immediately even if empty
-  cookie: {
-    secure: false, // set to true if using HTTPS
-    httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    sameSite: 'lax' // ADDED: Allow cookies in cross-origin requests
-  }
-}));
+//a map to hold session data for each user
+const sessionMap = new Map();
 
-// Instead of one global mainPage, we'll create one per session
-// This Map stores sessionID -> CashierMainPage instance
-const sessionStore = new Map();
-
-// Helper function to get or create a mainPage for the current session
 function getMainPageForSession(req) {
-  const sessionID = req.sessionID; // Express-session provides this
-  
-  console.log(`Request sessionID: ${sessionID}, Existing sessions: ${sessionStore.size}`);
-  
-  if (!sessionStore.has(sessionID)) {
-    // First time this session is accessing - create a new user & mainPage
-    const user = new User(`session-${sessionID}`, "password", "session@example.com");
+  let sessionID = req.session.id;
+  if (!sessionMap.has(sessionID)) {
+    const user = new User("tempUser", "tempPass", "temp@gmail.com");
     const mainPage = new CashierMainPage(user, pool);
-    sessionStore.set(sessionID, mainPage);
-    
-    // Mark session as initialized so it gets saved
-    req.session.initialized = true;
-    
-    console.log(`Created new session for ${sessionID}`);
-  } else {
-    console.log(`Reusing existing session for ${sessionID}`);
+    sessionMap.set(sessionID, mainPage); //store mainPage instance for this session
+
+    req.session.initialized = true; //mark session as initialized
+    console.log(`Initialized new session: ${sessionID}`);
   }
-  
-  return sessionStore.get(sessionID);
+  else {
+    console.log(`Using existing session: ${sessionID}`);
+  }
+  return sessionMap.get(sessionID);
 }
 
+
+//app.use(sessionPrefab);
+
+// Example: create a test user and main page instance (pass the pool so it has DB access)
+const user = new User("testUser", "password123", "bob@gmail.com");
+const mainPage = new CashierMainPage(user, pool);
 const reports = new Report(pool);
 app.use('/api/kiosk', kioskRouter);
 
 // API endpoint to buy an item
 app.post('/api/buy-item', async (req, res) => {
   try {
-    const mainPage = getMainPageForSession(req); // Get session-specific instance
+    const mainPage = getMainPageForSession(req);
     let result;
     if (req.body && req.body.itemID) {
       result = await mainPage.BuyItemButton(req.body.itemID, req.body.entreeList, req.body.sideList);
@@ -85,7 +88,7 @@ app.post('/api/buy-item', async (req, res) => {
 
 // API endpoint to add a discount
 app.post('/api/add-discount', async (req, res) => {
-  const mainPage = getMainPageForSession(req); // Get session-specific instance
+  const mainPage = getMainPageForSession(req);
   const { discountCode } = req.body;
   let result = { acceptedDiscount: false };
   try {
@@ -112,13 +115,13 @@ app.post('/api/add-discount', async (req, res) => {
 
 // API endpoint to clear the transaction
 app.delete('/api/clear-transaction', (req, res) => {
-  const mainPage = getMainPageForSession(req); // Get session-specific instance
+  const mainPage = getMainPageForSession(req);
   mainPage.ClearTransaction();
   res.json({ success: true });
 });
 // API endpoint to purchase the transaction
 app.post('/api/purchase', (req, res) => {
-  const mainPage = getMainPageForSession(req); // Get session-specific instance
+  const mainPage = getMainPageForSession(req);
   mainPage.PurchaseTransaction();
   res.json({ success: true });
   
@@ -137,21 +140,21 @@ app.get("/api/users", async (req, res) => {
 
 // API endpoint to get current state
 app.get("/api/current-state", (req, res) => {
-  const mainPage = getMainPageForSession(req); // Get session-specific instance
+  const mainPage = getMainPageForSession(req);
   let result = mainPage.GetCurrentState();
   res.json(result);
 });
 // API endpoint to remove an item by index
 app.post('/api/remove-item', (req, res) => {
-  const mainPage = getMainPageForSession(req); // Get session-specific instance
   const { index } = req.body;
+  const mainPage = getMainPageForSession(req);
   let result = mainPage.RemoveItemByIndex(index);
   res.json({ success: true, ...result });
 });
 //API endpoint to customize an order
 app.post('/api/customize-order', (req, res) => {
-  const mainPage = getMainPageForSession(req); // Get session-specific instance
   const { index } = req.body;
+  const mainPage = getMainPageForSession(req);
   let result = mainPage.CustomizeOrder(index);
   res.json({ success: true, ...result });
 });
