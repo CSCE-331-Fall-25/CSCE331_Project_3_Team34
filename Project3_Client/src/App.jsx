@@ -11,6 +11,7 @@ import Hub from './pages/Hub.jsx'
 import MealAttributes  from './pages/MealAttributes.jsx' 
 import Reports from './pages/Reports.jsx'
 import './styles/App.css'
+//import app from '../../Project3_Server/src/index.js'
 
 
 
@@ -30,7 +31,28 @@ export default function App() {
     setEmployeePassword(event.target.value);
   }
 
-  function handleLogin(event) {
+  async function isValidLogin(userName, password) {
+    try {
+      const res = await fetch('/api/authenticate-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ username: userName, password })
+      });
+      const data = await res.json().catch(() => null);
+      if (res.ok && data && data.success) {
+        console.log('Login successful for user:', userName);
+        return true;
+      }
+      console.log('Login failed for user:', userName, data);
+      return false;
+    } catch (error) {
+      console.error('Error during login request:', error);
+      return false;
+    }
+  }
+
+  async function handleLogin(event) {
     event.preventDefault();
     const trimmedId = employeeId ? employeeId.trim() : '';
     const trimmedPassword = employeePassword ? employeePassword.trim() : '';
@@ -40,9 +62,9 @@ export default function App() {
     }
     console.log("Logging in with ID:", employeeId, "and Password:", employeePassword);
 
-    if(trimmedId === 'admin' && trimmedPassword === 'password') {
-      // navigate to the hub route (use lowercase route path to match route definition)
-      navigate("/hub");
+    const ok = await isValidLogin(trimmedId, trimmedPassword);
+    if (ok) {
+      navigate('/hub');
     } else {
       alert('Invalid Employee ID or Password.');
     }

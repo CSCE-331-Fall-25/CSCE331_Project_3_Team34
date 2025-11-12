@@ -70,6 +70,46 @@ const mainPage = new CashierMainPage(user, pool);
 const reports = new Report(pool);
 app.use('/api/kiosk', kioskRouter);
 
+//API endpoint to authenticate login
+app.post('/api/authenticate-login', async (req, res) => {
+  try{
+    const { username, password } = req.body; //takes username and password from request body
+    const user = await User.AuthenticateLogin(pool, username, password);
+    if(!user) {
+        return  res.status(401).json({ success: false, error: 'Invalid username or password' });
+    }
+    req.session.user = {
+        username: user.username,
+        isEmployee: user.isEmployee
+    };
+    //Instead of making a new session, regenerate the existing session to prevent fixation and set user
+    req.session.regenerate((err) => {
+        if(err) {
+            console.error('Session regeneration error:', err);
+            return res.status(500).json({ success: false, error: 'Internal server error' });
+        }
+        req.session.user = {
+            username: user.username,
+            isEmployee: user.isEmployee
+        };
+        return res.json({ success: true });
+    });
+  }  
+  catch(err){
+      console.error('Error during authentication:', err);
+      return res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+app.post('api/logout', (req,res)=>{
+  // remove any per-session resources
+  sessionMap.delete(req.session.id);
+  req.session.destroy(err => {
+    res.clearCookie('connect.sid');
+    return res.json({ success: !err });
+  });
+});
+
 // API endpoint to fetch menus by type
 app.post('/api/fetch-menus-by-type', async (req, res) => {
   try {
