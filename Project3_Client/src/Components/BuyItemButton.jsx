@@ -9,6 +9,7 @@ export default function BuyItemButton({ itemId, children, onBought }) {
     try {
       const res = await fetch("/api/buy-item", {
         method: "POST",
+        credentials: 'include', // Include cookies with this request
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ itemID: itemId }),
       });
