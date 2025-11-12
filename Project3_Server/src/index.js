@@ -22,6 +22,27 @@ const mainPage = new CashierMainPage(user, pool);
 const reports = new Report(pool);
 app.use('/api/kiosk', kioskRouter);
 
+// API endpoint to fetch menus by type
+app.post('/api/fetch-menus-by-type', async (req, res) => {
+  try {
+    const { type } = req.body;
+    if (!type) {
+      return res.status(400).json({ error: 'Type is required' });
+    }
+    const menus = await Menu.fetchByType(pool, type);
+    res.json(menus.map(menu => ({
+      menuID: menu.menuid,
+      menuName: menu.name,
+      type: menu.type,
+      priceMod: menu.pricemod,
+      inventoryIDs: menu.inventoryids
+    })));
+  } catch (err) {
+    console.error('Error fetching menus by type:', err);
+    res.status(500).json({ error: 'Failed to fetch menus' });
+  }
+});
+
 // API endpoint to buy an item
 app.post('/api/buy-item', async (req, res) => {
   try {
@@ -196,23 +217,6 @@ app.get('/api/restock-report-data', async (req, res) => {
   }
 });
 
-app.post('/api/fetch-menus-by-type', async (req, res) => {
-  try {
-    const { type } = req.body;
-
-    // Validate input
-    if (!type) {
-      return res.status(400).json({ error: "Menu type is required" });
-    }
-
-  // Fetch menus from the database (pass the Postgres pool). If DB is unavailable, fall back to an empty list.
-  const menus = pool ? await Menu.fetchByType(pool, type) : [];
-  res.json(menus || []);
-  } catch (err) {
-    console.error('Error fetching menus by type:', err);
-    res.status(500).json({ error: "Failed to fetch menus" });
-  }
-});
 
 import path from "path";
 import { fileURLToPath } from "url";
