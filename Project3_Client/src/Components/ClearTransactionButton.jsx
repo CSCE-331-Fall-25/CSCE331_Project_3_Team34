@@ -7,7 +7,10 @@ export default function ClearTransactionButton({ onCleared }) {
     if (loading) return;
     setLoading(true);
     try {
-      const res = await fetch("/api/clear-transaction", { method: "DELETE" });
+      const res = await fetch("/api/clear-transaction", { 
+        method: "DELETE",
+        credentials: 'include' // Include cookies with this request
+      });
       const data = await res.json();
       if (data && data.success) {
         console.log("Transaction cleared");

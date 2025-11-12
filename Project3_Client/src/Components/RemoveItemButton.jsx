@@ -14,6 +14,7 @@ export default function RemoveItemButton({ index, onRemoved }) {
       const res = await fetch("/api/remove-item", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: 'include', // Include cookies with this request
         body: JSON.stringify({ index }),
       });
       const data = await res.json();

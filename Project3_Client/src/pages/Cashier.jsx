@@ -78,6 +78,7 @@ export default function Cashier() {
     fetch("/api/customize-order", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      credentials: 'include', // Include cookies with this request
       body: JSON.stringify({ index: selectedRow }) // Pass the index in the body
     })
       .then((res) => res.json())
@@ -108,7 +109,9 @@ export default function Cashier() {
   }, [transactionItems]);
 
   const UpdatePage = () => {
-  fetch("/api/current-state")
+  fetch("/api/current-state", {
+    credentials: 'include' // Include cookies with this request
+  })
       .then((res) => res.json())
       .then((data) => {
         //Formats orders into a flat array for display
