@@ -42,7 +42,7 @@ class Item {
         const numEntresL = row.numlargeentrees ?? 0;
         const invIDs = row.inventoryids ?? '';
 
-        console.log(`Fetched Item from DB: ID=${itemId}, Name=${itemName}, Price=${itemPrice}`);
+        //console.log(`Fetched Item from DB: ID=${itemId}, Name=${itemName}, Price=${itemPrice}`);
 
         return new Item(itemId, itemName, itemPrice, numSides, numEntrees, invIDs, type, numSideL, numEntresL);
     }
@@ -70,7 +70,7 @@ class Item {
             const numSideL = row.numlargesides ?? 0;
             const numEntresL = row.numlargeentrees ?? 0;
             const invIDs = row.inventoryids ?? '';
-            console.log(`Fetched Item from DB: ID=${itemId}, Name=${itemName}, Price=${itemPrice}`);
+            //console.log(`Fetched Item from DB: ID=${itemId}, Name=${itemName}, Price=${itemPrice}`);
             items.push(new Item(itemId, itemName, itemPrice, numSides, numEntrees, invIDs, type, numSideL, numEntresL));
         }
 
@@ -113,7 +113,7 @@ class Menu {
         const priceMod = row.pricemod ?? 0;
         const invIDs = row.inventoryids ?? '';
 
-        console.log(`Fetched Menu from DB: ID=${menuID}, Name=${menuName}, Price=${priceMod}`);
+        //console.log(`Fetched Menu from DB: ID=${menuID}, Name=${menuName}, Price=${priceMod}`);
 
         return new Menu(menuID, menuName, type, priceMod, invIDs);
     }
@@ -143,7 +143,7 @@ class Menu {
             menus.push(new Menu(menuID, menuName, rowType, priceMod, invIDs));
         }
 
-        console.log(`Fetched ${menus.length} Menus of type=${type} from DB`);
+        //console.log(`Fetched ${menus.length} Menus of type=${type} from DB`);
 
         return menus;
     }
@@ -167,7 +167,7 @@ class Menu {
             const type = row.type ?? '';
             const priceMod = row.pricemod ?? 0;
             const invIDs = row.inventoryids ?? '';
-            console.log(`Fetched Menu from DB: ID=${menuID}, Name=${menuName}, Price=${priceMod}`);
+            //console.log(`Fetched Menu from DB: ID=${menuID}, Name=${menuName}, Price=${priceMod}`);
             menus.push(new Menu(menuID, menuName, type, priceMod, invIDs));
         }
         return menus;

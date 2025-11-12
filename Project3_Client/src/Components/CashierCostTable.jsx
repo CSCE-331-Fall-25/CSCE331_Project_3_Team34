@@ -12,26 +12,9 @@ export default function CashierCostTable({
   discountPriceOff = 0,
   onPurchase,
 }) {
-  // Group transactionItems into mains with entrees/sides
-  const grouped = [];
-  let i = 0;
-  while (i < transactionItems.length) {
-    if (transactionItems[i].type === "main") {
-      const main = transactionItems[i];
-      const group = { main, entrees: [], sides: [] };
-      let j = i + 1;
-      while (j < transactionItems.length && transactionItems[j].type !== "main") {
-        if (transactionItems[j].type === "entree") group.entrees.push(transactionItems[j]);
-        if (transactionItems[j].type === "side") group.sides.push(transactionItems[j]);
-        j++;
-      }
-      grouped.push(group);
-      i = j;
-    } else {
-      i++;
-    }
-  }
-
+  console.log("curr Cost Given is: " + currCost);
+  console.log("Transaction Items:", transactionItems);
+  // Render transaction items as a flat list: each entry is either a main or not
   return (
     <>
       <div className="order-table-scroll">
@@ -43,41 +26,38 @@ export default function CashierCostTable({
             </tr>
           </thead>
           <tbody>
-            {grouped.map((group, mainIdx) => (
-              <React.Fragment key={`group-${mainIdx}`}>
-                <tr
-                  key={`main-${mainIdx}`}
-                  ref={mainIdx === grouped.length - 1 ? lastRowRef : null}
-                  className={mainIdx === selectedRow ? "selected-row" : "clickable-row"}
-                  onClick={() => setSelectedRow(mainIdx)}
-                >
-                  <td>{`$${group.main.cost}`}</td>
-                  <td>
-                    {group.main && typeof group.main.item === "object" && group.main.item !== null
-                      ? group.main.item.name
-                      : group.main.item}
-                  </td>
-                </tr>
+            {(() => {
+              // Build rows while computing a mapping from flat row -> order index (main index)
+              let mainCounter = 0;
+              let lastMainSeen = -1;
+              return transactionItems.map((entry, idx) => {
+                const isMain = entry.type === "main";
+                const name = (entry && typeof entry.item === "object" && entry.item !== null) ? entry.item.name : entry.item;
+                // Determine which order (main) this flat row belongs to
+                let orderIndex;
+                if (isMain) {
+                  orderIndex = mainCounter;
+                  lastMainSeen = mainCounter;
+                  mainCounter += 1;
+                } else {
+                  orderIndex = lastMainSeen >= 0 ? lastMainSeen : 0;
+                }
 
-                {group.entrees.map((entree, eIdx) => (
-                  <tr key={`main-${mainIdx}-entree-${eIdx}-${entree?.item?.name || eIdx}`} className="subrow">
-                    <td></td>
-                    <td style={{ paddingLeft: "2em" }}>{`Entree: ${
-                      typeof entree.item === "object" && entree.item !== null ? entree.item.name : entree.item
-                    }`}</td>
+                const displayText = name;
+                const isSelected = selectedRow === orderIndex;
+                return (
+                  <tr
+                    key={`row-${idx}-${name || idx}`}
+                    ref={idx === transactionItems.length - 1 ? lastRowRef : null}
+                    className={isSelected ? "selected-row" : "clickable-row"}
+                    onClick={() => setSelectedRow(orderIndex)}
+                  >
+                    <td>{isMain ? `$${entry.cost}` : ""}</td>
+                    <td style={isMain ? {} : { paddingLeft: "2em" }}>{displayText}</td>
                   </tr>
-                ))}
-
-                {group.sides.map((side, sIdx) => (
-                  <tr key={`main-${mainIdx}-side-${sIdx}-${side?.item?.name || sIdx}`} className="subrow">
-                    <td></td>
-                    <td style={{ paddingLeft: "2em" }}>{`Side: ${
-                      typeof side.item === "object" && side.item !== null ? side.item.name : side.item
-                    }`}</td>
-                  </tr>
-                ))}
-              </React.Fragment>
-            ))}
+                );
+              });
+            })()}
           </tbody>
         </table>
       </div>
@@ -91,8 +71,8 @@ export default function CashierCostTable({
         </p>
       </div>
 
-  {/* Purchase button (render PurchaseButton here so it appears in the original location) */}
-  <PurchaseButton onPurchased={onPurchase} />
+      {/* Purchase button (render PurchaseButton here so it appears in the original location) */}
+      <PurchaseButton onPurchased={onPurchase} />
     </>
   );
 }

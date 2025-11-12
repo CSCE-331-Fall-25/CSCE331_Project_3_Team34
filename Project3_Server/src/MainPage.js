@@ -11,7 +11,7 @@ class CashierMainPage {
             console.log("Initializing Back End...");
         }
         if(user === undefined) {
-            console.log("No user provided, creating default user.");
+            console.warn("No user provided, creating default user.");
             user = new User("empty", "", "", false);
         }
         this.user = user;
@@ -66,7 +66,7 @@ class CashierMainPage {
         // Get the last order (just added)
         if(this.debugging)console.log("new item name: " + currItem.name);
         
-        console.log("new order price: " + currOrder.price);
+        // console.log("new order price: " + currOrder.price);
         //TODO: check if we even need to return anything here besides confirmation we bought the item
         return {
             cost: currOrder.price,
@@ -96,7 +96,7 @@ class CashierMainPage {
             }
             return { acceptedDiscount: -1};
         }
-        console.log("length: " + this.currTransaction.orders.length);
+        // console.log("length: " + this.currTransaction.orders.length);
         if(this.currTransaction.orders.length === 0) {
             if(this.debugging) {
                 console.log("No items in transaction, cant apply discount yet");
@@ -218,6 +218,11 @@ class CashierMainPage {
         // Remove the order at the given index
         this.currTransaction.orders.splice(index, 1);
         if(this.debugging)console.log("Item removed. now " + this.currTransaction.orders.length + " items remain.");
+        console.log("Current orders after removal:");
+        this.currTransaction.orders.forEach((order, idx) => {
+            const itemId = order.item?.itemID ?? order.item?.name ?? 'unknown';
+            console.log(`  ${idx}: Item ID: ${itemId}`);
+        });
 
         return {
             success: true
@@ -258,7 +263,7 @@ class CashierMainPage {
     }
     GetCurrentState() {
         if (!this.currTransaction || !this.currTransaction.orders) {
-            console.log("No current transaction or orders found.");
+            console.logerror("No current transaction or orders found.");
             return {
                 orders: [],
                 discountAmount: 0,
@@ -287,7 +292,7 @@ class CashierMainPage {
             })),
             discountAmount,
             priceOff,
-            totalPrice: this.currTransaction.amount
+            totalPrice: subtotal
         };
     }
     CustomizeOrder(index) {
