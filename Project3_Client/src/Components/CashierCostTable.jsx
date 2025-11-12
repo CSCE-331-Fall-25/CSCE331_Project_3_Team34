@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import PurchaseButton from "./PurchaseButton.jsx";
 
 export default function CashierCostTable({
@@ -12,8 +12,7 @@ export default function CashierCostTable({
   discountPriceOff = 0,
   onPurchase,
 }) {
-  console.log("curr Cost Given is: " + currCost);
-  console.log("Transaction Items:", transactionItems);
+
   // Render transaction items as a flat list: each entry is either a main or not
   return (
     <>

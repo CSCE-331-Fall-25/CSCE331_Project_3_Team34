@@ -1,5 +1,5 @@
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom'
-import { useState } from 'react'
+import { use, useState, useEffect } from 'react'
 import WeatherScreen from './pages/WeatherScreen.jsx'
 import pandaLogo from './assets/PandaLogo.svg'
 import Cashier from './pages/Cashier.jsx'
@@ -69,7 +69,14 @@ export default function App() {
       alert('Invalid Employee ID or Password.');
     }
   }
-
+  function clearInputs (){
+    setEmployeeId('');
+    setEmployeePassword('');
+  }
+    // Clear inputs when the login view is shown (runs on mount and whenever route returns to "/")
+    useEffect(() => {
+      if (showButtons) clearInputs();
+    }, [showButtons]);
   return (
     <div>
       {showButtons && (

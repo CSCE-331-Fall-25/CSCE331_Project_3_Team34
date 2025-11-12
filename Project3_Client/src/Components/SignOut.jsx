@@ -4,10 +4,27 @@ import { useNavigate } from "react-router-dom";
 export default function SignOutButton({ onClose } = {}) {
   const navigate = useNavigate();
 
-  const handleSignOut = () => {
-    // navigate back to top-level login
-    navigate("/");
-    if (typeof onClose === "function") onClose();
+  const handleSignOut = async () => {
+    try {
+      const res = await fetch('/api/logout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include'
+      });
+
+      if (!res.ok) {
+        console.error('Logout failed', data);
+        alert('Sign out failed');
+        return;
+      }
+
+      // success: navigate back to login
+      navigate('/');
+      
+    } catch (err) {
+      console.error('Error during sign out:', err);
+      alert('Sign out error');
+    }
   };
 
   const handleClose = () => {

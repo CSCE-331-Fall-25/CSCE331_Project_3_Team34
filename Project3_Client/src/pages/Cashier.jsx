@@ -96,7 +96,17 @@ export default function Cashier() {
   //Called on page refresh, should update frontend based on what is on the server
   useEffect(() => {
     console.log("Fetching current state from server...");
-    
+    // Guard against double runs in development caused by React.StrictMode (React 18 double-mount)
+    // and by HMR remounts. Use a window-scoped flag so the fetch only happens once per page load.
+    try {
+      if (typeof window !== 'undefined') {
+        if (window.__cashier_initial_fetch_done) return;
+        window.__cashier_initial_fetch_done = true;
+      }
+    } catch (e) {
+      // ignore any access errors and continue
+    }
+
     UpdatePage();
   }, []);
   

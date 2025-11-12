@@ -92,6 +92,12 @@ app.post('/api/authenticate-login', async (req, res) => {
             username: user.username,
             isEmployee: user.isEmployee
         };
+        // Create and store the session-scoped CashierMainPage for this authenticated user
+        try {
+          sessionMap.set(req.session.id, new CashierMainPage(user, pool));
+        } catch (e) {
+          console.error('Failed to create session main page:', e);
+        }
         return res.json({ success: true });
     });
   }  
@@ -101,13 +107,18 @@ app.post('/api/authenticate-login', async (req, res) => {
   }
 });
 
-app.post('api/logout', (req,res)=>{
+app.post('/api/logout', (req,res)=>{
   // remove any per-session resources
+  console.log(`Session ${req.session.id} logged out and resources cleared.`);
+
   sessionMap.delete(req.session.id);
+
+  // destroy session and clear cookie
   req.session.destroy(err => {
     res.clearCookie('connect.sid');
     return res.json({ success: !err });
   });
+
 });
 
 // API endpoint to fetch menus by type

@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import "../styles/Hub.css";
+import SignOutButton from "../Components/SignOut";
 
 export default function Hub() {
   return (
@@ -9,6 +10,7 @@ export default function Hub() {
         <Link to="/manager"><button>Manager</button></Link>
         <Link to="/menu"><button>Menu</button></Link>
         <Link to="/kitchen"><button>Kitchen</button></Link>
+        
     </div>
     );
 }
