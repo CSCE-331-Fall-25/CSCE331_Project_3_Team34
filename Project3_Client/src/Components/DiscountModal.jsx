@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-export default function DiscountModal({ show, onClose, onApplied }) {
+export default function DiscountModal({ show, onClose, onApplied, user, isManager }) {
   if (!show) return null;
 
   const [discountCode, setDiscountCode] = useState("");

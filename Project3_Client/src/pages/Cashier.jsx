@@ -42,8 +42,6 @@ export default function Cashier() {
   const [itemType, setItemType] = useState("NULL");
   // modal-specific state moved to CreateMealModal
 
-  // TODO: Use for loop to populate this list from the DB
-  // (removed erroneous `items.push` calls — `items` was not defined and caused runtime errors)
 
   const handleBuildItem = (e) => {
     const id = e.target.id;
@@ -55,6 +53,23 @@ export default function Cashier() {
   const openDrinkModal = () => { setItemType("Drink"); setShowCreateMealModal(true); };
   const openAlacarteModal = () => { setItemType("A La Carte"); setShowCreateMealModal(true); };
   
+  //login features
+  const [User, setUser] = useState(null);
+  const [isManager, setisManager] = useState(null);
+  function fetchUserData() {
+    fetch('/api/get-user-data', {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include'
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          setUser(data.user || null);
+          setisManager(data.isManager || null);
+        }
+      });
+    }
 
   // Note: buy/clear/remove/purchase actions are implemented in their own components
 
@@ -86,6 +101,7 @@ export default function Cashier() {
         if (data.success) {
           console.log("Order customized");
           setSelectedRow(null);
+          fetchUserData();
           UpdatePage();
         }
       });
@@ -95,6 +111,7 @@ export default function Cashier() {
 
   //Called on page refresh, should update frontend based on what is on the server
   useEffect(() => {
+    
     console.log("Fetching current state from server...");
     // Guard against double runs in development caused by React.StrictMode (React 18 double-mount)
     // and by HMR remounts. Use a window-scoped flag so the fetch only happens once per page load.
@@ -161,6 +178,8 @@ export default function Cashier() {
           setDiscountPriceOff(off || 0);
           UpdatePage();
         }}
+        user={User}
+        isManager={manager}
       />
       {showSignOutModal && (
         <SignOutButton onClose={() => setShowSignOutModal(false)} />
