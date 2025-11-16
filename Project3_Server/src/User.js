@@ -29,9 +29,9 @@ class User {
         }
 
         if (isEmployee) {
-            return Employee.fetchByUsername(db, username, pass, email);
+            return Employee.FetchByUsername(db, username, pass, email);
         } else {
-            return Customer.fetchByUsername(db, username, pass, email);
+            return Customer.FetchByUsername(db, username, pass, email);
         }
     }
 
@@ -70,7 +70,15 @@ class User {
 
         return users;
     }
-
+    static async AuthenticateLogin(db, username, password) {
+        console.log(`Authenticating login for user: ${username}`);
+        const user = await User.FetchByUsername(db, username, password);
+        if(!user) {
+            console.log('Authentication failed for user:', username);
+            return null;
+        }
+        return user;
+    }
 }
 
 class Employee extends User {

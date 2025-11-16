@@ -1,6 +1,8 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import session from "express-session";
+import cookieParser from "cookie-parser";
 import { pool, setPool } from "./db.js";
 import CashierMainPage from "./MainPage.js";
 import User, {Employee, Customer} from "./User.js";
@@ -14,14 +16,111 @@ import kioskRouter from "./Kiosk.js";
 dotenv.config();
 
 const app = express();
-app.use(cors());
+
+const clientOrigin = process.env.CLIENT_ORIGIN || "http://localhost:5173";
+const sessionPrefab = session({
+  secret: process.env.SESSION_SECRET || 'default_secret', //TODO: change to strong secret in production AND save to gitsecrets
+  resave: false, //don't save session if unmodified
+  saveUninitialized: true, //creates session immediately to set cookies
+  cookie:{
+    // only true when using HTTPS in production
+    secure: process.env.NODE_ENV === 'production', // only sends cookie over https when in production
+    httpOnly: true, //prevents client-side JS from accessing cookie
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', 
+    //^ options are either lax, strict, none
+    //lax:default, allows some cross-site cookie sending for top-level navigation(GET)
+    //strict: only sends cookies for same-site requests
+    //none: sends cookies for all requests, cross-site included (must be secure:true)
+    maxAge: 60 * 60 * 1000 //1 hour
+  }
+});
+app.use(cors({
+  origin: clientOrigin, //supposed to be https://localhost:5173
+  credentials: true,
+}));
 app.use(express.json());
+
+app.use(cookieParser());
+app.use(sessionPrefab);
+
+//a map to hold session data for each user
+const sessionMap = new Map();
+
+function getMainPageForSession(req) {
+  let sessionID = req.session.id;
+  if (!sessionMap.has(sessionID)) {
+    const user = new User("tempUser", "tempPass", "temp@gmail.com");
+    const mainPage = new CashierMainPage(user, pool);
+    sessionMap.set(sessionID, mainPage); //store mainPage instance for this session
+
+    req.session.initialized = true; //mark session as initialized
+    console.log(`Initialized new session: ${sessionID}`);
+  }
+  else {
+    console.log(`Using existing session: ${sessionID}`);
+  }
+  return sessionMap.get(sessionID);
+}
+
+
+//app.use(sessionPrefab);
 
 // Example: create a test user and main page instance (pass the pool so it has DB access)
 const user = new User("testUser", "password123", "bob@gmail.com");
 const mainPage = new CashierMainPage(user, pool);
 const reports = new Report(pool);
 app.use('/api/kiosk', kioskRouter);
+
+//API endpoint to authenticate login
+app.post('/api/authenticate-login', async (req, res) => {
+  try{
+    const { username, password } = req.body; //takes username and password from request body
+    const user = await User.AuthenticateLogin(pool, username, password);
+    if(!user) {
+        return  res.status(401).json({ success: false, error: 'Invalid username or password' });
+    }
+    req.session.user = {
+        username: user.username,
+        isEmployee: user.isEmployee
+    };
+    //Instead of making a new session, regenerate the existing session to prevent fixation and set user
+    req.session.regenerate((err) => {
+        if(err) {
+            console.error('Session regeneration error:', err);
+            return res.status(500).json({ success: false, error: 'Internal server error' });
+        }
+        req.session.user = {
+            username: user.username,
+            isEmployee: user.isEmployee
+        };
+        // Create and store the session-scoped CashierMainPage for this authenticated user
+        try {
+          sessionMap.set(req.session.id, new CashierMainPage(user, pool));
+        } catch (e) {
+          console.error('Failed to create session main page:', e);
+        }
+        return res.json({ success: true });
+    });
+  }  
+  catch(err){
+      console.error('Error during authentication:', err);
+      return res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+app.post('/api/logout', (req,res)=>{
+  // remove any per-session resources
+  console.log(`Session ${req.session.id} logged out and resources cleared.`);
+
+  sessionMap.delete(req.session.id);
+
+  // destroy session and clear cookie
+  req.session.destroy(err => {
+    res.clearCookie('connect.sid');
+    return res.json({ success: !err });
+  });
+
+});
 
 // API endpoint to fetch menus by type
 app.post('/api/fetch-menus-by-type', async (req, res) => {
@@ -65,6 +164,7 @@ app.post('/api/fetch-all-items', async (req, res) => {
 // API endpoint to buy an item
 app.post('/api/buy-item', async (req, res) => {
   try {
+    const mainPage = getMainPageForSession(req);
     let result;
     if (req.body && req.body.itemID) {
       result = await mainPage.BuyItemButton(req.body.itemID, req.body.entreeList, req.body.sideList);
@@ -80,6 +180,7 @@ app.post('/api/buy-item', async (req, res) => {
 
 // API endpoint to add a discount
 app.post('/api/add-discount', async (req, res) => {
+  const mainPage = getMainPageForSession(req);
   const { discountCode } = req.body;
   let result = { acceptedDiscount: false };
   try {
@@ -106,11 +207,13 @@ app.post('/api/add-discount', async (req, res) => {
 
 // API endpoint to clear the transaction
 app.delete('/api/clear-transaction', (req, res) => {
+  const mainPage = getMainPageForSession(req);
   mainPage.ClearTransaction();
   res.json({ success: true });
 });
 // API endpoint to purchase the transaction
 app.post('/api/purchase', (req, res) => {
+  const mainPage = getMainPageForSession(req);
   mainPage.PurchaseTransaction();
   res.json({ success: true });
   
@@ -129,18 +232,21 @@ app.get("/api/users", async (req, res) => {
 
 // API endpoint to get current state
 app.get("/api/current-state", (req, res) => {
+  const mainPage = getMainPageForSession(req);
   let result = mainPage.GetCurrentState();
   res.json(result);
 });
 // API endpoint to remove an item by index
 app.post('/api/remove-item', (req, res) => {
   const { index } = req.body;
+  const mainPage = getMainPageForSession(req);
   let result = mainPage.RemoveItemByIndex(index);
   res.json({ success: true, ...result });
 });
 //API endpoint to customize an order
 app.post('/api/customize-order', (req, res) => {
   const { index } = req.body;
+  const mainPage = getMainPageForSession(req);
   let result = mainPage.CustomizeOrder(index);
   res.json({ success: true, ...result });
 });
