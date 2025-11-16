@@ -16,8 +16,9 @@ export default function Menu() {
    // modal to confirm sign out
    const [showSignOutModal, setShowSignOutModal] = useState(false);
    const [extraMenus, setExtraMenus] = useState([]);
+   const [allItems, setAllItems] = useState([]);
 
-  const items = []; 
+  
   const ListEntrees = [];
   const ListSides = [];
   const ListApps = [];
@@ -48,6 +49,26 @@ export default function Menu() {
     }
   };
 
+  const fetchAllItems = async (type) => {
+    try {
+      const response = await fetch("/api/fetch-all-items", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type }),
+      });
+      const data = await response.json();
+      if (response.ok) {
+        return data;
+      } else {
+        console.error("Error fetching menus:", data.error);
+        return [];
+      }
+    } catch (error) {
+      console.error("Error fetching menus:", error);
+      return [];
+    }
+  };
+
   // Fetch extra menus once on mount and merge with baseItems
   useEffect(() => {
     let mounted = true;
@@ -56,9 +77,11 @@ export default function Menu() {
       const fetchedSides = await fetchMenusByType("side");
       const fetchedApps = await fetchMenusByType("appetizer");
       const fetchedDrinks = await fetchMenusByType("drink");
+      const fetchedItems = await fetchAllItems();
       if (!mounted) return;
       // fetched lists may be arrays of plain objects with name/type
       setExtraMenus([...(fetchedEntrees || []), ...(fetchedSides || []), ...(fetchedApps || []), ...(fetchedDrinks || [])]);
+      setAllItems(fetchedItems || []);
     })();
     return () => { mounted = false; };
   }, []);
@@ -80,103 +103,107 @@ export default function Menu() {
     }
   }
 
+  const ListItems = allItems;
   
-  const ListItems = [
-    // Placeholder for menu items
-    { id: 1, name: "Bowl", type: "Item", image: pandaLogo, price: 5.00 },
-    { id: 2, name: "Plate", type: "Item", image: pandaLogo, price: 7.00 },
-    { id: 3, name: "Kid's Meal", type: "Item", image: pandaLogo, price: 4.50 },
-
-  ];
-  // const ListEntrees = [
-  //   // Placeholder for menu items
-  //   { id: 1, name: "Orange Chicken", type: "Entree", image: pandaLogo },
-  //   { id: 2, name: "Beef Broccoli", type: "Entree", image: pandaLogo },
-  //   { id: 3, name: "Kung Pao Chicken", type: "Entree", image: pandaLogo },
-
-  // ];
-  // const SideItems = [
-  //   // Placeholder for side items
-  //   { id: 1, name: "Fried Rice", type: "Side", image: pandaLogo },
-  //   { id: 2, name: "Chow Mein", type: "Side", image: pandaLogo },
-
-  // ];
-  // const ALaCarteItems = [
-  //   // Placeholder for a la carte items
-  //   { id: 1, name: "Egg Roll", type: "A La Carte", image: pandaLogo, price: 2.00 },
-
-  // ];
-  // const BeverageItems = [
-  //   // Placeholder for beverage items
-  //   { id: 1, name: "Soda", type: "Beverage", image: pandaLogo, price: 1.50 },
-  // ];
 
   return (
-    <div className="menu-page-container">
-       {showSignOutModal && <SignOutButton />}
-      <div className="menu-content">
-        <div className="menu-list items-list">
-          <h3>Menu Items</h3>
-          {ListItems.map(item => (
-            <div key={item.id} className="menu-item">
-              <img src={item.image || pandaLogo} alt={item.name} className="menu-item-image" />
-              <div className="menu-item-name">{item.name}</div>
-              <div className="menu-item-price">${item.price?.toFixed(2) || ''}</div>
-            </div>
-          ))}
-        </div>
-        <div className="menu-list entree-list">
-          <h3>Entrees</h3>
-          
-          {ListEntrees.map(item => (
-            <div key={`entree-${item.menuID}`} className="menu-item">
-              <img src={getImageForItem(item.menuName)} alt={item.menuName} className="menu-item-image" />
-              <div className="menu-item-name">{item.menuName}</div>
-            </div>
-          ))}
-        </div>
-        <div className="menu-list side-list">
-          <h3>Sides</h3>
-          {ListSides.map(item => (
-            <div key={`side-${item.menuID}`} className="menu-item">
-              <img src={getImageForItem(item.menuName)} alt={item.menuName} className="menu-item-image" />
-              <div className="menu-item-name">{item.menuName}</div>
-            </div>
-          ))}
-        </div>
-        <div className="menu-list appetizer-list">
-          <h3>Appetizers</h3>
-          {ListApps.map(item => (
-            <div key={`appetizer-${item.menuID}`} className="menu-item">
-              <img src={getImageForItem(item.menuName)} alt={item.menuName} className="menu-item-image" />
-              <div className="menu-item-name">{item.menuName}</div>
-            </div>
-          ))}
-        </div>
-        {/* <div className="menu-list a-la-carte-list">
-          <h3>A La Carte</h3>
-          {ALaCarteItems.map(item => (
-            <div key={`alc-${item.id}`} className="menu-item">
-              <img src={pandaLogo} alt={item.name} className="menu-item-image" />
-              <div className="menu-item-name">{item.name}</div>
-              <div className="menu-item-price">${item.price?.toFixed(2) || ''}</div>
+    <div className="mainBackground">
+      <div className="header-container">
+      {/* <div className="side left-text">Panda Express</div> */}
 
-            </div>
-          ))}
-        </div> */}
-        <div className="menu-list beverage-list">
-          <h3>Beverages</h3>
-          {ListDrinks.map(item => (
-            <div key={`bev-${item.menuID}`} className="menu-item">
-              <img src={getImageForItem(item.menuName)} alt={item.menuName} className="menu-item-image" />
-              <div className="menu-item-name">{item.menuName}</div>
-              {/*<div className="menu-item-price">${item.price?.toFixed(2) || ''}</div>*/}
-
-            </div>
-          ))}
-        </div>
+      <div className="center-logo">
+        <img src={pandaLogo} alt="Panda Logo" className="logo" />
       </div>
-  <button className = "sign-out-button" onClick={() => setShowSignOutModal(true)}>Sign Out</button>
+
+      {/* <div className="side right-text">Menu</div> */}
+    </div>
+      <div className="menu-page-container">
+        {showSignOutModal && <SignOutButton />}
+        <div className="menu-content">
+
+          {/* COLUMN 1 – MENU ITEMS */}
+          <div className="column">
+            <div className="menu-section">
+              <h3 className="section-title">Menu Items</h3>
+
+              <div className="section-grid">
+                {ListItems.map(item => (
+                  <div key={item.itemID} className="menu-item">
+                    <img src={getImageForItem(item.itemName)} alt={item.itemName} className="menu-item-image" />
+                    <div className="menu-item-name">{item.itemName}</div>
+                    <div className="menu-item-price">${item.itemPrice?.toFixed(2) || ''}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* COLUMN 2 – ENTREES */}
+          <div className="column">
+            <div className="menu-section">
+              <h3 className="section-title">Entrees</h3>
+
+              <div className="section-grid">
+                {ListEntrees.map(item => (
+                  <div key={`entree-${item.menuID}`} className="menu-item">
+                    <img src={getImageForItem(item.menuName)} alt={item.menuName} className="menu-item-image" />
+                    <div className="menu-item-name">{item.menuName}</div>
+                    {item.priceMod > 0 && (
+                      <img src={getImageForItem("P")} alt="Premium" className="menu-item-image-premium" />
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* COLUMN 3 – SIDES + APPETIZERS */}
+          <div className="column">
+
+            {/* SIDES */}
+            <div className="menu-section">
+              <h3 className="section-title">Sides</h3>
+
+              <div className="section-grid">
+                {ListSides.map(item => (
+                  <div key={`side-${item.menuID}`} className="menu-item">
+                    <img src={getImageForItem(item.menuName)} alt={item.menuName} className="menu-item-image" />
+                    <div className="menu-item-name">{item.menuName}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* APPETIZERS */}
+            <div className="menu-section">
+              <h3 className="section-title">Appetizers</h3>
+
+              <div className="section-grid">
+                {ListApps.map(item => (
+                  <div key={`app-${item.menuID}`} className="menu-item">
+                    <img src={getImageForItem(item.menuName)} alt={item.menuName} className="menu-item-image" />
+                    <div className="menu-item-name">{item.menuName}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+          </div>
+        </div>
+        {/* FULL-WIDTH BEVERAGES ROW */}
+          <div className="beverage-row">
+            <div className="beverage-grid">
+              {ListDrinks.map(item => (
+                <div key={`bev-${item.menuID}`} className="menu-item">
+                  <img src={getImageForItem(item.menuName)} alt={item.menuName} className="menu-item-image" />
+                  <div className="menu-item-name">{item.menuName}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <br></br>
+    <button className = "sign-out-button" onClick={() => setShowSignOutModal(true)}>Sign Out</button>
+      </div>
     </div>
   );
 }

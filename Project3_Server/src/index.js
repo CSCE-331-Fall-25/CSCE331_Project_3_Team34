@@ -5,7 +5,8 @@ import { pool, setPool } from "./db.js";
 import CashierMainPage from "./MainPage.js";
 import User, {Employee, Customer} from "./User.js";
 import { Report } from "./Reports.js";
-import { Menu } from "./Item.js";
+import Item, { Menu } from "./Item.js";
+
 // Kiosk router file is named `Kiosk.js` (capital K). Use the exact filename so imports work
 // on case-sensitive filesystems (e.g. Linux used by many CI/CD hosts).
 import kioskRouter from "./Kiosk.js";
@@ -40,6 +41,24 @@ app.post('/api/fetch-menus-by-type', async (req, res) => {
   } catch (err) {
     console.error('Error fetching menus by type:', err);
     res.status(500).json({ error: 'Failed to fetch menus' });
+  }
+});
+
+app.post('/api/fetch-all-items', async (req, res) => {
+  try {
+    const items = await Item.fetchAllItems(pool);
+    res.json(items.map(item => ({
+      itmeID: item.itemid,
+      itemName: item.name, 
+      itemPrice: item.price, 
+      numSides: item.numsides, 
+      numEntrees: item.numentrees, 
+      invIDs: item.inventoryids, 
+      type: item.type
+    })));
+  } catch (err) {
+    console.error('Error fetching items by type:', err);
+    res.status(500).json({ error: 'Failed to fetch items' });
   }
 });
 
