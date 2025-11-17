@@ -16,6 +16,7 @@ import RemoveItemButton from "../Components/RemoveItemButton.jsx";
 import PurchaseButton from "../Components/PurchaseButton.jsx";
 import BuyItemButton from "../Components/BuyItemButton.jsx";
 import CreateMealModal from "../Components/CreateMealModal.jsx";
+import SizeModal from "../Components/SizeModal.jsx";
 export default function Cashier() {
   const navigate = useNavigate();
   //newest Row reference for auto scrolling
@@ -33,7 +34,10 @@ export default function Cashier() {
   const [discountAmount, setDiscountAmount] = useState(0);
   const [discountPriceOff, setDiscountPriceOff] = useState(0);
 
-  // create-meal modal shows its own UI; parent just opens/closes it
+  //sizeModal
+  const [showSizeModal, setShowSizeModal] = useState(false);
+  const [selectedSize, setSelectedSize] = useState(null);
+  const sizeOptions = ["Small", "Medium", "Large"]; //UPDATE BASED ON WHAT SIZES WE HAVE
 
   //updates for orderTable
   const [currCost, setCurrCost] = useState(0);
@@ -150,6 +154,19 @@ export default function Cashier() {
 
   return (
     <div className="main-page bkgColor cashier-container">
+      {/* //to use the size modal, set sizes based on options, then collect setSelectedSize for output */}
+      {showSizeModal && (
+        <SizeModal
+          // pass a function so we don't call the setter during render
+          onClose={() => setShowSizeModal(false)}
+          onSelectSize={(size) => {
+            setSelectedSize(size);
+            setShowSizeModal(false);
+          }}
+          sizes={sizeOptions}
+        />
+      )}
+
       <CreateMealModal show={showCreateMeal} onClose={handleReset} initialType={itemType} onBought={() => { UpdatePage(); }} />
       <DiscountModal
         show={showDiscountModal}
@@ -229,6 +246,9 @@ export default function Cashier() {
           </button>
         ))}
       </div>
+      <button onClick={() => setShowSizeModal(true)}>
+        Open Size Modal
+      </button>
     </div>
   );
 }
