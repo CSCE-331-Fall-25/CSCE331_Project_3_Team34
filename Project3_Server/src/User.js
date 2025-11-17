@@ -103,6 +103,7 @@ class Employee extends User {
             console.log('No employee found with username:', username);
             return null;
         }
+        // console.log('Employee query result:', res.rows);
 
         const row = res.rows[0];
         const employeeID = row.employeeid ?? -1;
@@ -112,7 +113,7 @@ class Employee extends User {
         const isManager = row.ismanager ?? false;
         
 
-        console.log(`Fetched Employee from DB: Username=${username}, ID=${employeeID}`);
+        // console.log(`Fetched Employee from DB: Username=${username}, ID=${employeeID}`);
         return new Employee(username, password, email, employeeID, name, role, wage, isManager);
     }
 
@@ -142,7 +143,7 @@ class Employee extends User {
             const employee = new Employee(username, pass, email, employeeID, name, role, wage, isManager);
             employees.push(employee);
 
-            console.log(`Fetched Employee from DB: Username=${username}, ID=${employeeID}`);
+            // console.log(`Fetched Employee from DB: Username=${username}, ID=${employeeID}`);
         }
 
         return employees;

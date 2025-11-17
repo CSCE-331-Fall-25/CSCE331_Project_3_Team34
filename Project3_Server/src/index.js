@@ -103,6 +103,14 @@ app.use(express.json());
 app.get('/api/get-user', async (req, res) => {
   const currUser = req.session?.user ?? null;
   if(!currUser) return res.status(401).json({ success: false, error: 'Not authenticated' });
+  if(currUser.isEmployee){
+    // console.log("Current User is Employee:", currUser);
+    //fetch full user data from DB
+    const userData = await Employee.FetchByUsername(pool, currUser.username, null, null);
+    currUser.isManager = userData ? userData.isManager : false;
+    res.json({ success: true, user: currUser, isManager: currUser.isManager  });
+  }
+  // console.log("Current User not Employee:", currUser);
   res.json({ success: true, user: currUser });
 
 });

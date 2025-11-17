@@ -73,3 +73,23 @@
   font-size: 1rem;
   cursor: pointer;
 }
+
+/* Manager manual adjustment styles inside discount modal */
+.discount-manager-section {
+  width: 100%;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(0,0,0,0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: center;
+}
+.discount-manager-section .modal-input {
+  width: 140px;
+  height: 36px;
+}
+.discount-manager-section .modal-submit {
+  padding: 0.4rem 0.9rem;
+  height: 36px;
+}

@@ -59,9 +59,10 @@ export default function Cashier() {
   
   //login features
   const [User, setUser] = useState(null);
-  const [isManager, setisManager] = useState(null);
+  const [isManager, setisManager] = useState(false);
   function fetchUserData() {
-    fetch('/api/get-user-data', {
+    // console.log("Fetching user data...");
+    fetch('/api/get-user', {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include'
@@ -70,7 +71,8 @@ export default function Cashier() {
       .then((data) => {
         if (data.success) {
           setUser(data.user || null);
-          setisManager(data.isManager || null);
+          setisManager(data.isManager || false);
+          // console.log("Fetched user data:", data.user, "Is Manager:", data.isManager);
         }
       });
     }
@@ -164,6 +166,7 @@ export default function Cashier() {
         setDiscountAmount(data.discountAmount || 0);
         setDiscountPriceOff(data.priceOff || 0);
       });
+      fetchUserData();
   }
 
 
@@ -195,8 +198,7 @@ export default function Cashier() {
           setDiscountPriceOff(off || 0);
           UpdatePage();
         }}
-        user={User}
-        isManager={manager}
+        userIsManager={isManager}
       />
       {showSignOutModal && (
         <SignOutButton onClose={() => setShowSignOutModal(false)} />
