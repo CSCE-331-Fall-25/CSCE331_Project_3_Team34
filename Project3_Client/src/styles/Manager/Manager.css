@@ -147,12 +147,14 @@
     margin-top: 10px;
 }
 .table-container {
-    max-height: 100; 
-    overflow: auto; /* scroll both axes if needed (mostly vertical) */
+    max-height: 410px;
+    overflow-y: auto;
     width: 100%;
     margin-left: auto;
     margin-right: auto;
-    display: block; /* block so the container's overflow works predictably */
+    display: flex;
+    justify-content: center;
+    border-collapse: collapse;
 }
 
 .table-container thead th {
@@ -178,4 +180,82 @@
     border-color:#ababab;
     border-style: solid;
     text-align: center;
+}
+
+.text-box-container {
+    position: absolute;
+    bottom: 3%;
+    display: flex;
+    justify-content: center;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 10px;
+    width: calc(100% - 40px); /* respect modal padding */
+}
+
+.management-buttons-container {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 20%;
+    display: flex;
+    justify-content: center;
+    flex-direction: row;
+    gap: 10px;
+    width: calc(100% - 32px); /* respect modal padding */
+    max-width: 1600px; /* avoid stretching too wide */
+}
+
+.textbox {
+    width: 250px;
+    height: 35px;
+    font-size: 18px;
+    cursor: pointer;
+    border-radius: 8px;
+    border: black 2px solid;
+    background-color: #d60606;
+    color: white;
+    font-weight: 700;
+}
+.textbox:hover {
+    background-color: #cc1e1e;
+    box-shadow: 0 10px 10px rgba(0,0,0,0.2);
+    transform: translateY(-4px);
+}
+input::placeholder,
+textarea::placeholder {
+  text-align: center;
+  color: rgb(222, 222, 222);
+}
+
+.employeeTableContainer {
+    max-height: 350px;
+    overflow-y: auto;
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    display: flex;
+    justify-content: center;
+    border-collapse: collapse;
+}
+  
+.menu-text-box-container {
+    position: absolute;
+    bottom: 3%;
+    display: flex;
+    justify-content: center;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 10px;
+    width: calc(90% - 80px); /* respect modal padding */
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.line-chart {
+    position: absolute;
+    width: 70%;
+    left: 25%;
+    bottom: 22%;
+    max-height: 400px;
 }

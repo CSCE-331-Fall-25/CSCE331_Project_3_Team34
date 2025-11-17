@@ -9,7 +9,6 @@ import Kitchen from './pages/Kitchen.jsx'
 import Kiosk from './pages/Kiosk.jsx'
 import Hub from './pages/Hub.jsx'
 import MealAttributes  from './pages/MealAttributes.jsx' 
-import Reports from './pages/Reports.jsx'
 import './styles/App.css'
 //import app from '../../Project3_Server/src/index.js'
 
@@ -117,7 +116,6 @@ export default function App() {
         <Route path="/kitchen" element={<Kitchen />} />
         <Route path="/kiosk" element={<Kiosk />} />
         <Route path="/hub" element={<Hub />} />
-        <Route path="/reports" element={<Reports />} />
         {/* Root path shows the login UI (App displays the login form when pathname === "/").
             Keep the route lightweight so the login form isn't duplicated with another page. */}
         <Route path="/" element={<div />} />
