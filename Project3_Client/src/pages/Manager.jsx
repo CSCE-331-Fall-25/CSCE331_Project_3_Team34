@@ -29,7 +29,7 @@ export default function Manager() {
 
   //Reports
   const [showReportModal, setShowReportModal] = useState(false);
-  const [employeeName, setEmployeeName] = useState(false);
+  const [employeeName, setEmployeeName] = useState("Missing");
   
   // Managment modals
   const [showEmployeeModal, setShowEmployeeModal] = useState(false);
@@ -74,21 +74,24 @@ export default function Manager() {
 
   const getUser = async () => {
     console.log("Getting user");
-    const response = await fetch("/api/get-user");
+    // include credentials so session cookie is sent with the request
+    const response = await fetch("/api/get-user", { credentials: 'include' });
     if (!response.ok) {
       console.log("Error in function call");
       setErrorLabel("Failed to connect to backend");
-      setEmployeeName("test user");
+      setEmployeeName("Missing, Error" );
     }
     else if (response == null) {
       console.log("Error getting data");
       setErrorLabel("Failed to connect to backend");
-      setEmployeeName("test user");
+      setEmployeeName("Missing, Error response null");
     }
     else {
       const newData = await response.json();
       console.log(newData);
-      setEmployeeName(newData.user);
+      // `newData.user` is an object { username, isEmployee } — store the username string
+      const username = newData && newData.user && newData.user.username ? newData.user.username : null;
+      setEmployeeName(username);
     }
   }
 
@@ -1362,7 +1365,7 @@ export default function Manager() {
           </div>
         </div>
       )}
-      <div className = "manager-subheader"><h1>Welcome, {employeeName}!</h1></div>
+      <div className = "manager-subheader"><h1>Welcome, {employeeName === null ? "missing" : employeeName}!</h1></div>
 
       <div className = "manager-buttons-container">
         <button className = "button manager-button" onClick={() => {setShowReportModal(true); generateXReport(); setLabel("");}}>View Reports</button>

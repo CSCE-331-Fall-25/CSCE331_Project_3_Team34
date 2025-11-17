@@ -6,6 +6,8 @@ import CashierMainPage from "./MainPage.js";
 import User, {Employee, Customer} from "./User.js";
 import { Manager } from "./Manager.js";
 import Item, { Menu } from "./Item.js";
+import session from "express-session";
+import cookieParser from "cookie-parser";
 
 // Kiosk router file is named `Kiosk.js` (capital K). Use the exact filename so imports work
 // on case-sensitive filesystems (e.g. Linux used by many CI/CD hosts).
@@ -14,8 +16,96 @@ import kioskRouter from "./Kiosk.js";
 dotenv.config();
 
 const app = express();
-app.use(cors());
+// Configure CORS and sessions so client (Vite) can communicate with backend and receive cookies
+const clientOrigin = process.env.CLIENT_ORIGIN || "http://localhost:5173";
+const sessionPrefab = session({
+  secret: process.env.SESSION_SECRET || 'default_secret', // TODO: change to strong secret in production
+  resave: false,
+  saveUninitialized: true,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    maxAge: 60 * 60 * 1000 // 1 hour
+  }
+});
+
+app.use(cors({ origin: clientOrigin, credentials: true }));
 app.use(express.json());
+
+app.use(cookieParser());
+app.use(sessionPrefab);
+
+// a map to hold session-scoped main page instances
+const sessionMap = new Map();
+
+function getMainPageForSession(req) {
+  // ensure sessions exist
+  if (!req.session) return mainPage; // fallback to global mainPage if sessions unavailable
+  const sessionID = req.session.id;
+  if (!sessionMap.has(sessionID)) {
+    const user = new User("tempUser", "tempPass", "temp@gmail.com");
+    const mp = new CashierMainPage(user, pool);
+    sessionMap.set(sessionID, mp);
+    req.session.initialized = true;
+    console.log(`Initialized new session: ${sessionID}`);
+  } else {
+    // console.log(`Using existing session: ${sessionID}`);
+  }
+  return sessionMap.get(sessionID);
+}
+
+// API endpoint to authenticate login
+app.post('/api/authenticate-login', async (req, res) => {
+  try{
+    const { username, password } = req.body;
+    const user = await User.AuthenticateLogin(pool, username, password);
+    if(!user) {
+        return res.status(401).json({ success: false, error: 'Invalid username or password' });
+    }
+    // set user on session and regenerate to prevent fixation
+    req.session.user = { username: user.username, isEmployee: user.isEmployee };
+    req.session.regenerate((err) => {
+      if(err) {
+        console.error('Session regeneration error:', err);
+        return res.status(500).json({ success: false, error: 'Internal server error' });
+      }
+      req.session.user = { username: user.username, isEmployee: user.isEmployee };
+      try {
+        sessionMap.set(req.session.id, new CashierMainPage(user, pool));
+      } catch (e) {
+        console.error('Failed to create session main page:', e);
+      }
+      return res.json({ success: true });
+    });
+  }
+  catch(err){
+      console.error('Error during authentication:', err);
+      return res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+app.post('/api/logout', (req,res)=>{
+  if (req.session) console.log(`Session ${req.session.id} logged out and resources cleared.`);
+  if (req.session) sessionMap.delete(req.session.id);
+  if (req.session) {
+    req.session.destroy(err => {
+      res.clearCookie('connect.sid');
+      return res.json({ success: !err });
+    });
+  } else {
+    return res.json({ success: true });
+  }
+});
+app.use(express.json());
+
+//gets the current signed in user for this session
+app.get('/api/get-user', async (req, res) => {
+  const currUser = req.session?.user ?? null;
+  if(!currUser) return res.status(401).json({ success: false, error: 'Not authenticated' });
+  res.json({ success: true, user: currUser });
+
+});
 
 // Example: create a test user and main page instance (pass the pool so it has DB access)
 const user = new User("testUser", "password123", "bob@gmail.com");
@@ -65,6 +155,7 @@ app.post('/api/fetch-all-items', async (req, res) => {
 // API endpoint to buy an item
 app.post('/api/buy-item', async (req, res) => {
   try {
+    const mainPage = getMainPageForSession(req);
     let result;
     if (req.body && req.body.itemID) {
       result = await mainPage.BuyItemButton(req.body.itemID, req.body.entreeList, req.body.sideList);
@@ -80,6 +171,7 @@ app.post('/api/buy-item', async (req, res) => {
 
 // API endpoint to add a discount
 app.post('/api/add-discount', async (req, res) => {
+  const mainPage = getMainPageForSession(req);
   const { discountCode } = req.body;
   let result = { acceptedDiscount: false };
   try {
@@ -106,11 +198,13 @@ app.post('/api/add-discount', async (req, res) => {
 
 // API endpoint to clear the transaction
 app.delete('/api/clear-transaction', (req, res) => {
+  const mainPage = getMainPageForSession(req);
   mainPage.ClearTransaction();
   res.json({ success: true });
 });
 // API endpoint to purchase the transaction
 app.post('/api/purchase', (req, res) => {
+  const mainPage = getMainPageForSession(req);
   mainPage.PurchaseTransaction();
   res.json({ success: true });
   
@@ -129,18 +223,21 @@ app.get("/api/users", async (req, res) => {
 
 // API endpoint to get current state
 app.get("/api/current-state", (req, res) => {
+  const mainPage = getMainPageForSession(req);
   let result = mainPage.GetCurrentState();
   res.json(result);
 });
 // API endpoint to remove an item by index
 app.post('/api/remove-item', (req, res) => {
   const { index } = req.body;
+  const mainPage = getMainPageForSession(req);
   let result = mainPage.RemoveItemByIndex(index);
   res.json({ success: true, ...result });
 });
 //API endpoint to customize an order
 app.post('/api/customize-order', (req, res) => {
   const { index } = req.body;
+  const mainPage = getMainPageForSession(req);
   let result = mainPage.CustomizeOrder(index);
   res.json({ success: true, ...result });
 });
@@ -153,7 +250,7 @@ app.get('/api/health', (req, res) => {
 // ------------------------------------- Manager API Endpoints Start --------------------------------------
 app.post('/api/x-report-data', async (req, res) => {
   try {
-    console.log("request recieved");
+    //console.log("request recieved");
     res.json(await manager.XReportData());
   } catch (err) {
     console.error('Error getting data');
@@ -163,7 +260,7 @@ app.post('/api/x-report-data', async (req, res) => {
 
 app.get('/api/x-report-data', async (req, res) => {
   try {
-    console.log("request recieved");
+    //console.log("request recieved");
     res.json(await manager.XReportData());
   } catch (err) {
     console.error('Error getting data');
@@ -173,7 +270,7 @@ app.get('/api/x-report-data', async (req, res) => {
 
 app.get('/api/z-report-data', async (req, res) => {
   try {
-    console.log("request recieved");
+    //console.log("request recieved");
     res.json(await manager.ZReportData());
   } catch (err) {
     console.error('Error getting data');
@@ -183,7 +280,7 @@ app.get('/api/z-report-data', async (req, res) => {
 
 app.post('/api/sales-report-data', async (req, res) => {
   try {
-    console.log("request recieved");
+    //console.log("request recieved");
     const { startTime, endTime } = req.body;
     res.json(await manager.SalesReportData(startTime, endTime));
   } catch (err) {
@@ -194,7 +291,7 @@ app.post('/api/sales-report-data', async (req, res) => {
 
 app.post('/api/product-usage-report-data', async (req, res) => {
   try {
-    console.log("request recieved");
+    //console.log("request recieved");
     const { startTime, endTime } = req.body;
     res.json(await manager.ProductUsageReportData(startTime, endTime));
   } catch (err) {
@@ -205,7 +302,7 @@ app.post('/api/product-usage-report-data', async (req, res) => {
 
 app.get('/api/restock-report-data', async (req, res) => {
   try {
-    console.log("request recieved");
+    //console.log("request recieved");
     res.json(await manager.RestockReportData());
   } catch (err) {
     console.error('Invalid input data');
@@ -215,7 +312,7 @@ app.get('/api/restock-report-data', async (req, res) => {
 
 app.get('/api/employee-data', async (req, res) => {
   try {
-    console.log("request recieved");
+    //console.log("request recieved");
     res.json(await manager.EmployeeData());
   } catch (err) {
     console.error('Invalid input data');
@@ -225,7 +322,7 @@ app.get('/api/employee-data', async (req, res) => {
 
 app.post('/api/add-employee', async (req, res) => {
   try {
-    console.log("request recieved");
+    //console.log("request recieved");
     const { employeeId, employeeNewName, employeeRole, employeeWage, employeeIsManager, employeeUsername, employeeEmail, employeePassword } = req.body;
     res.json(await manager.AddEmployee(employeeId, employeeNewName, employeeRole, employeeWage, employeeIsManager, employeeUsername, employeeEmail, employeePassword));
   } catch (err) {
@@ -236,7 +333,7 @@ app.post('/api/add-employee', async (req, res) => {
 
 app.post('/api/remove-employee', async (req, res) => {
   try {
-    console.log("request recieved");
+   // console.log("request recieved");
     const { employeeId } = req.body;
     res.json(await manager.RemoveEmployee(employeeId));
   } catch (err) {
@@ -247,7 +344,7 @@ app.post('/api/remove-employee', async (req, res) => {
 
 app.post('/api/update-employee', async (req, res) => {
   try {
-    console.log("request recieved");
+   // console.log("request recieved");
     const { employeeId, employeeNewName, employeeRole, employeeWage, employeeIsManager, employeeUsername, employeeEmail, employeePassword } = req.body;
     res.json(await manager.UpdateEmployee(employeeId, employeeNewName, employeeRole, employeeWage, employeeIsManager, employeeUsername, employeeEmail, employeePassword));
   } catch (err) {
@@ -258,7 +355,7 @@ app.post('/api/update-employee', async (req, res) => {
 
 app.get('/api/menu-data', async (req, res) => {
   try {
-    console.log("request recieved");
+   // console.log("request recieved");
     res.json(await manager.MenuData());
   } catch (err) {
     console.error('Invalid input data');
@@ -268,7 +365,7 @@ app.get('/api/menu-data', async (req, res) => {
 
 app.post('/api/add-menu', async (req, res) => {
   try {
-    console.log("request recieved");
+   // console.log("request recieved");
     const { menuId, menuName, menuType, menuPriceMod, menuInventoryIds } = req.body;
     res.json(await manager.AddMenu(menuId, menuName, menuType, menuPriceMod, menuInventoryIds));
   } catch (err) {
@@ -279,7 +376,7 @@ app.post('/api/add-menu', async (req, res) => {
 
 app.post('/api/remove-menu', async (req, res) => {
   try {
-    console.log("request recieved");
+   // console.log("request recieved");
     const { menuId } = req.body;
     res.json(await manager.RemoveMenu(menuId));
   } catch (err) {
@@ -290,7 +387,7 @@ app.post('/api/remove-menu', async (req, res) => {
 
 app.post('/api/update-menu', async (req, res) => {
   try {
-    console.log("request recieved");
+   // console.log("request recieved");
     const { menuId, menuName, menuType, menuPriceMod, menuInventoryIds } = req.body;
     res.json(await manager.UpdateMenu(menuId, menuName, menuType, menuPriceMod, menuInventoryIds));
   } catch (err) {
@@ -302,7 +399,7 @@ app.post('/api/update-menu', async (req, res) => {
 
 app.get('/api/inventory-data', async (req, res) => {
   try {
-    console.log("request recieved");
+   // console.log("request recieved");
     res.json(await manager.InventoryData());
   } catch (err) {
     console.error('Invalid input data');
@@ -312,7 +409,7 @@ app.get('/api/inventory-data', async (req, res) => {
 
 app.post('/api/add-inventory', async (req, res) => {
   try {
-    console.log("request recieved");
+   // console.log("request recieved");
     const { inventoryId, inventoryItems, inventoryQuantity, inventoryMaxStock, inventoryMinStock } = req.body;
     res.json(await manager.AddInventory(inventoryId, inventoryItems, inventoryQuantity, inventoryMaxStock, inventoryMinStock));
   } catch (err) {
@@ -323,7 +420,7 @@ app.post('/api/add-inventory', async (req, res) => {
 
 app.post('/api/remove-inventory', async (req, res) => {
   try {
-    console.log("request recieved");
+   // console.log("request recieved");
     const { inventoryId } = req.body;
     res.json(await manager.RemoveInventory(inventoryId));
   } catch (err) {
@@ -334,7 +431,7 @@ app.post('/api/remove-inventory', async (req, res) => {
 
 app.post('/api/update-inventory', async (req, res) => {
   try {
-    console.log("request recieved");
+   // console.log("request recieved");
     const { inventoryId, inventoryItems, inventoryQuantity, inventoryMaxStock, inventoryMinStock } = req.body;
     res.json(await manager.UpdateInventory(inventoryId, inventoryItems, inventoryQuantity, inventoryMaxStock, inventoryMinStock));
   } catch (err) {
@@ -343,19 +440,11 @@ app.post('/api/update-inventory', async (req, res) => {
   }
 });
 
-app.get('/api/get-user', async (req, res) => {
-  try {
-    console.log("request recieved");
-    res.json(await manager.GetUser());
-  } catch (err) {
-    console.error('Invalid input data' + err);
-    res.json({ error: -2 });
-  }
-});
+
 
 app.get('/api/get-sales-data', async (req, res) => {
   try {
-    console.log("request recieved");
+   // console.log("request recieved");
     res.json(await manager.GetSalesData());
   } catch (err) {
     console.error('Invalid input data' + err);
