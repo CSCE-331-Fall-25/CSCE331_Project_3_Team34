@@ -150,6 +150,15 @@
   cursor: pointer;
 }
 
+.kiosk-swap-btn{
+  background: transparent;
+  border: 1px solid #2b7cff;
+  color: #2b7cff;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
 .kiosk-order-summary{
   margin-top: 12px;
   display: flex;

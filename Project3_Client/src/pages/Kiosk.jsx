@@ -36,6 +36,8 @@ export default function Kiosk() {
   const [currentGroupId, setCurrentGroupId] = useState(null);
   const [activeSelection, setActiveSelection] = useState(null); // { type, label, remaining }
   const groupIdRef = useRef(0);
+  const currentParentItemIdRef = useRef(null);
+  const swapTargetRef = useRef(null);
 
   const safeNumber = value => {
     const parsed = Number(value);
@@ -58,8 +60,16 @@ export default function Kiosk() {
     return baseValue + priceMod;
   };
 
-  function addToOrder(item, overrides = {}) {
-    setOrderItems(prev => [...prev, { ...item, ...overrides }]);
+  function addToOrder(item, overrides = {}, insertAt = null) {
+    setOrderItems(prev => {
+      const entry = { ...item, ...overrides };
+      if (insertAt == null || insertAt < 0 || insertAt > prev.length) {
+        return [...prev, entry];
+      }
+      const next = [...prev];
+      next.splice(insertAt, 0, entry);
+      return next;
+    });
   }
 
   function removeFromOrder(idx) {
@@ -70,6 +80,10 @@ export default function Kiosk() {
         const nextOrder = prev.filter(entry => entry.groupId !== target.groupId);
         if (currentGroupId === target.groupId) {
           clearUI();
+          currentParentItemIdRef.current = null;
+          if (swapTargetRef.current?.groupId === target.groupId) {
+            swapTargetRef.current = null;
+          }
         }
         return nextOrder;
       }
@@ -80,6 +94,39 @@ export default function Kiosk() {
   function removeGroupFromOrder(groupId) {
     if (groupId == null) return;
     setOrderItems(prev => prev.filter(entry => entry.groupId !== groupId));
+    if (swapTargetRef.current?.groupId === groupId) {
+      swapTargetRef.current = null;
+    }
+  }
+
+  async function handleSwap(idx) {
+    const target = orderItems[idx];
+    if (!target || target.isParent) return;
+
+    const parentEntry = orderItems.find(entry => entry.groupId === target.groupId && entry.isParent);
+    const parentItemId = parentEntry?.itemid || target.parentItemId || '';
+
+    setOrderItems(prev => prev.filter((_, i) => i !== idx));
+    swapTargetRef.current = {
+      index: idx,
+      groupId: target.groupId ?? null,
+      type: target.type,
+      parentItemId,
+    };
+
+    if (!target.type) return;
+
+    const label = target.type ? `Swap ${target.type}` : 'Swap Item';
+    const swapQueue = [{ type: target.type, label }];
+
+    setSelectionQueue(swapQueue);
+    setActiveSelection(null);
+    setMenuItems([]);
+    setSelectedItemId(parentItemId);
+    setCurrentGroupId(target.groupId ?? null);
+    currentParentItemIdRef.current = parentItemId;
+
+    await startNextSelection(swapQueue);
   }
 
   function clearUI() {
@@ -88,6 +135,8 @@ export default function Kiosk() {
     setActiveSelection(null);
     setMenuItems([]);
     setSelectedItemId('');
+    currentParentItemIdRef.current = null;
+    swapTargetRef.current = null;
   }
 
   function clearOrder() {
@@ -166,6 +215,8 @@ export default function Kiosk() {
       setMenuItems([]);
       setSelectedItemId('');
       setCurrentGroupId(null);
+      currentParentItemIdRef.current = null;
+      swapTargetRef.current = null;
       return;
     }
     const [next, ...rest] = queueSource;
@@ -182,7 +233,8 @@ export default function Kiosk() {
 
     const newGroupId = groupIdRef.current + 1;
     groupIdRef.current = newGroupId;
-    addToOrder(item, { groupId: newGroupId, isParent: true });
+    currentParentItemIdRef.current = item.itemid;
+    addToOrder(item, { groupId: newGroupId, isParent: true, parentItemId: item.itemid });
     setCurrentGroupId(newGroupId);
     setSelectedItemId(item.itemid);
     const queue = buildSelectionQueue(item);
@@ -191,16 +243,32 @@ export default function Kiosk() {
   }
 
   async function handleMenuChoice(option) {
-    if (currentGroupId != null) {
-      addToOrder(option, { groupId: currentGroupId, isParent: false });
-    } else {
-      addToOrder(option);
+    const pendingSwap = swapTargetRef.current;
+    let insertAt = null;
+    if (pendingSwap && pendingSwap.groupId === currentGroupId) {
+      insertAt = pendingSwap.index;
     }
+
+    if (currentGroupId != null) {
+      addToOrder(option, {
+        groupId: currentGroupId,
+        isParent: false,
+        parentItemId: currentParentItemIdRef.current,
+      }, insertAt);
+    } else {
+      addToOrder(option, {}, insertAt);
+    }
+
+    if (pendingSwap) {
+      swapTargetRef.current = null;
+    }
+
     if (selectionQueue.length === 0) {
       setActiveSelection(null);
       setMenuItems([]);
       setCurrentGroupId(null);
       setSelectedItemId('');
+      currentParentItemIdRef.current = null;
       return;
     }
     await startNextSelection();
@@ -285,7 +353,11 @@ export default function Kiosk() {
                 <div className="kiosk-order-name">{it.name}</div>
                 <div className="kiosk-order-actions">
                   <div className="kiosk-order-price">{hide ? '' : `$${value.toFixed(2)}`}</div>
-                  <button className="kiosk-remove-btn" onClick={() => removeFromOrder(idx)}>Remove</button>
+                  {it.isParent ? (
+                    <button className="kiosk-remove-btn" onClick={() => removeFromOrder(idx)}>Remove</button>
+                  ) : (
+                    <button className="kiosk-swap-btn" onClick={() => handleSwap(idx)}>Swap</button>
+                  )}
                 </div>
               </div>
             );
