@@ -135,6 +135,17 @@
   border-radius: 6px;
 }
 
+.kiosk-order-row-parent{
+  background: #fff;
+}
+
+.kiosk-order-row-child{
+  margin-left: 16px;
+  border-left: 3px solid #f4c27a;
+  padding-left: 12px;
+  background: #fff9f0;
+}
+
 .kiosk-order-actions{
   display: flex;
   gap: 8px;
@@ -146,6 +157,15 @@
   border: 1px solid #e33;
   color: #e33;
   padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.kiosk-swap-btn{
+  background: transparent;
+  border: 1px solid #2b7cff;
+  color: #2b7cff;
+  padding: 6px 10px;
   border-radius: 6px;
   cursor: pointer;
 }
