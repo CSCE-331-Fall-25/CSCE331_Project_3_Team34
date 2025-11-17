@@ -24,12 +24,9 @@ class Manager {
             let rows = result.rows;
             let counter = 0;
             while (counter < rows.length - 1 && i < 12) {
-                console.log((rows[counter].time).toString());
-                // console.log(rows[counter].time.toString());
                 while (counter < rows.length - 1 && month == (rows[counter].time).toString().substring(4, 7)) {
                     data[i] = data[i] + 1;
                     counter++;
-                    console.log((rows[counter].time).toString());
                 }
                 if (counter != rows.length) {
                     i++
@@ -696,11 +693,11 @@ class Manager {
                 username = result.rows[0].username;
             }
 
-            if (email.length == 0 || email == '') {
-                return { error: 4 };
+            if (!email) {
+                email = result.rows[0].email;
             }
             let hasAm = false;
-            hasDecimal = false;
+            let hasDecimal = false;
             for (let i = 0; i < email.length; i++) {
                 if (hasAm && email.substring(i, i + 1) == '@') {
                     return { error: 5 };
