@@ -15,6 +15,7 @@
   box-shadow: 0 1px 3px rgba(0,0,0,0.06);
   display: flex;
   flex-direction: column;
+  min-height: 0; /* allow children to size/scroll correctly */
 }
 
 .kiosk-title{
@@ -28,9 +29,9 @@
   grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
   gap: 8px;
   align-items: start;
-  /* allow scrolling if content overflows vertically */
-  max-height: calc(100vh - 200px);
-  overflow: auto;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
   padding-right: 4px; /* give space for scrollbar */
 }
 
@@ -68,6 +69,17 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.kiosk-selection-banner{
+  margin-bottom: 12px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.kiosk-selection-remaining{
+  font-weight: 400;
+  color: #666;
 }
 
 .kiosk-item-name{

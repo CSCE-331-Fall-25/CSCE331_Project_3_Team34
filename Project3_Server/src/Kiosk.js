@@ -9,7 +9,7 @@ const kioskRouter = express.Router();
 
 kioskRouter.get('/get-items', async (req, res) => {
     try {
-        const result = await pool.query("SELECT name FROM items");
+        const result = await pool.query("SELECT * FROM items");
         res.json(result.rows);
     } catch (err) {
         console.error(err);
@@ -17,14 +17,17 @@ kioskRouter.get('/get-items', async (req, res) => {
     }
 });
 
-kioskRouter.get('/get-entrees', async (req, res) => {
+kioskRouter.get('/get-menu', async (req, res) => {
     try {
-        const result = await pool.query("SELECT * FROM menu");
-        res.json(result.rows);
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: "Database query failed" });
-    }
+    const { type } = req.query;
+    const result = type
+      ? await pool.query('SELECT * FROM menu WHERE LOWER(type) = LOWER($1)', [type])
+      : await pool.query('SELECT * FROM menu');
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Database query failed' });
+  }
 });
 
 export default kioskRouter;
