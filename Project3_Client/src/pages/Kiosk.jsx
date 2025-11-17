@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import pandaLogo from '../assets/PandaLogo.svg'
 // Transaction is a server-side class; don't import it into the client bundle.
 import '../styles/Kiosk.css';
 
@@ -216,7 +217,13 @@ export default function Kiosk() {
 
       <div className="kiosk-middle">
         {!selectedItemId && (
-          <div className="kiosk-empty">Choose a category from the left to view items</div>
+          <div className="kiosk-logo-wrapper">
+            <img
+              src={pandaLogo}
+              alt="Panda Express"
+              className="kiosk-logo"
+            />
+          </div>
         )}
         {selectedItemId && (
           <>
