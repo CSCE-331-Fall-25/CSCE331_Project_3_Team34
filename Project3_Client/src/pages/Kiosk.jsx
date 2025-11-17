@@ -27,7 +27,7 @@ export default function Kiosk() {
   }, [navigate]);
 
   // --- UI state and handlers --- //
-  const [selectedItemId, setselectedItemId] = useState('');
+  const [selectedItemId, setSelectedItemId] = useState('');
   const [menuItems, setMenuItems] = useState([]);
   const [orderItems, setOrderItems] = useState([]);
   const [items, setItems] = useState([]);
@@ -78,7 +78,7 @@ export default function Kiosk() {
     setSelectionQueue([]);
     setActiveSelection(null);
     setMenuItems([]);
-    setselectedItemId('');
+    setSelectedItemId('');
   }
   
   async function fetchItems() {
@@ -150,7 +150,7 @@ export default function Kiosk() {
       setSelectionQueue([]);
       setActiveSelection(null);
       setMenuItems([]);
-      setselectedItemId('');
+      setSelectedItemId('');
       setCurrentGroupId(null);
       return;
     }
@@ -165,7 +165,7 @@ export default function Kiosk() {
     groupIdRef.current = newGroupId;
     addToOrder(item, { groupId: newGroupId, isParent: true });
     setCurrentGroupId(newGroupId);
-    setselectedItemId(item.itemid);
+    setSelectedItemId(item.itemid);
     const queue = buildSelectionQueue(item);
     setSelectionQueue(queue);
     await startNextSelection(queue);
@@ -181,7 +181,7 @@ export default function Kiosk() {
       setActiveSelection(null);
       setMenuItems([]);
       setCurrentGroupId(null);
-      setselectedItemId('');
+      setSelectedItemId('');
       return;
     }
     await startNextSelection();
