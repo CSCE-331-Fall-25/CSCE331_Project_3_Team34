@@ -5,7 +5,7 @@
   height: 100vh;
   padding: 16px;
   box-sizing: border-box;
-  background: #f7f7f7;
+  background: #D71920;
 }
 
 .kiosk-left, .kiosk-middle, .kiosk-right{
@@ -47,7 +47,7 @@
 }
 
 .kiosk-type-btn.active{
-  background: linear-gradient(90deg,#2b7cff,#6fb1ff);
+  background: #D71920;
   color: white;
   border-color: transparent;
 }
@@ -63,12 +63,38 @@
 }
 
 .kiosk-item{
-  border: 1px solid #eee;
-  padding: 8px;
-  border-radius: 6px;
+  border: 1px solid #e3e3e3;
+  padding: 12px;
+  border-radius: 8px;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  background: #fff;
+  text-align: left;
+  width: 100%;
+  align-items: flex-start;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  transition: border-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
+  min-height: 140px;
+  justify-content: flex-start;
+}
+
+.kiosk-item:hover{
+  border-color: #2b7cff;
+  box-shadow: 0 6px 16px rgba(43, 124, 255, 0.15);
+  transform: translateY(-2px);
+}
+
+.kiosk-item:focus-visible{
+  outline: 2px solid #2b7cff;
+  outline-offset: 2px;
+}
+
+.kiosk-item:active{
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(43, 124, 255, 0.2);
 }
 
 .kiosk-selection-banner{
@@ -86,16 +112,6 @@
   font-weight: 600;
 }
 
-.kiosk-add-btn{
-  margin-top: auto;
-  align-self: flex-end;
-  padding: 6px 10px;
-  border-radius: 6px;
-  background: #2b7cff;
-  color: white;
-  border: none;
-  cursor: pointer;
-}
 
 .kiosk-right{
   display: flex;

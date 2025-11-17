@@ -67,19 +67,32 @@ export default function Kiosk() {
       const target = prev[idx];
       if (!target) return prev;
       if (target.isParent && target.groupId != null) {
-        return prev.filter(entry => entry.groupId !== target.groupId);
+        const nextOrder = prev.filter(entry => entry.groupId !== target.groupId);
+        if (currentGroupId === target.groupId) {
+          clearUI();
+        }
+        return nextOrder;
       }
       return prev.filter((_, i) => i !== idx);
     });
   }
 
-  function clearOrder() {
-    setOrderItems([]);
+  function removeGroupFromOrder(groupId) {
+    if (groupId == null) return;
+    setOrderItems(prev => prev.filter(entry => entry.groupId !== groupId));
+  }
+
+  function clearUI() {
     setCurrentGroupId(null);
     setSelectionQueue([]);
     setActiveSelection(null);
     setMenuItems([]);
     setSelectedItemId('');
+  }
+
+  function clearOrder() {
+    setOrderItems([]);
+    clearUI();
   }
   
   async function fetchItems() {
@@ -162,6 +175,11 @@ export default function Kiosk() {
   }
 
   async function handleItemSelection(item) {
+    if (currentGroupId != null && (selectionQueue.length > 0 || activeSelection)) {
+      removeGroupFromOrder(currentGroupId);
+    }
+    clearUI();
+
     const newGroupId = groupIdRef.current + 1;
     groupIdRef.current = newGroupId;
     addToOrder(item, { groupId: newGroupId, isParent: true });
@@ -240,11 +258,15 @@ export default function Kiosk() {
               {menuItems.map(it => {
                 const { value, hide } = resolveDisplayPrice(it);
                 return (
-                  <div key={it.id ?? it.menuid ?? it.name} className="kiosk-item">
+                  <button
+                    key={it.id ?? it.menuid ?? it.name}
+                    type="button"
+                    className="kiosk-item kiosk-item-button"
+                    onClick={() => handleMenuChoice(it)}
+                  >
                     <div className="kiosk-item-name">{it.name}</div>
                     <div className="kiosk-item-price">{hide ? '' : `$${value.toFixed(2)}`}</div>
-                    <button className="kiosk-add-btn" onClick={() => handleMenuChoice(it)}>Add</button>
-                  </div>
+                  </button>
                 );
               })}
             </div>
