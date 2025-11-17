@@ -2,7 +2,8 @@ import { Menu } from './Item.js';
 import { Employee } from './User.js';
 
 class Transaction {
-    constructor(employee) {
+    constructor(db, employee) {
+        this.db = db;
         this.employee = employee || new Employee('','','');
         this.amount = 0;
         this.profit = 0;
@@ -59,6 +60,10 @@ class Transaction {
             totalProfit += orderPrice * 0.2;
         }
 
+        // Round totals to two decimal places
+        totalAmount = Math.round((totalAmount + Number.EPSILON) * 100) / 100;
+        totalProfit = Math.round((totalProfit + Number.EPSILON) * 100) / 100;
+
         this.amount = totalAmount;
         this.profit = totalProfit;
 
@@ -72,13 +77,14 @@ class Order {
         this.transaction = transaction;
         this.size = size;
         this.price = 0;
+        this.db = transaction.db;
 
         this.entrees = [];
         this.sides = [];
     }
 
     NewTray(menu, type) {
-        const newTray = new Tray(this, menu, type);
+        const newTray = new Tray(this, menu, this.item, "small");
         // Initialize arrays if they don't exist
         this.entrees = this.entrees || [];
         this.sides = this.sides || [];
@@ -147,31 +153,35 @@ class Order {
 
     async calculatePrice(db) {
         let price = this.item.price || 0;
-        if (this.item.type === 'drink' || this.item.type === 'a la carte') {
-            price = 0;
-        }
-
         for (const tray of [...(this.entrees || []), ...(this.sides || [])]) {
             price += await tray.calculatePrice(db);
         }
+        // Round price to two decimal places
+        price = Math.round((price + Number.EPSILON) * 100) / 100;
         this.price = price;
         return price;
     }
 }
 
 class Tray {
-    constructor(order, menu, type) {
+    constructor(order, menu, item, size = null) {
         this.order = order;
         this.menu = menu;
-        this.type = type;
+        this.item = item;
+        this.size = size;
         this.price = 0;
+
+        this.db = order.db;
+        this.calculatePrice(this.db);
+        order.calculatePrice(this.db);
+        order.transaction.calculateTotals(this.db);
     }
 
     static async AddToDatabase(db, orderID, tray) {
         // Output to database
         const insertTrayQuery = `
-            INSERT INTO trays (orderid, menuid, type)
-            VALUES ($1, $2, $3)
+            INSERT INTO trays (orderid, menuid, type, size)
+            VALUES ($1, $2, $3, $4)
         `;
         // Determine menuid: prefer tray.menu.menuid, fall back to a lookup by name if available
         let menuid = tray?.menu?.menuid ?? null;
@@ -188,32 +198,33 @@ class Tray {
         await db.query(insertTrayQuery, [
             orderID,
             menuid,
-            tray.type
+            tray.item.type,
+            tray.size
         ]);
     }
 
     async calculatePrice(db) {
-        if (this.price !== 0) {
-            return this.price;
-        }
         // Fetch menu item price from DB if not already present
         let price = 0;
-        if (this.type === 'a la carte' || this.type === 'drink') {
+        if (this.size !== null) {
+            // console.log('Calculating price for tray with size:', this.size);
             // Query the price from the sizemod table with the size
-            const sizeQuery = 'SELECT price FROM sizemod WHERE name = $1 AND size = $2';
+            const sizeQuery = 'SELECT pricemod FROM sizemods WHERE name = $1 AND size = $2 AND type = $3';
             
-            let type = this.type;
+            let type = this.menu.type;
             if (this.menu.pricemod !== 0) {
                 type = 'premium';
             }
 
-            const sizeRes = await db.query(sizeQuery, [type, this.size]);
+            const sizeRes = await db.query(sizeQuery, [this.item.itemType, this.size, type]);
             if (sizeRes && sizeRes.rows && sizeRes.rows.length > 0) {
                 price += sizeRes.rows[0].pricemod || 0;
             }
         } else {
             price += this.menu.pricemod;
         }
+        // Round price to two decimal places
+        price = Math.round((price + Number.EPSILON) * 100) / 100;
         this.price = price;
         return price;
     }

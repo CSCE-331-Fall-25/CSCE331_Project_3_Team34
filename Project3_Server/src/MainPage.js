@@ -27,7 +27,7 @@ class CashierMainPage {
         this.db = db;
 
         // Creates the current transaction
-        this.currTransaction = new Transaction(this.user);
+        this.currTransaction = new Transaction(this.db, this.user);
     }
 
 
@@ -38,7 +38,7 @@ class CashierMainPage {
         // Creates a new transaction if transaction is null
         if(this.currTransaction == null) {
             console.log("Transaction is null, creating new transaction...");
-            this.currTransaction = new Transaction(this.user);
+            this.currTransaction = new Transaction(this.db, this.user);
         }
 
         // Instantiates the item based on the given item id 
@@ -60,8 +60,8 @@ class CashierMainPage {
         }
 
         // Creates a new order with the item 
-    const currOrder = this.currTransaction.NewOrder(currItem);
-    await currOrder.AddTrays(this.db, entreeList, sideList);
+        const currOrder = this.currTransaction.NewOrder(currItem);
+        await currOrder.AddTrays(this.db, entreeList, sideList);
 
         // Get the last order (just added)
         if(this.debugging)console.log("new item name: " + currItem.name);
@@ -233,7 +233,7 @@ class CashierMainPage {
         //this.user = user; //TODO: if kiosk WILL NEED TO GO BACK TO LOGIN PAGE FOR NEW CUSTOMER
 
         this.currTransaction = null;
-        this.currTransaction = new Transaction(this.user);
+        this.currTransaction = new Transaction(this.db, this.user);
         this.totalPrice = 0;
         this.taxRate = 0.0825;
         this.discountRate = 0;

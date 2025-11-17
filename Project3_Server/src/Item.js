@@ -42,7 +42,7 @@ class Item {
         const numEntresL = row.numlargeentrees ?? 0;
         const invIDs = row.inventoryids ?? '';
 
-        //console.log(`Fetched Item from DB: ID=${itemId}, Name=${itemName}, Price=${itemPrice}`);
+        //console.log(`Fetched Item from DB: ID=${itemId}, Name=${itemName}, Price=${itemPrice}, Type=${type}`);
 
         return new Item(itemId, itemName, itemPrice, numSides, numEntrees, invIDs, type, numSideL, numEntresL);
     }
