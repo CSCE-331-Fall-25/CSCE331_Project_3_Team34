@@ -4,7 +4,7 @@ import dotenv from "dotenv";
 import { pool, setPool } from "./db.js";
 import CashierMainPage from "./MainPage.js";
 import User, {Employee, Customer} from "./User.js";
-import { Report } from "./Reports.js";
+import { Manager } from "./Manager.js";
 import Item, { Menu } from "./Item.js";
 
 // Kiosk router file is named `Kiosk.js` (capital K). Use the exact filename so imports work
@@ -20,7 +20,7 @@ app.use(express.json());
 // Example: create a test user and main page instance (pass the pool so it has DB access)
 const user = new User("testUser", "password123", "bob@gmail.com");
 const mainPage = new CashierMainPage(user, pool);
-const reports = new Report(pool);
+const manager = new Manager(pool, "testUser");
 app.use('/api/kiosk', kioskRouter);
 
 // API endpoint to fetch menus by type
@@ -150,43 +150,34 @@ app.get('/api/health', (req, res) => {
 });
 
 
-// Reports API endpoints
+// ------------------------------------- Manager API Endpoints Start --------------------------------------
 app.post('/api/x-report-data', async (req, res) => {
   try {
     console.log("request recieved");
-    res.json(await reports.XReportData());
+    res.json(await manager.XReportData());
   } catch (err) {
     console.error('Error getting data');
-    res.json({ 
-      hour: -1, 
-      sales: -1,
-    });
+    res.json({  hour: -1, sales: -1 });
   }
 });
 
 app.get('/api/x-report-data', async (req, res) => {
   try {
     console.log("request recieved");
-    res.json(await reports.XReportData());
+    res.json(await manager.XReportData());
   } catch (err) {
     console.error('Error getting data');
-    res.json({ 
-      hour: -1, 
-      sales: -1,
-    });
+    res.json({ hour: -1, sales: -1 });
   }
 });
 
 app.get('/api/z-report-data', async (req, res) => {
   try {
     console.log("request recieved");
-    res.json(await reports.ZReportData());
+    res.json(await manager.ZReportData());
   } catch (err) {
     console.error('Error getting data');
-    res.json({ 
-      hour: -1, 
-      sales: -1,
-    });
+    res.json({ hour: -1, sales: -1 });
   }
 });
 
@@ -194,15 +185,10 @@ app.post('/api/sales-report-data', async (req, res) => {
   try {
     console.log("request recieved");
     const { startTime, endTime } = req.body;
-    res.json(await reports.SalesReportData(startTime, endTime));
+    res.json(await manager.SalesReportData(startTime, endTime));
   } catch (err) {
     console.error('Error getting data' + err);
-    res.json({ 
-      menuid: -1, 
-      name: -1, 
-      sales: -1,
-      code: 4096
-    });
+    res.json({ menuid: -1, name: -1, sales: -1, code: 4096 });
   }
 });
 
@@ -210,31 +196,184 @@ app.post('/api/product-usage-report-data', async (req, res) => {
   try {
     console.log("request recieved");
     const { startTime, endTime } = req.body;
-    res.json(await reports.ProductUsageReportData(startTime, endTime));
+    res.json(await manager.ProductUsageReportData(startTime, endTime));
   } catch (err) {
     console.error('Error getting data' + err);
-    res.json({ 
-      inventoryid: -1, 
-      name: -1, 
-      sales: -1,
-      code: 4096
-    });
+    res.json({ inventoryid: -1, name: -1, sales: -1, code: 4096 });
   }
 });
 
 app.get('/api/restock-report-data', async (req, res) => {
   try {
     console.log("request recieved");
-    res.json(await reports.RestockReportData());
+    res.json(await manager.RestockReportData());
   } catch (err) {
     console.error('Invalid input data');
-    res.json({ 
-      itemid: -1, 
-      name: -1, 
-      quantity: -1
-    });
+    res.json({ itemid: -1, name: -1, quantity: -1 });
   }
 });
+
+app.get('/api/employee-data', async (req, res) => {
+  try {
+    console.log("request recieved");
+    res.json(await manager.EmployeeData());
+  } catch (err) {
+    console.error('Invalid input data');
+    res.json({ error: -2 });
+  }
+});
+
+app.post('/api/add-employee', async (req, res) => {
+  try {
+    console.log("request recieved");
+    const { employeeId, employeeNewName, employeeRole, employeeWage, employeeIsManager, employeeUsername, employeeEmail, employeePassword } = req.body;
+    res.json(await manager.AddEmployee(employeeId, employeeNewName, employeeRole, employeeWage, employeeIsManager, employeeUsername, employeeEmail, employeePassword));
+  } catch (err) {
+    console.error('Error getting data' + err);
+    res.json({ error: -2 });
+  }
+});
+
+app.post('/api/remove-employee', async (req, res) => {
+  try {
+    console.log("request recieved");
+    const { employeeId } = req.body;
+    res.json(await manager.RemoveEmployee(employeeId));
+  } catch (err) {
+    console.error('Error getting data' + err);
+    res.json({ error: -2 });
+  }
+});
+
+app.post('/api/update-employee', async (req, res) => {
+  try {
+    console.log("request recieved");
+    const { employeeId, employeeNewName, employeeRole, employeeWage, employeeIsManager, employeeUsername, employeeEmail, employeePassword } = req.body;
+    res.json(await manager.UpdateEmployee(employeeId, employeeNewName, employeeRole, employeeWage, employeeIsManager, employeeUsername, employeeEmail, employeePassword));
+  } catch (err) {
+    console.error('Error getting data' + err);
+    res.json({ error: -2 });
+  }
+});
+
+app.get('/api/menu-data', async (req, res) => {
+  try {
+    console.log("request recieved");
+    res.json(await manager.MenuData());
+  } catch (err) {
+    console.error('Invalid input data');
+    res.json({ error: -2 });
+  }
+});
+
+app.post('/api/add-menu', async (req, res) => {
+  try {
+    console.log("request recieved");
+    const { menuId, menuName, menuType, menuPriceMod, menuInventoryIds } = req.body;
+    res.json(await manager.AddMenu(menuId, menuName, menuType, menuPriceMod, menuInventoryIds));
+  } catch (err) {
+    console.error('Error getting data' + err);
+    res.json({ error: -2 });
+  }
+});
+
+app.post('/api/remove-menu', async (req, res) => {
+  try {
+    console.log("request recieved");
+    const { menuId } = req.body;
+    res.json(await manager.RemoveMenu(menuId));
+  } catch (err) {
+    console.error('Error getting data' + err);
+    res.json({ error: -2 });
+  }
+});
+
+app.post('/api/update-menu', async (req, res) => {
+  try {
+    console.log("request recieved");
+    const { menuId, menuName, menuType, menuPriceMod, menuInventoryIds } = req.body;
+    res.json(await manager.UpdateMenu(menuId, menuName, menuType, menuPriceMod, menuInventoryIds));
+  } catch (err) {
+    console.error('Error getting data' + err);
+    res.json({ error: -2 });
+  }
+});
+
+
+app.get('/api/inventory-data', async (req, res) => {
+  try {
+    console.log("request recieved");
+    res.json(await manager.InventoryData());
+  } catch (err) {
+    console.error('Invalid input data');
+    res.json({ error: -2 });
+  }
+});
+
+app.post('/api/add-inventory', async (req, res) => {
+  try {
+    console.log("request recieved");
+    const { inventoryId, inventoryItems, inventoryQuantity, inventoryMaxStock, inventoryMinStock } = req.body;
+    res.json(await manager.AddInventory(inventoryId, inventoryItems, inventoryQuantity, inventoryMaxStock, inventoryMinStock));
+  } catch (err) {
+    console.error('Error getting data' + err);
+    res.json({ error: -2 });
+  }
+});
+
+app.post('/api/remove-inventory', async (req, res) => {
+  try {
+    console.log("request recieved");
+    const { inventoryId } = req.body;
+    res.json(await manager.RemoveInventory(inventoryId));
+  } catch (err) {
+    console.error('Error getting data' + err);
+    res.json({ error: -2 });
+  }
+});
+
+app.post('/api/update-inventory', async (req, res) => {
+  try {
+    console.log("request recieved");
+    const { inventoryId, inventoryItems, inventoryQuantity, inventoryMaxStock, inventoryMinStock } = req.body;
+    res.json(await manager.UpdateInventory(inventoryId, inventoryItems, inventoryQuantity, inventoryMaxStock, inventoryMinStock));
+  } catch (err) {
+    console.error('Error getting data' + err);
+    res.json({ error: -2 });
+  }
+});
+
+app.get('/api/get-user', async (req, res) => {
+  try {
+    console.log("request recieved");
+    res.json(await manager.GetUser());
+  } catch (err) {
+    console.error('Invalid input data' + err);
+    res.json({ error: -2 });
+  }
+});
+
+app.get('/api/get-sales-data', async (req, res) => {
+  try {
+    console.log("request recieved");
+    res.json(await manager.GetSalesData());
+  } catch (err) {
+    console.error('Invalid input data' + err);
+    res.json({ error: -2 });
+  }
+});
+
+// app.post('/api/update-quantity', async (req, res) => {
+//   try {
+//     console.log("request recieved");
+//     const { inventoryId, inventoryQuantity } = req.body;
+//     res.json(await manager.UpdateQuantity(inventoryId, inventoryQuantity));
+//   } catch (err) {
+//     console.error('Error getting data' + err);
+//     res.json({ error: -2 });
+//   }
+// });
+// ------------------------------------- Manager API Endpoints End ------------------------------------
 
 
 import path from "path";
