@@ -81,15 +81,12 @@ class CashierMainPage {
     }
 
 
-    async AddDiscount(discountCode, override = false) {
-        console.log("Adding discount with code: " + discountCode);
 
-        // Allow the employee to set a manual discount override
-        if(override && this.user.employee) {
-            this.discountRate = 0.20; //TODO: employee will set the discount to whatever manually
-            console.log("Employee override");
-            return { acceptedDiscount: true };
-        }
+    async AddDiscount(discountCode, priceOff = 0, discountPer = 0) {
+        //SET TO ONLY ACCEPT IF GREATER THAN CURRENT DISCOUNT
+        //SET TO ONLY ACCEPT 1 type at a time
+        console.log("Adding discount with code: " + discountCode);
+        // Validate discount code from database
         if(this.currTransaction == null) {
             if(this.debugging) {
                 console.log("Transaction is null, cant apply discount yet");
@@ -108,6 +105,16 @@ class CashierMainPage {
         if (!this.db) {
             console.warn('No DB connection available, cannot validate discount code');
             return { acceptedDiscount: false };
+        }
+        if(priceOff > 0 && priceOff > this.priceOff) {
+            this.priceOff = priceOff;
+            console.log("Applied manager price off: " + priceOff);
+            return { acceptedDiscount: 1, discountAmount: this.GetCostInformation().discountAmount  };
+        }
+        if(discountPer > 0) {
+            this.discountRate = discountPer / 100;
+            console.log("Applied manager discount percent: " + discountPer);
+            return { acceptedDiscount: 1, discountAmount: this.GetCostInformation().discountAmount  };
         }
 
         try {
@@ -172,13 +179,19 @@ class CashierMainPage {
             const price = typeof order.item?.price === 'number' ? order.item.price : Number(order.item?.price) || 0;
             console.log(`${index + 1}. Item ID: ${itemId}, Price: $${price.toFixed(2)}`);
         });
-        this.GetCostInformation();
-        let { subtotal, discountAmount, tax, total } = this.GetCostInformation();
-        console.log(`Subtotal: $${subtotal.toFixed(2)}`);
-        console.log(`Discount: -$${discountAmount.toFixed(2)}`);
-        console.log(`Price Off: -$${this.priceOff.toFixed(2)}`);
-        console.log(`Tax: $${tax.toFixed(2)}`);
-        console.log(`Total: $${Math.ceil(total * 100) / 100}`);
+    // Use GetCostInformation and coerce values to numbers to avoid runtime errors
+    const costInfo = this.GetCostInformation();
+    let subtotal = Number(costInfo.subtotal) || 0;
+    let discountAmount = Number(costInfo.discountAmount) || 0;
+    let priceOff = Number(costInfo.priceOff) || 0;
+    let tax = Number(costInfo.tax) || 0;
+    let total = Number(costInfo.total) || 0;
+
+    console.log(`Subtotal: $${subtotal.toFixed(2)}`);
+    console.log(`Discount: -$${discountAmount.toFixed(2)}`);
+    console.log(`Price Off: -$${priceOff.toFixed(2)}`);
+    console.log(`Tax: $${tax.toFixed(2)}`);
+    console.log(`Total: $${Math.ceil(total * 100) / 100}`);
         console.log("-------------------");
         this.ClearTransaction();
     }
@@ -255,11 +268,16 @@ class CashierMainPage {
             // Skip any orders with missing or invalid items (treat missing price as 0)
             subtotal += price;
         });
-        let discountAmount = subtotal * (this.discountRate || 0);
-        let tax = subtotal * (this.taxRate || 0.0825);
-        let total = subtotal - discountAmount + tax - (this.priceOff || 0);
-        let priceOff = this.priceOff || 0;
-        return { subtotal, discountAmount, tax, total, priceOff };
+    // Compute percent-based discount and fixed price-off separately
+    let discountAmount = subtotal * (this.discountRate || 0);
+    let priceOff = Number(this.priceOff) || 0;
+    discountAmount += priceOff;
+    // Tax is applied after discounts (both percent and fixed)
+    let taxable = subtotal - discountAmount;
+    let tax = taxable * (this.taxRate || 0.0825);
+    let total = subtotal - discountAmount + tax;
+
+    return { subtotal, discountAmount, tax, total };
     }
     GetCurrentState() {
         if (!this.currTransaction || !this.currTransaction.orders) {
@@ -292,7 +310,9 @@ class CashierMainPage {
             })),
             discountAmount,
             priceOff,
-            totalPrice: subtotal
+            tax,
+            totalPrice: total,
+            currCost:subtotal
         };
     }
     CustomizeOrder(index) {

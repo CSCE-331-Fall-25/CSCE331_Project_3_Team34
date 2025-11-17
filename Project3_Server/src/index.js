@@ -103,6 +103,14 @@ app.use(express.json());
 app.get('/api/get-user', async (req, res) => {
   const currUser = req.session?.user ?? null;
   if(!currUser) return res.status(401).json({ success: false, error: 'Not authenticated' });
+  if(currUser.isEmployee){
+    // console.log("Current User is Employee:", currUser);
+    //fetch full user data from DB
+    const userData = await Employee.FetchByUsername(pool, currUser.username, null, null);
+    currUser.isManager = userData ? userData.isManager : false;
+    return res.json({ success: true, user: currUser, isManager: currUser.isManager  });
+  }
+  // console.log("Current User not Employee:", currUser);
   res.json({ success: true, user: currUser });
 
 });
@@ -172,13 +180,15 @@ app.post('/api/buy-item', async (req, res) => {
 // API endpoint to add a discount
 app.post('/api/add-discount', async (req, res) => {
   const mainPage = getMainPageForSession(req);
-  const { discountCode } = req.body;
+  
   let result = { acceptedDiscount: false };
   try {
-    if (discountCode) {
-      result = await mainPage.AddDiscount(discountCode);
-      console.log('Discount result:', result);
+    if(!(req.body.discountCode || req.body.priceOff || req.body.discountPer)) {
+      error('No discount data provided');
     }
+    result = await mainPage.AddDiscount(req.body.discountCode, req.body.priceOff, req.body.discountPer);
+    console.log('Discount result:', result);
+    
     res.json({
       success: result.acceptedDiscount,
       acceptedDiscount: result.acceptedDiscount,
