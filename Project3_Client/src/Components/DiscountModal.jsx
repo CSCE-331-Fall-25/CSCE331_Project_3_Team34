@@ -18,7 +18,7 @@ export default function DiscountModal({ show, onClose, onApplied, userIsManager 
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: 'include', // Include cookies with this request
-        body: JSON.stringify({ discountCode }),
+        body: JSON.stringify({ discountCode, priceOff: managerPriceOff, discountPer: managerDiscountOff }),
       });
       const data = await res.json();
       if (data && data.acceptedDiscount === 1) {
@@ -80,24 +80,6 @@ export default function DiscountModal({ show, onClose, onApplied, userIsManager 
                 placeholder="e.g. 10"
                 disabled={loading}
               />
-              <button
-                className="modal-submit"
-                onClick={() => {
-                  // validate and apply manager adjustments locally or via onApplied callback
-                  const priceOff = parseFloat(managerPriceOff) || 0;
-                  const discountPer = parseFloat(managerDiscountOff) || 0;
-                  if (priceOff === 0 && discountPer === 0) {
-                    setErrorMessage('Enter a non-zero price off or discount percent');
-                    return;
-                  }
-                  if (typeof onApplied === 'function') {
-                    onApplied({ discountAmount: 0, priceOff, discountPer });
-                  }
-                  if (typeof onClose === 'function') onClose();
-                }}
-              >
-                Apply Manual
-              </button>
             </div>
           </div>
         )}

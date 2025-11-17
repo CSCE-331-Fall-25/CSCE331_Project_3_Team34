@@ -41,7 +41,8 @@ export default function Cashier() {
 
   //updates for orderTable
   const [currCost, setCurrCost] = useState(0);
-  const TAXRATE = 0.0825;
+  const [tax, setTax] = useState(0);
+  const [priceTotal, setPriceTotal] = useState(0);
   const [transactionItems, setTransactionItems] = useState([]);
   const [itemType, setItemType] = useState("NULL");
   // modal-specific state moved to CreateMealModal
@@ -162,7 +163,9 @@ export default function Cashier() {
           setTransactionItems([]);
         }
         //Calls functions to update their states
-        setCurrCost(data.totalPrice || 0);
+        setCurrCost(data.currCost || 0);
+        setPriceTotal(data.totalPrice || 0);
+        setTax(data.tax || 0);
         setDiscountAmount(data.discountAmount || 0);
         setDiscountPriceOff(data.priceOff || 0);
       });
@@ -221,7 +224,8 @@ export default function Cashier() {
           setSelectedRow={setSelectedRow}
           lastRowRef={lastRowRef}
           currCost={currCost}
-          TAXRATE={TAXRATE}
+          tax={tax}
+          priceTotal={priceTotal}
           discountAmount={discountAmount}
           discountPriceOff={discountPriceOff}
           onPurchase={UpdatePage}

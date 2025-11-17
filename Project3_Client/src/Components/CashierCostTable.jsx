@@ -7,10 +7,11 @@ export default function CashierCostTable({
   setSelectedRow,
   lastRowRef,
   currCost = 0,
-  TAXRATE = 0.0825,
+  tax = 0,
   discountAmount = 0,
   discountPriceOff = 0,
   onPurchase,
+  priceTotal,
 }) {
 
   // Render transaction items as a flat list: each entry is either a main or not
@@ -64,9 +65,9 @@ export default function CashierCostTable({
       <div className="order-stats">
         <p>Total Cost: ${(currCost).toFixed(2)}</p>
         <p>Discount Amount: ${typeof discountAmount === "number" ? discountAmount.toFixed(2) : "0.00"}</p>
-        <p>Tax: ${(currCost * TAXRATE).toFixed(2)}</p>
+        <p>Tax: ${(tax).toFixed(2)}</p>
         <p>
-          Price Total: ${((currCost - (typeof discountAmount === "number" ? discountAmount : 0)) + TAXRATE * currCost).toFixed(2)}
+          Price Total: ${(priceTotal).toFixed(2)}
         </p>
       </div>
 
