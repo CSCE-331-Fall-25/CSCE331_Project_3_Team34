@@ -16,6 +16,7 @@ import RemoveItemButton from "../Components/RemoveItemButton.jsx";
 import PurchaseButton from "../Components/PurchaseButton.jsx";
 import BuyItemButton from "../Components/BuyItemButton.jsx";
 import CreateMealModal from "../Components/CreateMealModal.jsx";
+import SizeModal from "../Components/SizeModal.jsx";
 export default function Cashier() {
   const navigate = useNavigate();
   //newest Row reference for auto scrolling
@@ -33,17 +34,19 @@ export default function Cashier() {
   const [discountAmount, setDiscountAmount] = useState(0);
   const [discountPriceOff, setDiscountPriceOff] = useState(0);
 
-  // create-meal modal shows its own UI; parent just opens/closes it
+  //sizeModal
+  const [showSizeModal, setShowSizeModal] = useState(false);
+  const [selectedSize, setSelectedSize] = useState(null);
+  const sizeOptions = ["Small", "Medium", "Large"]; //UPDATE BASED ON WHAT SIZES WE HAVE
 
   //updates for orderTable
   const [currCost, setCurrCost] = useState(0);
-  const TAXRATE = 0.0825;
+  const [tax, setTax] = useState(0);
+  const [priceTotal, setPriceTotal] = useState(0);
   const [transactionItems, setTransactionItems] = useState([]);
   const [itemType, setItemType] = useState("NULL");
   // modal-specific state moved to CreateMealModal
 
-  // TODO: Use for loop to populate this list from the DB
-  // (removed erroneous `items.push` calls — `items` was not defined and caused runtime errors)
 
   const handleBuildItem = (e) => {
     const id = e.target.id;
@@ -55,6 +58,25 @@ export default function Cashier() {
   const openDrinkModal = () => { setItemType("Drink"); setShowCreateMealModal(true); };
   const openAlacarteModal = () => { setItemType("A La Carte"); setShowCreateMealModal(true); };
   
+  //login features
+  const [User, setUser] = useState(null);
+  const [isManager, setisManager] = useState(false);
+  function fetchUserData() {
+    // console.log("Fetching user data...");
+    fetch('/api/get-user', {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include'
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          setUser(data.user || null);
+          setisManager(data.isManager || false);
+          // console.log("Fetched user data:", data.user, "Is Manager:", data.isManager);
+        }
+      });
+    }
 
   // Note: buy/clear/remove/purchase actions are implemented in their own components
 
@@ -86,6 +108,7 @@ export default function Cashier() {
         if (data.success) {
           console.log("Order customized");
           setSelectedRow(null);
+          fetchUserData();
           UpdatePage();
         }
       });
@@ -95,6 +118,7 @@ export default function Cashier() {
 
   //Called on page refresh, should update frontend based on what is on the server
   useEffect(() => {
+    
     console.log("Fetching current state from server...");
     // Guard against double runs in development caused by React.StrictMode (React 18 double-mount)
     // and by HMR remounts. Use a window-scoped flag so the fetch only happens once per page load.
@@ -139,10 +163,13 @@ export default function Cashier() {
           setTransactionItems([]);
         }
         //Calls functions to update their states
-        setCurrCost(data.totalPrice || 0);
+        setCurrCost(data.currCost || 0);
+        setPriceTotal(data.totalPrice || 0);
+        setTax(data.tax || 0);
         setDiscountAmount(data.discountAmount || 0);
         setDiscountPriceOff(data.priceOff || 0);
       });
+      fetchUserData();
   }
 
 
@@ -150,6 +177,19 @@ export default function Cashier() {
 
   return (
     <div className="main-page bkgColor cashier-container">
+      {/* //to use the size modal, set sizes based on options, then collect setSelectedSize for output */}
+      {showSizeModal && (
+        <SizeModal
+          // pass a function so we don't call the setter during render
+          onClose={() => setShowSizeModal(false)}
+          onSelectSize={(size) => {
+            setSelectedSize(size);
+            setShowSizeModal(false);
+          }}
+          sizes={sizeOptions}
+        />
+      )}
+
       <CreateMealModal show={showCreateMeal} onClose={handleReset} initialType={itemType} onBought={() => { UpdatePage(); }} />
       <DiscountModal
         show={showDiscountModal}
@@ -161,6 +201,7 @@ export default function Cashier() {
           setDiscountPriceOff(off || 0);
           UpdatePage();
         }}
+        userIsManager={isManager}
       />
       {showSignOutModal && (
         <SignOutButton onClose={() => setShowSignOutModal(false)} />
@@ -183,7 +224,8 @@ export default function Cashier() {
           setSelectedRow={setSelectedRow}
           lastRowRef={lastRowRef}
           currCost={currCost}
-          TAXRATE={TAXRATE}
+          tax={tax}
+          priceTotal={priceTotal}
           discountAmount={discountAmount}
           discountPriceOff={discountPriceOff}
           onPurchase={UpdatePage}
@@ -229,6 +271,9 @@ export default function Cashier() {
           </button>
         ))}
       </div>
+      <button onClick={() => setShowSizeModal(true)}>
+        Open Size Modal
+      </button>
     </div>
   );
 }

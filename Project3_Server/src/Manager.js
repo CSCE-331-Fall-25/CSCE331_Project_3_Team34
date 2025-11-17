@@ -10,7 +10,7 @@ class Manager {
 
     async GetSalesData() {
         const now = new Date();
-        const q = 'SELECT time FROM transactions WHERE time BETWEEN \'2020-01-01 10:00:00\' AND \'2021-01-01 10:00:00\'';
+        const q = 'SELECT time FROM transactions WHERE time BETWEEN \'2020-01-01 10:00:00\' AND \'2021-01-01 10:00:00\' ORDER BY time ASC';
         // const q = 'SELECT time FROM transactions WHERE time BETWEEN \'' + now.getFullYear + '-00-00 00:00:00\' AND \'' + now.getFullYear + '-00-00 00:00:00\'';
         const data = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
         try {
@@ -23,16 +23,17 @@ class Manager {
             let month = 'Jan';
             let rows = result.rows;
             let counter = 0;
-            while (i < 12) {
-                // console.log(rows[counter].time.toString());
-                while (month == (rows[counter].time).toString().substring(4, 7)) {
+            while (counter < rows.length - 1 && i < 12) {
+                while (counter < rows.length - 1 && month == (rows[counter].time).toString().substring(4, 7)) {
                     data[i] = data[i] + 1;
                     counter++;
                 }
-                i++
-                month = (rows[counter].time).toString().substring(4, 7);
-                data[i] = data[i] + 1;
-                counter++;
+                if (counter != rows.length) {
+                    i++
+                    month = (rows[counter].time).toString().substring(4, 7);
+                    data[i] = data[i] + 1;
+                    counter++;
+                }
             }
         } catch (err) {
             console.log("error" + err);
@@ -692,11 +693,11 @@ class Manager {
                 username = result.rows[0].username;
             }
 
-            if (email.length == 0 || email == '') {
-                return { error: 4 };
+            if (!email) {
+                email = result.rows[0].email;
             }
             let hasAm = false;
-            hasDecimal = false;
+            let hasDecimal = false;
             for (let i = 0; i < email.length; i++) {
                 if (hasAm && email.substring(i, i + 1) == '@') {
                     return { error: 5 };
