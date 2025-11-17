@@ -348,8 +348,9 @@ export default function Kiosk() {
           {orderItems.length === 0 && <div className="kiosk-empty">No items yet</div>}
           {orderItems.map((it, idx) => {
             const { value, hide } = resolveDisplayPrice(it);
+            const rowClass = `kiosk-order-row${it.isParent ? ' kiosk-order-row-parent' : ' kiosk-order-row-child'}`;
             return (
-              <div className="kiosk-order-row" key={idx}>
+              <div className={rowClass} key={idx}>
                 <div className="kiosk-order-name">{it.name}</div>
                 <div className="kiosk-order-actions">
                   <div className="kiosk-order-price">{hide ? '' : `$${value.toFixed(2)}`}</div>

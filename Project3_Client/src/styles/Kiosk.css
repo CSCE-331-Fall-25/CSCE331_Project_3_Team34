@@ -135,6 +135,17 @@
   border-radius: 6px;
 }
 
+.kiosk-order-row-parent{
+  background: #fff;
+}
+
+.kiosk-order-row-child{
+  margin-left: 16px;
+  border-left: 3px solid #f4c27a;
+  padding-left: 12px;
+  background: #fff9f0;
+}
+
 .kiosk-order-actions{
   display: flex;
   gap: 8px;
