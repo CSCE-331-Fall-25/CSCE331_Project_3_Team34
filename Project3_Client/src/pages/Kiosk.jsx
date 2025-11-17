@@ -189,6 +189,10 @@ export default function Kiosk() {
 
   const total = orderItems.reduce((s, it) => s + computeLinePrice(it), 0);
 
+  function handlePurchase() {
+    clearOrder();
+  }
+
   return (
     <div className="kiosk-root">
       <div className="kiosk-left">
@@ -262,7 +266,7 @@ export default function Kiosk() {
           <div>Total: ${total.toFixed(2)}</div>
           <div className="kiosk-order-controls">
             <button onClick={clearOrder} className="kiosk-clear-btn">Clear</button>
-            <button onClick={() => console.log('Proceed to checkout', orderItems)} className="kiosk-checkout-btn">Checkout</button>
+            <button onClick={() => {console.log('Proceed to checkout', orderItems); handlePurchase();}} className="kiosk-checkout-btn">Checkout</button>
           </div>
         </div>
       </div>
