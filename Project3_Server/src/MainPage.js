@@ -267,8 +267,9 @@ class CashierMainPage {
         this.currTransaction.orders.forEach(order => {
             // Avoid stringifying the whole order (it contains circular references).
             const itemId = order.item?.itemID ?? order.item?.name ?? 'unknown';
-            const price = typeof order.item?.price === 'number' ? order.item.price : Number(order.item?.price) || 0;
+            const price = order.price || 0;
             // Skip any orders with missing or invalid items (treat missing price as 0)
+            console.log("Adding order item ID: " + itemId + " with price: " + price);
             subtotal += price;
         });
     // Compute percent-based discount and fixed price-off separately
@@ -296,6 +297,13 @@ class CashierMainPage {
         // For better client-side rendering, include both the tray name and a displayType for each tray.
         // displayType will be used on the receipt (e.g., 'A La Carte', 'Appetizer', 'Drink', 'Bottle')
         // while the client still groups trays by entree/side.
+
+        // FOr every order print cost
+        for (const order of this.currTransaction.orders) {
+            console.log("Order item: " + (order.item?.name || 'unknown') + " Cost: " + order.price);
+        }
+        console.log("Subtotal: " + subtotal + " DiscountAmount: " + discountAmount + " PriceOff: " + priceOff + " Tax: " + tax + " Total: " + total);
+
         return {
             orders: this.currTransaction.orders.map(order => ({
                 cost: order.price,
