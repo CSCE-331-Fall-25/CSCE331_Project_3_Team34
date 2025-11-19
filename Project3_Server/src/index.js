@@ -166,7 +166,7 @@ app.post('/api/buy-item', async (req, res) => {
     const mainPage = getMainPageForSession(req);
     let result;
     if (req.body && req.body.itemID) {
-      result = await mainPage.BuyItemButton(req.body.itemID, req.body.entreeList, req.body.sideList);
+      result = await mainPage.BuyItemButton(req.body.itemID, req.body.entreeList, req.body.sideList, req.body.size);
     } else {
       result = await mainPage.BuyItemButton();
     }

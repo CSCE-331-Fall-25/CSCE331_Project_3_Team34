@@ -502,6 +502,16 @@
   width: 100%;
 }
 
+.small-button {
+	height: 32px;
+	padding: 6px 8px;
+	border-radius: 6px;
+	background: #fff;
+	border: 1px solid #ccc;
+	cursor: pointer;
+	font-weight: 600;
+}
+
 /* Make buttons wrap cleanly */
 .menu-row {
   display: flex;

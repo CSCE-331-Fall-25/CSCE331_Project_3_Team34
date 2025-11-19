@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import "../styles/Cashier/DiscountModal.css";
 
-export default function CreateMealModal({ show, onClose, initialType, onBought }) {
+export default function CreateMealModal({ show, onClose, initialType, onBought, requestSizeSelection, selectedSize }) {
   const [extraMenus, setExtraMenus] = useState([]);
 
   const [showMealGUI, setShowMealGUI] = useState(false);
@@ -21,6 +21,8 @@ export default function CreateMealModal({ show, onClose, initialType, onBought }
   const [appList, setAppList] = useState([]);
   const [drinkList, setDrinkList] = useState([]);
   const [alcList, setAlcList] = useState([]);
+  const [drinkSizes, setDrinkSizes] = useState([]);
+  const [alcSizes, setAlcSizes] = useState([]);
 
   const [indexEntree, setIndexEntree] = useState(0);
   const [indexSide, setIndexSide] = useState(0);
@@ -124,6 +126,9 @@ export default function CreateMealModal({ show, onClose, initialType, onBought }
 
     setNumEntree(newNumEntree); setNumSide(newNumSide); setNumApp(newNumApp); setNumDrink(newNumDrink); setNumALC(newNumALC);
     setEntreeList(Array(newNumEntree).fill(null)); setSideList(Array(newNumSide).fill(null)); setAppList(Array(newNumApp).fill(null)); setDrinkList(Array(newNumDrink).fill(null)); setAlcList(Array(newNumALC).fill(null));
+    // default sizes: prefer the selectedSize passed from Cashier, otherwise default to 'Small'
+    const defaultSize = selectedSize || 'Small';
+    setDrinkSizes(Array(newNumDrink).fill(defaultSize)); setAlcSizes(Array(newNumALC).fill(defaultSize));
   }, [show, initialType]);
 
   const selectAttribute = (item) => {
@@ -158,6 +163,8 @@ export default function CreateMealModal({ show, onClose, initialType, onBought }
       setIndexDrink(prev => {
         if (prev >= numDrink) return prev;
         setDrinkList(prevList => { const updated = [...prevList]; updated[prev] = item; return updated; });
+        // set a default size for this drink slot (use existing value if present)
+        setDrinkSizes(prev => { const u = [...prev]; if (!u[prev]) u[prev] = selectedSize || 'Small'; return u; });
         return prev + 1;
       });
     }
@@ -175,6 +182,14 @@ export default function CreateMealModal({ show, onClose, initialType, onBought }
     } else if (type === "A La Carte") {
       const updated = [...alcList]; updated[i] = null; const compact = updated.filter(x => x !== null); while (compact.length < numALC) compact.push(null); setAlcList(compact); setIndexALC(Math.max(indexALC - 1, 0));
     }
+  };
+
+  // set size handlers for drink and a la carte entries
+  const setDrinkSizeAt = (i, size) => {
+    setDrinkSizes(prev => { const u = [...prev]; u[i] = size; return u; });
+  };
+  const setAlcSizeAt = (i, size) => {
+    setAlcSizes(prev => { const u = [...prev]; u[i] = size; return u; });
   };
 
   const handleFinishSelection = () => {
@@ -198,17 +213,27 @@ export default function CreateMealModal({ show, onClose, initialType, onBought }
 
     const payloadEntreeList = [];
     (Array.isArray(entreeList) ? entreeList : []).forEach(it => { const n = normalize(it); if (n) payloadEntreeList.push(n); });
-    if (initialType === "A La Carte") (Array.isArray(alcList) ? alcList : []).forEach(it => { const n = normalize(it); if (n) payloadEntreeList.push(n); });
-    if (initialType === "Appetizer") (Array.isArray(appList) ? appList : []).forEach(it => { const n = normalize(it); if (n) payloadEntreeList.push(n); });
-    if (initialType === "Drink" || initialType === "Bottle") (Array.isArray(drinkList) ? drinkList : []).forEach(it => { const n = normalize(it); if (n) payloadEntreeList.push(n); });
+  if (initialType === "A La Carte") (Array.isArray(alcList) ? alcList : []).forEach((it, idx) => { const n = normalize(it); if (n) payloadEntreeList.push(alcSizes[idx] ? { name: n, size: alcSizes[idx] } : { name: n }); });
+  if (initialType === "Appetizer") (Array.isArray(appList) ? appList : []).forEach(it => { const n = normalize(it); if (n) payloadEntreeList.push(n); });
+  if (initialType === "Drink" || initialType === "Bottle") (Array.isArray(drinkList) ? drinkList : []).forEach((it, idx) => { const n = normalize(it); if (n) payloadEntreeList.push(drinkSizes[idx] ? { name: n, size: drinkSizes[idx] } : { name: n }); });
 
     const payloadSideList = [];
     (Array.isArray(sideList) ? sideList : []).forEach(it => { const n = normalize(it); if (n) payloadSideList.push(n); });
 
+    // If this was a single-item flow (A La Carte / Drink / Bottle) and the first entree includes a size,
+    // also provide a top-level `size` field for backwards compatibility with server APIs that expect it.
+    let topLevelSize = null;
+    try {
+      if (["A La Carte", "Drink"].includes(initialType) && Array.isArray(payloadEntreeList) && payloadEntreeList.length === 1) {
+        const first = payloadEntreeList[0];
+        if (first && typeof first === 'object' && first.size) topLevelSize = first.size;
+      }
+    } catch (e) { /* ignore */ }
+
     fetch("/api/buy-item", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ itemID: initialType, entreeList: payloadEntreeList, sideList: payloadSideList })
+      body: JSON.stringify({ itemID: initialType, entreeList: payloadEntreeList, sideList: payloadSideList, size: topLevelSize })
     })
       .then(res => res.json())
       .then(data => {
@@ -292,7 +317,14 @@ export default function CreateMealModal({ show, onClose, initialType, onBought }
               <div className="selected-group">
                 <h3 className="section-title">Selected Drink</h3>
                 {Array.from({ length: numDrink }).map((_, i) => (
-                  <button key={i} className="selected-button" onClick={() => removeIndex(i, "Drink")}>{drinkList[i] ? drinkList[i].menuName : "NONE"}</button>
+                  <div key={i} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    <button className="selected-button" onClick={() => removeIndex(i, "Drink")}>{drinkList[i] ? `${drinkList[i].menuName}${drinkSizes[i] ? ` (${drinkSizes[i]})` : ''}` : "NONE"}</button>
+                    <button className="small-button" onClick={() => {
+                      if (typeof requestSizeSelection === 'function') {
+                        requestSizeSelection((size) => setDrinkSizeAt(i, size));
+                      }
+                    }}>Set Size</button>
+                  </div>
                 ))}
               </div>
             </div>
@@ -346,7 +378,14 @@ export default function CreateMealModal({ show, onClose, initialType, onBought }
               <div className="selected-group">
                 <h3 className="section-title">Selected Item</h3>
                 {Array.from({ length: numALC }).map((_, i) => (
-                  <button key={i} className="selected-button" onClick={() => removeIndex(i, "A La Carte")}>{alcList[i] ? alcList[i].menuName : "NONE"}</button>
+                  <div key={i} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    <button className="selected-button" onClick={() => removeIndex(i, "A La Carte")}>{alcList[i] ? `${alcList[i].menuName}${alcSizes[i] ? ` (${alcSizes[i]})` : ''}` : "NONE"}</button>
+                    <button className="small-button" onClick={() => {
+                      if (typeof requestSizeSelection === 'function') {
+                        requestSizeSelection((size) => setAlcSizeAt(i, size));
+                      }
+                    }}>Set Size</button>
+                  </div>
                 ))}
               </div>
             </div>

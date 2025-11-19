@@ -83,8 +83,8 @@ class Order {
         this.sides = [];
     }
 
-    NewTray(menu, type) {
-        const newTray = new Tray(this, menu, this.item, "small");
+    NewTray(menu, type, size) {
+        const newTray = new Tray(this, menu, this.item, size);
         // Initialize arrays if they don't exist
         this.entrees = this.entrees || [];
         this.sides = this.sides || [];
@@ -98,27 +98,27 @@ class Order {
         return newTray;
     }
 
-    async AddTrays(db, entreeList = [], sideList = []) {
+    async AddTrays(db, entreeList = [], sideList = [], size) {
         // Helper to get a name whether caller passed a string or { name }
         const getName = (x) => (typeof x === 'string' ? x : x?.name);
 
-        // Always add all provided entrees
+        // Always add all provided entrees, using per-entry size if present, otherwise fallback to provided size
         for (const entree of (entreeList || [])) {
             const name = getName(entree);
             if (!name) continue;
             let menu = await Menu.fetchByName(db, name);
             console.log('Fetched menu for entree:', menu);
             if (!menu) menu = { name };
-            this.NewTray(menu, 'entree');
+            this.NewTray(menu, 'entree', size);
         }
 
-        // Always add all provided sides
+        // Always add all provided sides, using per-entry size if present, otherwise fallback to provided size
         for (const side of (sideList || [])) {
             const name = getName(side);
             if (!name) continue;
             let menu = await Menu.fetchByName(db, name);
             if (!menu) menu = { name };
-            this.NewTray(menu, 'side');
+            this.NewTray(menu, 'side', size);
         }
 
         // If nothing was provided (e.g., non-meal items), do nothing here.

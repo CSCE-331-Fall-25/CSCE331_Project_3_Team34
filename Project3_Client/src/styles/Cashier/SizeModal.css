@@ -7,10 +7,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1050;
+  /* Ensure this overlay is above all other UI layers */
+  z-index: 99999;
 }
 
 .modal-window {
+  position: relative;
   background: #ffffff;
   padding: 1.5rem;
   border-radius: 12px;
@@ -21,6 +23,7 @@
   flex-direction: column;
   gap: 1rem;
   align-items: center;
+  z-index: 100000; /* make sure the modal window itself sits above the overlay backdrop */
 }
 
 .modal-title {

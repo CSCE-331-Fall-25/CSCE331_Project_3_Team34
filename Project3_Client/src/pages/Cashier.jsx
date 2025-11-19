@@ -37,6 +37,8 @@ export default function Cashier() {
   //sizeModal
   const [showSizeModal, setShowSizeModal] = useState(false);
   const [selectedSize, setSelectedSize] = useState(null);
+  // pending callback for child components to receive the chosen size
+  const [pendingSizeCallback, setPendingSizeCallback] = useState(null);
   const sizeOptions = ["Small", "Medium", "Large"]; //UPDATE BASED ON WHAT SIZES WE HAVE
 
   //updates for orderTable
@@ -181,16 +183,36 @@ export default function Cashier() {
       {showSizeModal && (
         <SizeModal
           // pass a function so we don't call the setter during render
-          onClose={() => setShowSizeModal(false)}
+          onClose={() => {
+            setShowSizeModal(false);
+            setPendingSizeCallback(null);
+          }}
           onSelectSize={(size) => {
             setSelectedSize(size);
             setShowSizeModal(false);
+            if (typeof pendingSizeCallback === 'function') {
+              try { pendingSizeCallback(size); } catch (e) { console.error(e); }
+              setPendingSizeCallback(null);
+            }
           }}
           sizes={sizeOptions}
         />
       )}
 
-      <CreateMealModal show={showCreateMeal} onClose={handleReset} initialType={itemType} onBought={() => { UpdatePage(); }} />
+      <CreateMealModal
+        show={showCreateMeal}
+        onClose={handleReset}
+        initialType={itemType}
+        onBought={() => { UpdatePage(); }}
+        // allow the modal to request a size selection; the modal provides a callback to receive the selected size
+        requestSizeSelection={(receiveSizeCallback) => {
+          if (typeof receiveSizeCallback === 'function') {
+            setPendingSizeCallback(() => receiveSizeCallback);
+            setShowSizeModal(true);
+          }
+        }}
+        selectedSize={selectedSize}
+      />
       <DiscountModal
         show={showDiscountModal}
         onClose={() => setShowDiscountModal(false)}

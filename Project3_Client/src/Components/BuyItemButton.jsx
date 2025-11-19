@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-export default function BuyItemButton({ itemId, children, onBought }) {
+export default function BuyItemButton({ itemId, children, onBought, size = null }) {
   const [loading, setLoading] = useState(false);
 
   const handleBuy = async () => {
@@ -11,7 +11,7 @@ export default function BuyItemButton({ itemId, children, onBought }) {
         method: "POST",
         credentials: 'include', // Include cookies with this request
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ itemID: itemId }),
+        body: JSON.stringify({ itemID: itemId , size: size }),
       });
       const data = await res.json();
       if (data && data.success) {

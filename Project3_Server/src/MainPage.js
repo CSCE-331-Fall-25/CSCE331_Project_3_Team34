@@ -31,13 +31,16 @@ class CashierMainPage {
     }
 
 
-    async BuyItemButton(givenItemID, entreeList = [], sideList = []) {
+    async BuyItemButton(givenItemID, entreeList = [], sideList = [], size) {
         // Stores the current itemID
         this.itemID = givenItemID;
+        
+        // Make size lowercase for consistency
+        size = size ? size.toLowerCase() : null;
+        console.log("received size: " + size);
 
         // Creates a new transaction if transaction is null
         if(this.currTransaction == null) {
-            console.log("Transaction is null, creating new transaction...");
             this.currTransaction = new Transaction(this.db, this.user);
         }
 
@@ -61,7 +64,7 @@ class CashierMainPage {
 
         // Creates a new order with the item 
         const currOrder = this.currTransaction.NewOrder(currItem);
-        await currOrder.AddTrays(this.db, entreeList, sideList);
+        await currOrder.AddTrays(this.db, entreeList, sideList, size);
 
         // Get the last order (just added)
         if(this.debugging)console.log("new item name: " + currItem.name);
