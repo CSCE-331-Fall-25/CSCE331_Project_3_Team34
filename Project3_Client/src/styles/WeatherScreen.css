@@ -1,11 +1,15 @@
 /* WeatherScreen layout and large centered icon styles */
-.weatherScreen {
+/* .weatherScreen {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
   gap: 1rem;
   padding: 1.5rem;
+} */
+
+.body {
+  background-color: white;
 }
 
 .weatherIcon-wrap {
@@ -40,4 +44,59 @@
   .weatherScreen .temperature {
     color: #213547;
   }
+}
+.screen {
+  display: grid;
+  grid-template-columns: 0.5fr 1.2fr 0.5fr;
+  height: 100vh;
+  width: 100vw;
+  background-color: white;
+  overflow: hidden;
+}
+
+.side {
+  display: flex;
+  flex-direction: column;  /* stack children vertically */
+  justify-content: flex-end; /* push content to bottom */
+  align-items: center;
+  height: 100%;  /* full height of the screen */
+  padding-bottom: 10px;  /* optional padding */
+}
+
+.bambooImage {
+  width: 100%;
+  height: auto;
+  max-height: 90vh;
+  object-fit: contain;
+  opacity: 0.7;
+  margin-top: auto; /* ensures it sticks to bottom of flex column */
+}
+
+.middle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start; 
+  gap: 20px;
+  height: 100%;
+}
+
+.title {
+  font-family: Furtiger, sans-serif;
+  font-size: 3.5rem;
+  font-weight: bold;
+  color: red;
+  margin-top: 50px;
+}
+
+.weather {
+  font-size: 1.2rem;
+}
+
+.pandaWaveImage  {
+  width: 50%;
+  height: auto;
+  max-height: 25vh; /* prevents height blow-up */
+  object-fit: contain;
+  margin-top: auto; /* stick to bottom of screen */
 }
