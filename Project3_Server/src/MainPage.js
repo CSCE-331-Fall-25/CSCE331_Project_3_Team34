@@ -37,7 +37,6 @@ class CashierMainPage {
         
         // Make size lowercase for consistency
         size = size ? size.toLowerCase() : null;
-        console.log("received size: " + size);
 
         // Creates a new transaction if transaction is null
         if(this.currTransaction == null) {
@@ -297,12 +296,6 @@ class CashierMainPage {
         // For better client-side rendering, include both the tray name and a displayType for each tray.
         // displayType will be used on the receipt (e.g., 'A La Carte', 'Appetizer', 'Drink', 'Bottle')
         // while the client still groups trays by entree/side.
-
-        // FOr every order print cost
-        for (const order of this.currTransaction.orders) {
-            console.log("Order item: " + (order.item?.name || 'unknown') + " Cost: " + order.price);
-        }
-        console.log("Subtotal: " + subtotal + " DiscountAmount: " + discountAmount + " PriceOff: " + priceOff + " Tax: " + tax + " Total: " + total);
 
         return {
             orders: this.currTransaction.orders.map(order => ({

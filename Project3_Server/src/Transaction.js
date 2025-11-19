@@ -107,7 +107,7 @@ class Order {
             const name = getName(entree);
             if (!name) continue;
             let menu = await Menu.fetchByName(db, name);
-            console.log('Fetched menu for entree:', menu);
+            console.log('Fetched menu for entree:', menu.name);
             if (!menu) menu = { name };
             this.NewTray(menu, 'entree', size);
         }
