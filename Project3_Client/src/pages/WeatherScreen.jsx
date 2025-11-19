@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../styles/WeatherScreen.css'
 
+import { getImageForItem } from '../assets/utils/imageMapper';
+
 export default function WeatherScreen() {
   const [location, setLocation] = useState(null);
   const [weather, setWeather] = useState(null);
@@ -84,35 +86,62 @@ export default function WeatherScreen() {
   }
 
   return (
-    <div className="weatherScreen" onClick={() => handleClick()}>
-        {location ? (
-        <p></p>
-      ) : error ? (
-        console.log(`Error: ${error}`)
-      ) : (
-        console.log('Fetching location...')
-      )}
+    <div className="screen" onClick={() => handleClick()}>
       
-      {weather ? (
-        <div>
-            {weather.periods?.[0] && (() => {
-                const current = weather.periods[0];
-                const icon = mapShortForecastToFallback(current.shortForecast);
-                return (
-                  <>
-                    <div className="weatherIcon">
-                      <img src={icon} alt={current.shortForecast} />
-                    </div>
-                    <div className="temperature">
-                      <p style={{ margin: 0 }}>{current.temperature}°</p>
-                    </div>
-                  </>
-                )
-            })()}
+      {/* LEFT COLUMN */}
+      <div className="side">
+        <img src={getImageForItem("Bamboo")} className="bambooImage" alt="bamboo" />
+      </div>
+
+      {/* CENTER COLUMN */}
+      <div className="middle">
+
+        {/* TOP: PANDA EXPRESS */}
+        <div className="title">Panda Express</div>
+
+        {/* MIDDLE: WEATHER */}
+        <div className="weather">
+          {location ? (
+            <p></p>
+          ) : error ? (
+            console.log(`Error: ${error}`)
+          ) : (
+            console.log("Fetching location...")
+          )}
+
+          {weather ? (
+            <div>
+              {weather.periods?.[0] &&
+                (() => {
+                  const current = weather.periods[0];
+                  const icon = mapShortForecastToFallback(current.shortForecast);
+
+                  return (
+                    <>
+                      <div className="weatherIcon">
+                        <img src={icon} alt={current.shortForecast} />
+                      </div>
+                      <div className="temperature">
+                        <p style={{ margin: 0 }}>{current.temperature}°</p>
+                      </div>
+                    </>
+                  );
+                })()}
+            </div>
+          ) : (
+            console.log("Loading weather data...")
+          )}
         </div>
-      ) : (
-        console.log('Loading weather data...')
-      )}
+
+        {/* BOTTOM: PANDA WAVE IMAGE */}
+        <img src={getImageForItem("bobrosspanda")} className="pandaWaveImage" alt="Panda Wave" />
+
+      </div>
+
+      {/* RIGHT COLUMN */}
+      <div className="side">
+        <img src={getImageForItem("Bamboo")} className="bambooImage" alt="bamboo" />
+      </div>
     </div>
   );
 }
