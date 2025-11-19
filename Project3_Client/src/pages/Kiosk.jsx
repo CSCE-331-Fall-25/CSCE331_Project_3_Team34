@@ -4,6 +4,8 @@ import pandaLogo from '../assets/PandaLogo.svg'
 // Transaction is a server-side class; don't import it into the client bundle.
 import '../styles/Kiosk.css';
 
+import { getImageForItem } from "../assets/utils/imageMapper";
+
 export default function Kiosk() {
 
   // --- inactivity timer --- //
@@ -38,6 +40,15 @@ export default function Kiosk() {
   const groupIdRef = useRef(0);
   const currentParentItemIdRef = useRef(null);
   const swapTargetRef = useRef(null);
+
+  const [state, setState] = useState("Kiosk"); // Possible states: "Kiosk", "Checkout", "Payment", "Receipt"
+  const [transactionNumber, setTransactionNumber] = useState(0);
+  
+  const timeoutRef = useRef(null);
+
+  const changeState = (newState) => {
+    setState(newState);
+  }
 
   const safeNumber = value => {
     const parsed = Number(value);
@@ -277,101 +288,183 @@ export default function Kiosk() {
   const total = orderItems.reduce((s, it) => s + computeLinePrice(it), 0);
 
   function handlePurchase() {
+    changeState("Checkout");
+    // Dont clear order here!
+    //clearOrder(); 
+  }
+
+  function handlePayment(method) {
+    console.log("Payment method selected: " + method);
+    changeState("Finished");
+    
+
+    timeoutRef.current = setTimeout(() => {
+      goBackToKiosk(); 
+    }, 5000);
+  }
+
+  function goBackToKiosk() {
+    
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+
     clearOrder();
+    changeState("Kiosk");
+    setOrderFinalized(false);   
   }
 
   return (
-    <div className="kiosk-root">
-      <div className="kiosk-left">
-        <div className="kiosk-type-list">
-          {items.map((item, idx) => {
-            const currItemId = item.itemid;
-            const basePrice = safeNumber(item.price ?? item.cost ?? 0);
-            return (
-              <button
-                key={item.itemid}
-                className={`kiosk-type-btn ${selectedItemId === currItemId ? 'active' : ''}`}
-                onClick={() => handleItemSelection(item)}
-              >
-                <div className="kiosk-type-name">{item.name || currItemId}</div>
-                <div className="kiosk-item-price">${basePrice.toFixed(2)}</div>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      <div className="kiosk-middle">
-        {!selectedItemId && (
-          <div className="kiosk-logo-wrapper">
-            <img
-              src={pandaLogo}
-              alt="Panda Express"
-              className="kiosk-logo"
-            />
+    <div>
+      {(state == "Kiosk") && (
+      <div className="kiosk-root">
+        <div className="kiosk-left">
+          <div className="kiosk-type-list">
+            {items.map((item, idx) => {
+              const currItemId = item.itemid;
+              const basePrice = safeNumber(item.price ?? item.cost ?? 0);
+              return (
+                <button
+                  key={item.itemid}
+                  className={`kiosk-type-btn ${selectedItemId === currItemId ? 'active' : ''}`}
+                  onClick={() => handleItemSelection(item)}
+                >
+                  <div className="kiosk-type-name">{item.name || currItemId}</div>
+                  <div className="kiosk-item-price">${basePrice.toFixed(2)}</div>
+                </button>
+              );
+            })}
           </div>
-        )}
-        {selectedItemId && (
-          <>
-            {activeSelection && (
-              <div className="kiosk-selection-banner">
-                Select {activeSelection.label || activeSelection.type}
-                {typeof activeSelection.remaining === 'number' && activeSelection.remaining > 0 && (
-                  <span className="kiosk-selection-remaining"> ({activeSelection.remaining} more after this)</span>
-                )}
-              </div>
-            )}
-            <div className="kiosk-items-grid">
-              {menuItems.length === 0 && <div className="kiosk-empty">No items</div>}
-              {menuItems.map(it => {
-                const { value, hide } = resolveDisplayPrice(it);
-                return (
-                  <button
-                    key={it.id ?? it.menuid ?? it.name}
-                    type="button"
-                    className="kiosk-item kiosk-item-button"
-                    onClick={() => handleMenuChoice(it)}
-                  >
-                    <div className="kiosk-item-name">{it.name}</div>
-                    <div className="kiosk-item-price">{hide ? '' : `$${value.toFixed(2)}`}</div>
-                  </button>
-                );
-              })}
-            </div>
-          </>
-        )}
-      </div>
+        </div>
 
-      <div className="kiosk-right">
-        <h3 className="kiosk-title">Current Order</h3>
-        <div className="kiosk-order-list">
-          {orderItems.length === 0 && <div className="kiosk-empty">No items yet</div>}
-          {orderItems.map((it, idx) => {
-            const { value, hide } = resolveDisplayPrice(it);
-            const rowClass = `kiosk-order-row${it.isParent ? ' kiosk-order-row-parent' : ' kiosk-order-row-child'}`;
-            return (
-              <div className={rowClass} key={idx}>
-                <div className="kiosk-order-name">{it.name}</div>
-                <div className="kiosk-order-actions">
-                  <div className="kiosk-order-price">{hide ? '' : `$${value.toFixed(2)}`}</div>
-                  {it.isParent ? (
-                    <button className="kiosk-remove-btn" onClick={() => removeFromOrder(idx)}>Remove</button>
-                  ) : (
-                    <button className="kiosk-swap-btn" onClick={() => handleSwap(idx)}>Swap</button>
+        <div className="kiosk-middle">
+          {!selectedItemId && (
+            <div className="kiosk-logo-wrapper">
+              <img
+                src={pandaLogo}
+                alt="Panda Express"
+                className="kiosk-logo"
+              />
+            </div>
+          )}
+          {selectedItemId && (
+            <>
+              {activeSelection && (
+                <div className="kiosk-selection-banner">
+                  Select {activeSelection.label || activeSelection.type}
+                  {typeof activeSelection.remaining === 'number' && activeSelection.remaining > 0 && (
+                    <span className="kiosk-selection-remaining"> ({activeSelection.remaining} more after this)</span>
                   )}
                 </div>
+              )}
+              <div className="kiosk-items-grid">
+                {menuItems.length === 0 && <div className="kiosk-empty">No items</div>}
+                {menuItems.map(it => {
+                  const { value, hide } = resolveDisplayPrice(it);
+                  return (
+                    <button
+                      key={it.id ?? it.menuid ?? it.name}
+                      type="button"
+                      className="kiosk-item kiosk-item-button"
+                      onClick={() => handleMenuChoice(it)}
+                    >
+                      <div className="kiosk-item-name">{it.name}</div>
+                      <div className="kiosk-item-price">{hide ? '' : `$${value.toFixed(2)}`}</div>
+                    </button>
+                  );
+                })}
               </div>
-            );
-          })}
+            </>
+          )}
         </div>
-        <div className="kiosk-order-summary">
-          <div>Total: ${total.toFixed(2)}</div>
-          <div className="kiosk-order-controls">
-            <button onClick={clearOrder} className="kiosk-clear-btn">Clear</button>
-            <button onClick={() => {console.log('Proceed to checkout', orderItems); handlePurchase();}} className="kiosk-checkout-btn">Checkout</button>
+
+        <div className="kiosk-right">
+          <h3 className="kiosk-title">Current Order</h3>
+          <div className="kiosk-order-list">
+            {orderItems.length === 0 && <div className="kiosk-empty">No items yet</div>}
+            {orderItems.map((it, idx) => {
+              const { value, hide } = resolveDisplayPrice(it);
+              const rowClass = `kiosk-order-row${it.isParent ? ' kiosk-order-row-parent' : ' kiosk-order-row-child'}`;
+              return (
+                <div className={rowClass} key={idx}>
+                  <div className="kiosk-order-name">{it.name}</div>
+                  <div className="kiosk-order-actions">
+                    <div className="kiosk-order-price">{hide ? '' : `$${value.toFixed(2)}`}</div>
+                    {it.isParent ? (
+                      <button className="kiosk-remove-btn" onClick={() => removeFromOrder(idx)}>Remove</button>
+                    ) : (
+                      <button className="kiosk-swap-btn" onClick={() => handleSwap(idx)}>Swap</button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div className="kiosk-order-summary">
+            <div>Total: ${total.toFixed(2)}</div>
+            <div className="kiosk-order-controls">
+              <button onClick={clearOrder} className="kiosk-clear-btn">Clear</button>
+              <button onClick={() => {console.log('Proceed to checkout', orderItems); handlePurchase();}} className="kiosk-checkout-btn">Checkout</button>
+            </div>
           </div>
         </div>
       </div>
+      )} 
+      {state == "Checkout" && (
+        <div className="purchase-screen-wrapper">
+          <div className="purchase-screen-card">
+
+            <img src={pandaLogo} alt="Panda Express" className="purchase-logo" />
+
+            {/* Top image */}
+            <h4 className="purchase-screen-title">Select Payment Method</h4>
+            <div className="purchase-screen-price">Total: ${total.toFixed(2)}</div>
+
+
+            {/* Buttons section */}
+            <div className="purchase-buttons">
+              <div className="purchase-option" onClick={() => handlePayment("Cash")}>
+                <img src={getImageForItem("cashImg")} alt="Cash" className="option-img" />
+                <span className="option-text">Cash</span>
+              </div>
+
+              <div className="purchase-option" onClick={() => handlePayment("Card")}>
+                <img src={getImageForItem("cardImg")} alt="Card" className="option-img" />
+                <span className="option-text">Card</span>
+              </div>
+
+              <div className="purchase-option" onClick={() => handlePayment("Rewards")}>
+                <img src={getImageForItem("rewardsImg")} alt="Rewards" className="option-img" />
+                <span className="option-text">Rewards</span>
+              </div>  
+            </div>
+          </div>
+        </div>
+      )}
+      {state == "Finished" && (
+        <div className="purchase-screen-wrapper">
+          <div className="purchase-screen-card">
+
+            <img src={getImageForItem("orderComplete")} alt="orderComplete" className="finished-img" />
+
+            {/* Top image */}
+            <h4 className="purchase-screen-title">Transaction: {transactionNumber} Complete!</h4>
+            <div className="purchase-screen-price">Total: ${total.toFixed(2)}</div>
+
+            <br></br>
+
+            {/* Buttons section */} 
+            <div className="finished-option" onClick={() => {
+              setTransactionNumber(transactionNumber + 1);  
+              goBackToKiosk();
+              }}>
+              New Order
+            </div>
+            
+          </div>
+        </div>
+      )}
     </div>
   );
 }
