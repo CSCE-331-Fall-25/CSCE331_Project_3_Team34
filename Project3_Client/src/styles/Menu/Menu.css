@@ -99,8 +99,8 @@ html, body {
 }
 
 .menu-item-image {
-  max-width: 80px;
-  max-height: 80px;
+  max-width: 100px;
+  max-height: 100px;
   aspect-ratio: 1 / 1;
   object-fit: contain;
   display: block;
@@ -345,7 +345,7 @@ html, body {
 }
 
 .menu-item {
-  transform: scale(0.85);   /* shrink card */
+  transform: scale(1);   /* shrink card */
   transform-origin: top center;
 }
 
@@ -355,7 +355,7 @@ html, body {
 }
 
 .column:nth-child(3) .menu-item {
-  transform: scale(0.78);
+  transform: scale(1);
 }
 
 .column:nth-child(3) .section-grid {

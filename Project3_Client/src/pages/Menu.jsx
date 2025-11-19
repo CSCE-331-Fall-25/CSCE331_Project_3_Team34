@@ -1,4 +1,4 @@
-import React, { use, useEffect, useState } from 'react';
+import React, { use, useEffect, useMemo, useState } from 'react';
 import "../styles/Menu/Menu.css";
 import pandaLogo from '../assets/PandaLogo.svg';
 
@@ -12,16 +12,18 @@ import SignOutButton from '../Components/SignOut.jsx';
 export default function Menu() {
 
   const pageSizes = {
-    entrees: 16,
+    items: 8,
+    entrees: 8,
     sides: 4,
     apps: 4,
     drinks: 8,
   };
 
-  const cycleInterval = 5000; // 5 seconds
+  const cycleInterval = 3000; // 5 seconds
 
   const [extraMenus, setExtraMenus] = useState([]);
   const [displayed, setDisplayed] = useState({
+    items: [],
     entrees: [],
     sides: [],
     apps: [],
@@ -29,6 +31,7 @@ export default function Menu() {
   });
 
   const [pages, setPages] = useState({
+    items: 0,
     entrees: 0,
     sides: 0,
     apps: 0,
@@ -43,15 +46,19 @@ export default function Menu() {
    //const [extraMenus, setExtraMenus] = useState([]);
    const [allItems, setAllItems] = useState([]);
 
-  
-  const ListEntrees = [];
-  const ListSides = [];
-  const ListApps = [];
-  const ListDrinks = [];
-  
-  
-  const item_list = [];
-  const itemRowSize = 8;
+
+  const cycleSlice = (list, start, pageSize) => {
+    if (list.length <= pageSize) return list; // Not enough to paginate
+
+    let result = [];
+    for (let i = 0; i < pageSize; i++) {
+      const index = (start + i) % list.length;
+      result.push(list[index]);
+    }
+    return result;
+  };
+
+
 
   useEffect(() => {
     const fetchMenusByType = async (type) => {
@@ -66,62 +73,10 @@ export default function Menu() {
       } catch (err) {
         console.error(err);
         return [];
-      }
+      }    
     };
 
-    (async () => {
-      const fetchedEntrees = await fetchMenusByType("entree");
-      const fetchedSides = await fetchMenusByType("side");
-      const fetchedApps = await fetchMenusByType("appetizer");
-      const fetchedDrinks = await fetchMenusByType("drink");
-
-      const allMenus = [
-        ...(fetchedEntrees || []),
-        ...(fetchedSides || []),
-        ...(fetchedApps || []),
-        ...(fetchedDrinks || [])
-      ];
-
-      setExtraMenus(allMenus);
-    })();
-  }, []);
-
-  const typeLists = {
-    entrees: extraMenus.filter(i => i.type.toLowerCase() === 'entree'),
-    sides: extraMenus.filter(i => i.type.toLowerCase() === 'side'),
-    apps: extraMenus.filter(i => i.type.toLowerCase() === 'appetizer' || i.type.toLowerCase() === 'app'),
-    drinks: extraMenus.filter(i => i.type.toLowerCase() === 'drink'),
-  };
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const newDisplayed = {};
-      const newPages = {};
-      Object.keys(typeLists).forEach(type => {
-        const list = typeLists[type];
-        const pageSize = pageSizes[type];
-        const nextPage = (pages[type] + 1) % Math.ceil(list.length / pageSize);
-        const start = nextPage * pageSize;
-        const end = start + pageSize;
-        newDisplayed[type] = list.slice(start, end);
-        newPages[type] = nextPage;
-      });
-      setDisplayed(newDisplayed);
-      setPages(newPages);
-    }, cycleInterval);
-
-    return () => clearInterval(interval);
-  }, [extraMenus, pages]);
-
-  useEffect(() => {
-    const initDisplayed = {};
-    Object.keys(typeLists).forEach(type => {
-      initDisplayed[type] = typeLists[type].slice(0, pageSizes[type]);
-    });
-    setDisplayed(initDisplayed);
-  }, [extraMenus]);
-
-  const fetchAllItems = async (type) => {
+    const fetchAllItems = async (type) => {
     try {
       const response = await fetch("/api/fetch-all-items", {
         method: "POST",
@@ -131,43 +86,82 @@ export default function Menu() {
       const data = await response.json();
       if (response.ok) {
         return data;
-      } else {
-        console.error("Error fetching menus:", data.error);
-        return [];
       }
     } catch (error) {
       console.error("Error fetching menus:", error);
       return [];
     }
-  };
+    };
 
-  // Fetch extra menus once on mount and merge with baseItems
-  useEffect(() => {
-    let mounted = true;
     (async () => {
-      const fetchedItems = await fetchAllItems();
-      if (!mounted) return;
-      setAllItems(fetchedItems || []);
-    })();
-    return () => { mounted = false; };
+        const fetchedEntrees = await fetchMenusByType("entree");
+        const fetchedSides = await fetchMenusByType("side");
+        const fetchedApps = await fetchMenusByType("appetizer");
+        const fetchedDrinks = await fetchMenusByType("drink");
+
+        const fetchedItems = await fetchAllItems();
+
+        const allMenus = [
+          ...(fetchedEntrees || []),
+          ...(fetchedSides || []),
+          ...(fetchedApps || []),
+          ...(fetchedDrinks || [])
+        ];
+
+        setExtraMenus(allMenus);
+        setAllItems(fetchedItems || []);
+      })();
   }, []);
 
-  const ListItems = allItems;
+  const typeLists = useMemo(() => ({
+    items: allItems,
+    entrees: extraMenus.filter(i => i.type.toLowerCase() === 'entree'),
+    sides: extraMenus.filter(i => i.type.toLowerCase() === 'side'),
+    apps: extraMenus.filter(i => i.type.toLowerCase() === 'appetizer' || i.type.toLowerCase() === 'app'),
+    drinks: extraMenus.filter(i => i.type.toLowerCase() === 'drink'),
+  }), [allItems, extraMenus]);
 
-  
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const newDisplayed = {};
+      const newPages = {};
+      Object.keys(typeLists).forEach(type => {
+        const list = typeLists[type];
+        const pageSize = pageSizes[type];
+        const nextPage = (pages[type] + 1) % Math.ceil(list.length / pageSize);
+
+        const start = nextPage * pageSize;
+
+        newDisplayed[type] = cycleSlice(list, start, pageSize);
+
+        newPages[type] = nextPage;
+      });
+      setDisplayed(newDisplayed);
+      setPages(newPages);
+    }, cycleInterval);
+
+    return () => clearInterval(interval);
+  }, [pages, allItems, extraMenus]);
+
+  useEffect(() => {
+    const initDisplayed = {};
+    Object.keys(typeLists).forEach(type => {
+      const list = typeLists[type];
+      initDisplayed[type] = cycleSlice(list, 0, pageSizes[type]);
+    });
+    setDisplayed(initDisplayed);
+  }, [typeLists]);
+
   
 
   return (
     <div className="mainBackground">
-      {/* <div className="header-container">
-       <div className="side left-text">Panda Express</div>
+      <div className="header-container">
 
       <div className="center-logo">
         <img src={pandaLogo} alt="Panda Logo" className="logo" />
       </div>
-
-      <div className="side right-text">Menu</div> 
-    </div>*/}
+    </div>
       <div className="menu-page-container">
         {showSignOutModal && <SignOutButton />}
         <div className="menu-content">
@@ -178,7 +172,7 @@ export default function Menu() {
               <h3 className="section-title">Menu Items</h3>
 
               <div className="section-grid">
-                {ListItems.map(item => (
+                {displayed.items.map(item => (
                   <div key={item.itemID} className="menu-item">
                     <img src={getImageForItem(item.itemName)} alt={item.itemName} className="menu-item-image" />
                     <div className="menu-item-name">{item.itemName}</div>
@@ -191,6 +185,8 @@ export default function Menu() {
 
           {/* COLUMN 2 – ENTREES */}
           <div className="column">
+
+            {/* ENTREES */}
             <div className="menu-section">
               <h3 className="section-title">Entrees</h3>
 
@@ -206,10 +202,6 @@ export default function Menu() {
                 ))}
               </div>
             </div>
-          </div>
-
-          {/* COLUMN 3 – SIDES + APPETIZERS */}
-          <div className="column">
 
             {/* SIDES */}
             <div className="menu-section">
@@ -224,6 +216,11 @@ export default function Menu() {
                 ))}
               </div>
             </div>
+
+          </div>
+
+          {/* COLUMN 3 – SIDES + APPETIZERS */}
+          <div className="column">
 
             {/* APPETIZERS */}
             <div className="menu-section">
