@@ -9,6 +9,8 @@ import Kitchen from './pages/Kitchen.jsx'
 import Kiosk from './pages/Kiosk.jsx'
 import Hub from './pages/Hub.jsx'
 import MealAttributes  from './pages/MealAttributes.jsx' 
+import React from 'react'
+import GoogleLoginButton from './Components/googleLoginButton.jsx'
 import './styles/App.css'
 //import app from '../../Project3_Server/src/index.js'
 
@@ -78,6 +80,7 @@ export default function App() {
     }, [showButtons]);
   return (
     <div>
+      
       {showButtons && (
         <div className="login-container">
           <img
@@ -99,12 +102,16 @@ export default function App() {
               onChange={handlePasswordChange}
             />
             <button type="submit">Login</button>
+            
           </form>
           <button onClick={() => navigate("/hub")}>
             Debugging Skip Login
           </button>
+          <GoogleLoginButton />
         </div>
+
       )}
+     
 
       {/* Routing logic */}
       <Routes>
