@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { use, useEffect, useState } from 'react';
 import "../styles/Menu/Menu.css";
 import pandaLogo from '../assets/PandaLogo.svg';
 
@@ -10,12 +10,37 @@ import { useNavigate } from 'react-router-dom';
 //component imports
 import SignOutButton from '../Components/SignOut.jsx';
 export default function Menu() {
+
+  const pageSizes = {
+    entrees: 16,
+    sides: 4,
+    apps: 4,
+    drinks: 8,
+  };
+
+  const cycleInterval = 5000; // 5 seconds
+
+  const [extraMenus, setExtraMenus] = useState([]);
+  const [displayed, setDisplayed] = useState({
+    entrees: [],
+    sides: [],
+    apps: [],
+    drinks: [],
+  });
+
+  const [pages, setPages] = useState({
+    entrees: 0,
+    sides: 0,
+    apps: 0,
+    drinks: 0,
+  });
+
   // Router navigation for sign out
    const navigate = useNavigate();
    const handleSignOut = () => navigate('/');
    // modal to confirm sign out
    const [showSignOutModal, setShowSignOutModal] = useState(false);
-   const [extraMenus, setExtraMenus] = useState([]);
+   //const [extraMenus, setExtraMenus] = useState([]);
    const [allItems, setAllItems] = useState([]);
 
   
@@ -28,26 +53,73 @@ export default function Menu() {
   const item_list = [];
   const itemRowSize = 8;
 
-   // Use fetch menus by type and populate items list
-  const fetchMenusByType = async (type) => {
-    try {
-      const response = await fetch("/api/fetch-menus-by-type", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type }),
-      });
-      const data = await response.json();
-      if (response.ok) {
-        return data;
-      } else {
-        console.error("Error fetching menus:", data.error);
+  useEffect(() => {
+    const fetchMenusByType = async (type) => {
+      try {
+        const response = await fetch("/api/fetch-menus-by-type", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ type }),
+        });
+        const data = await response.json();
+        return response.ok ? data : [];
+      } catch (err) {
+        console.error(err);
         return [];
       }
-    } catch (error) {
-      console.error("Error fetching menus:", error);
-      return [];
-    }
+    };
+
+    (async () => {
+      const fetchedEntrees = await fetchMenusByType("entree");
+      const fetchedSides = await fetchMenusByType("side");
+      const fetchedApps = await fetchMenusByType("appetizer");
+      const fetchedDrinks = await fetchMenusByType("drink");
+
+      const allMenus = [
+        ...(fetchedEntrees || []),
+        ...(fetchedSides || []),
+        ...(fetchedApps || []),
+        ...(fetchedDrinks || [])
+      ];
+
+      setExtraMenus(allMenus);
+    })();
+  }, []);
+
+  const typeLists = {
+    entrees: extraMenus.filter(i => i.type.toLowerCase() === 'entree'),
+    sides: extraMenus.filter(i => i.type.toLowerCase() === 'side'),
+    apps: extraMenus.filter(i => i.type.toLowerCase() === 'appetizer' || i.type.toLowerCase() === 'app'),
+    drinks: extraMenus.filter(i => i.type.toLowerCase() === 'drink'),
   };
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const newDisplayed = {};
+      const newPages = {};
+      Object.keys(typeLists).forEach(type => {
+        const list = typeLists[type];
+        const pageSize = pageSizes[type];
+        const nextPage = (pages[type] + 1) % Math.ceil(list.length / pageSize);
+        const start = nextPage * pageSize;
+        const end = start + pageSize;
+        newDisplayed[type] = list.slice(start, end);
+        newPages[type] = nextPage;
+      });
+      setDisplayed(newDisplayed);
+      setPages(newPages);
+    }, cycleInterval);
+
+    return () => clearInterval(interval);
+  }, [extraMenus, pages]);
+
+  useEffect(() => {
+    const initDisplayed = {};
+    Object.keys(typeLists).forEach(type => {
+      initDisplayed[type] = typeLists[type].slice(0, pageSizes[type]);
+    });
+    setDisplayed(initDisplayed);
+  }, [extraMenus]);
 
   const fetchAllItems = async (type) => {
     try {
@@ -73,50 +145,29 @@ export default function Menu() {
   useEffect(() => {
     let mounted = true;
     (async () => {
-      const fetchedEntrees = await fetchMenusByType("entree");
-      const fetchedSides = await fetchMenusByType("side");
-      const fetchedApps = await fetchMenusByType("appetizer");
-      const fetchedDrinks = await fetchMenusByType("drink");
       const fetchedItems = await fetchAllItems();
       if (!mounted) return;
-      // fetched lists may be arrays of plain objects with name/type
-      setExtraMenus([...(fetchedEntrees || []), ...(fetchedSides || []), ...(fetchedApps || []), ...(fetchedDrinks || [])]);
       setAllItems(fetchedItems || []);
     })();
     return () => { mounted = false; };
   }, []);
 
-  const combinedItems = [...extraMenus];
-  for (let i = 0; i < combinedItems.length; i++) {
-    const t = (combinedItems[i].type || '').toLowerCase();
-    if (t === 'entree') {
-      ListEntrees.push(combinedItems[i]);
-    } else if (t === 'side') {
-      ListSides.push(combinedItems[i]);
-    } else if (t === 'appetizer' || t === 'app') {
-      ListApps.push(combinedItems[i]);
-    } else if (t === 'drink') {
-      ListDrinks.push(combinedItems[i]);
-    } else {
-      // unknown type: push to sides as a fallback
-      items_sides.push(combinedItems[i]);
-    }
-  }
-
   const ListItems = allItems;
+
+  
   
 
   return (
     <div className="mainBackground">
-      <div className="header-container">
-      {/* <div className="side left-text">Panda Express</div> */}
+      {/* <div className="header-container">
+       <div className="side left-text">Panda Express</div>
 
       <div className="center-logo">
         <img src={pandaLogo} alt="Panda Logo" className="logo" />
       </div>
 
-      {/* <div className="side right-text">Menu</div> */}
-    </div>
+      <div className="side right-text">Menu</div> 
+    </div>*/}
       <div className="menu-page-container">
         {showSignOutModal && <SignOutButton />}
         <div className="menu-content">
@@ -144,7 +195,7 @@ export default function Menu() {
               <h3 className="section-title">Entrees</h3>
 
               <div className="section-grid">
-                {ListEntrees.map(item => (
+                {displayed.entrees.map(item => (
                   <div key={`entree-${item.menuID}`} className="menu-item">
                     <img src={getImageForItem(item.menuName)} alt={item.menuName} className="menu-item-image" />
                     <div className="menu-item-name">{item.menuName}</div>
@@ -165,7 +216,7 @@ export default function Menu() {
               <h3 className="section-title">Sides</h3>
 
               <div className="section-grid">
-                {ListSides.map(item => (
+                {displayed.sides.map(item => (
                   <div key={`side-${item.menuID}`} className="menu-item">
                     <img src={getImageForItem(item.menuName)} alt={item.menuName} className="menu-item-image" />
                     <div className="menu-item-name">{item.menuName}</div>
@@ -179,8 +230,22 @@ export default function Menu() {
               <h3 className="section-title">Appetizers</h3>
 
               <div className="section-grid">
-                {ListApps.map(item => (
+                {displayed.apps.map(item => (
                   <div key={`app-${item.menuID}`} className="menu-item">
+                    <img src={getImageForItem(item.menuName)} alt={item.menuName} className="menu-item-image" />
+                    <div className="menu-item-name">{item.menuName}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* APPETIZERS */}
+            <div className="menu-section">
+              <h3 className="section-title">Drinks</h3>
+
+              <div className="section-grid">
+                {displayed.drinks.map(item => (
+                  <div key={`bev-${item.menuID}`} className="menu-item">
                     <img src={getImageForItem(item.menuName)} alt={item.menuName} className="menu-item-image" />
                     <div className="menu-item-name">{item.menuName}</div>
                   </div>
@@ -190,17 +255,6 @@ export default function Menu() {
 
           </div>
         </div>
-        {/* FULL-WIDTH BEVERAGES ROW */}
-          <div className="beverage-row">
-            <div className="beverage-grid">
-              {ListDrinks.map(item => (
-                <div key={`bev-${item.menuID}`} className="menu-item">
-                  <img src={getImageForItem(item.menuName)} alt={item.menuName} className="menu-item-image" />
-                  <div className="menu-item-name">{item.menuName}</div>
-                </div>
-              ))}
-            </div>
-          </div>
           <br></br>
     <button className = "sign-out-button" onClick={() => setShowSignOutModal(true)}>Sign Out</button>
       </div>
