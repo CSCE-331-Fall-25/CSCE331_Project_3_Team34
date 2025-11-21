@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import pandaLogo from '../assets/PandaLogo.svg'
+import WeatherScreen from './WeatherScreen';
 // Transaction is a server-side class; don't import it into the client bundle.
 import '../styles/Kiosk.css';
 
@@ -313,7 +314,7 @@ export default function Kiosk() {
     clearOrder();
     changeState("Kiosk");
     setOrderFinalized(false);
-    navigate("/weather");   
+    navigate('/weather');
   }
 
   return (
