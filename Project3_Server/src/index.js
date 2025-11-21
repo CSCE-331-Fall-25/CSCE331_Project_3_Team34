@@ -12,6 +12,7 @@ import cookieParser from "cookie-parser";
 // Kiosk router file is named `Kiosk.js` (capital K). Use the exact filename so imports work
 // on case-sensitive filesystems (e.g. Linux used by many CI/CD hosts).
 import kioskRouter from "./Kiosk.js";
+import kitchenRouter from "./Kitchen.js";
 
 dotenv.config();
 
@@ -119,7 +120,10 @@ app.get('/api/get-user', async (req, res) => {
 const user = new User("testUser", "password123", "bob@gmail.com");
 const mainPage = new CashierMainPage(user, pool);
 const manager = new Manager(pool, "testUser");
+
+
 app.use('/api/kiosk', kioskRouter);
+app.use('/api/kitchen', kitchenRouter);
 
 // API endpoint to fetch menus by type
 app.post('/api/fetch-menus-by-type', async (req, res) => {

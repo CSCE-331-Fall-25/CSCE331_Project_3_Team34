@@ -1,29 +1,51 @@
-class Kitchen {
-    constructor(db = null) {
-        this.db = db;
+import express from 'express';
+import { pool } from './db.js';
+
+const kitchenRouter = express.Router();
+
+kitchenRouter.get('/get-not-started', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT * FROM transactions WHERE stage = 4 ORDER BY time ASC');
+        res.json(result.rows);
+    } catch (err) {
+        console.error('Error fetching not started transactions:', err);
+        res.status(500).json({ error: 'Failed to fetch not started transactions' });
     }
+});
 
-    async GetTransactions(stage) {
-        // Obtain a mapping of transactions at the given stage
-        if (!this.db || typeof this.db.query !== 'function') {
-            throw new Error('DB pool not provided or invalid');
-        }
-
-        const q = 'SELECT * FROM transactions WHERE stage = $1 ORDER BY time ASC';
-        const res = await this.db.query(q, [stage]);
-        if (!res || !res.rows) return [];
-
-        return res.rows;
+kitchenRouter.get('/get-in-progress', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT * FROM transactions WHERE stage = 3 ORDER BY time ASC');
+        res.json(result.rows);
+    } catch (err) {
+        console.error('Error fetching in-progress transactions:', err);
+        res.status(500).json({ error: 'Failed to fetch in-progress transactions' });
     }
+});
 
-    async UpdateStage(transactionID) {
-        if (!this.db || typeof this.db.query !== 'function') {
-            throw new Error('DB pool not provided or invalid');
+kitchenRouter.get('/get-completed', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT * FROM transactions WHERE stage = 2 ORDER BY time ASC');
+        res.json(result.rows);
+    } catch (err) {
+        console.error('Error fetching completed transactions:', err);
+        res.status(500).json({ error: 'Failed to fetch completed transactions' });
+    }
+});
+
+kitchenRouter.post('/update-stage', async (req, res) => {
+    try {
+        const { transactionID } = req.body;
+        if (!transactionID) {
+            return res.status(400).json({ error: 'Missing transaction ID' });
         }
-
         const q = 'UPDATE transactions SET stage = stage + 1 WHERE transactionid = $1';
-        await this.db.query(q, [transactionID]);
-
-        return true;
+        await pool.query(q, [transactionID]);
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Error updating transaction stage:', err);
+        res.status(500).json({ error: 'Failed to update transaction stage' });
     }
-}
+});
+
+export default kitchenRouter;
