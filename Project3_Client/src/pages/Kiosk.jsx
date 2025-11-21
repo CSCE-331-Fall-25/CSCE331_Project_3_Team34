@@ -393,9 +393,13 @@ export default function Kiosk() {
                   <div className="kiosk-order-actions">
                     <div className="kiosk-order-price">{hide ? '' : `$${value.toFixed(2)}`}</div>
                     {it.isParent ? (
-                      <button className="kiosk-remove-btn" onClick={() => removeFromOrder(idx)}>Remove</button>
+                      <button className="kiosk-remove-btn" onClick={() => removeFromOrder(idx)}>
+                        <img src={getImageForItem("trashcan")} alt="Remove" className="remove-icon" />
+                      </button>
                     ) : (
-                      <button className="kiosk-swap-btn" onClick={() => handleSwap(idx)}>Swap</button>
+                      <button className="kiosk-swap-btn" onClick={() => handleSwap(idx)}>
+                        <img src={getImageForItem("swapArrows")} alt="Swap" className="swap-icon" />
+                      </button>
                     )}
                   </div>
                 </div>
