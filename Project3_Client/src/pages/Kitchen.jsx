@@ -14,13 +14,9 @@ export default function Kitchen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const columnDefinitions = useMemo(() => COLUMN_CONFIG, []);
+  const columnDefinitions = COLUMN_CONFIG;
 
-  useEffect(() => {
-    let isMounted = true;
-    let intervalId;
-
-    async function fetchColumnData(column) {
+  async function fetchColumnData(column) {
       try {
         const res = await fetch(column.endpoint);
         if (!res.ok) throw new Error(`Failed to fetch ${column.label}`);
@@ -32,7 +28,7 @@ export default function Kitchen() {
       }
     }
 
-    async function loadAll() {
+  async function loadAll(isMounted) {
       setLoading(true);
       setError(null);
       try {
@@ -56,9 +52,12 @@ export default function Kitchen() {
       }
     }
 
-    loadAll();
-    intervalId = setInterval(loadAll, pollIntervalMs);
-
+  useEffect(() => {
+    let isMounted = true;
+    let intervalId;
+    fetchColumnData();
+    loadAll(isMounted);
+    intervalId = setInterval(() => loadAll(isMounted), pollIntervalMs);
     return () => {
       isMounted = false;
       if (intervalId) clearInterval(intervalId);
