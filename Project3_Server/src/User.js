@@ -70,15 +70,57 @@ class User {
 
         return users;
     }
-    static async AuthenticateLogin(db, username, password) {
+    static async AuthenticateLogin(db, username = "", password = "", googleId = null) {
+        //googleId auth
+        const user = null;
+        if (googleId) {
+            console.log(`Authenticating Google ID `);
+            user = await User.FetchByGoogleId(db, googleId);
+            if(!user) {
+                console.log('Authentication failed for Google ID:', googleId);
+                return null;
+            }
+            return user;
+        }
+
+        //Username /password auth
         console.log(`Authenticating login for user: ${username}`);
-        const user = await User.FetchByUsername(db, username, password);
+        user = await User.FetchByUsername(db, username, password);
         if(!user) {
             console.log('Authentication failed for user:', username);
             return null;
         }
         return user;
     }
+    static async FetchByGoogleId(db, googleId) {
+        if (!db || typeof db.query !== 'function') {
+            throw new Error('DB pool not provided or invalid');
+        }
+        const q = 'SELECT * FROM Users WHERE googleid = $1';
+        const res = await db.query(q, [googleId]);
+        if (!res || !res.rows || res.rows.length === 0) {
+            console.log('No employee found with Google ID:', googleId);
+            
+            //return null;
+        }
+        const row = res.rows[0];
+        const pass = row.password ?? '';
+        const email = row.email ?? '';
+        const isEmployee = row.isemployee ?? false;
+
+        if (pass !== password) {
+            console.log('Password mismatch for user:', username);
+            return null; 
+        }
+
+        if (isEmployee) {
+            return Employee.FetchByUsername(db, username, pass, email);
+        } else {
+            return Customer.FetchByUsername(db, username, pass, email);
+        }
+    }
+
+        
 }
 
 class Employee extends User {

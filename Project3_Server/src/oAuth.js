@@ -1,5 +1,6 @@
 import dotenv from 'dotenv';
 dotenv.config();
+import User from './User.js';
 
 
 import { OAuth2Client } from 'google-auth-library';
@@ -43,15 +44,21 @@ async function googleAuthCallbackHandler(req, res) {
   const payload = ticket.getPayload();
 
   // Payload contains user info
-  const user = {
-    googleId: payload.sub,
-    name: payload.name,
-    email: payload.email,
-    picture: payload.picture
-  };
+  const user = await User.FetchByGoogleId(req.app.locals.dbPool, payload.sub);
+  const add = req.query.add === 'true' ? '&add=true' : '';
+  if (!user) {
+    // Not found or not an employee
+    return res.redirect(`http://localhost:5173/?success=false${add}`);
+  }
+  // const user = {
+  //   googleId: payload.sub,
+  //   name: payload.name,
+  //   email: payload.email,
+  //   picture: payload.picture
+  // };
   req.session.user = user;            // store user on the server session
   // redirect to your React app - use a safe front-end route
-  res.redirect('http://localhost:5173/?login=success'); //passing login success param
+  res.redirect(`http://localhost:5173/?success=true${add}`); //passing login success param
 }
 
 function authMeHandler(req, res) {

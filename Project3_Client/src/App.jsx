@@ -1,4 +1,4 @@
-import { Routes, Route, useNavigate, useLocation } from 'react-router-dom'
+import { Routes, Route, useNavigate, useLocation, parsePath } from 'react-router-dom'
 import { use, useState, useEffect } from 'react'
 import WeatherScreen from './pages/WeatherScreen.jsx'
 import pandaLogo from './assets/PandaLogo.svg'
@@ -70,14 +70,40 @@ export default function App() {
       alert('Invalid Employee ID or Password.');
     }
   }
+
+  //called when returning from Google OAuth flow
+  async function handleGoogleLogin() {
+    params = new URLSearchParams(window.location.search);
+    const isSuccess = params.get('success');
+    if (isSuccess === 'true') {
+      //VALIDATE is actually an employee in DB not just anyone with a Google account
+      if(user.isEmployee){      navigate('/hub');
+      }
+      else{
+        alert('Google Login Failed: Not an Employee.');
+      }
+    }
+    else if (isSuccess === 'false') {
+      alert('Google Login Failed. Please try again.');
+    }
+  }
   function clearInputs (){
     setEmployeeId('');
     setEmployeePassword('');
   }
+  
     // Clear inputs when the login view is shown (runs on mount and whenever route returns to "/")
     useEffect(() => {
       if (showButtons) clearInputs();
     }, [showButtons]);
+    useEffect(() => {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('add') === 'true' && params.get('success') === 'true') {
+        alert('added');
+        // Optionally, you can clear the query params after alert
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    }, []);
   return (
     <div>
       
@@ -108,6 +134,11 @@ export default function App() {
             Debugging Skip Login
           </button>
           <GoogleLoginButton />
+          <button onClick={() => {
+              window.location.href = 'http://localhost:8080/auth/google?add=true';
+            }}>
+              Add Google Sign-In
+          </button>
         </div>
 
       )}
