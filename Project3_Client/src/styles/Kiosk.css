@@ -154,19 +154,15 @@
 
 .kiosk-remove-btn{
   background: transparent;
-  border: 1px solid #e33;
-  color: #e33;
+  border: none;
   padding: 6px 8px;
-  border-radius: 6px;
   cursor: pointer;
 }
 
 .kiosk-swap-btn{
   background: transparent;
-  border: 1px solid #2b7cff;
-  color: #2b7cff;
+  border: none;
   padding: 6px 10px;
-  border-radius: 6px;
   cursor: pointer;
 }
 
@@ -326,7 +322,17 @@
   font-family: Furtiger, sans-serif;
   transition: background-color 0.2s;
 
-  display: flex;              /* NEW */
+  display: flex;              
   justify-content: center;    /* NEW */
   align-items: center;        /* NEW */
+}
+
+.remove-icon {         /* NEW */
+  width: 16px;            /* NEW */
+  height: 16px;           /* NEW */
+}
+
+.swap-icon {         /* NEW */
+  width: 16px;            /* NEW */
+  height: 16px;           /* NEW */
 }

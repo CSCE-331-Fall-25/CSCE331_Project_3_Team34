@@ -270,7 +270,6 @@ class Manager {
 
             const q = 'SELECT m.menuid, m.name, COUNT(tr.menuid) AS occurrence_count FROM transactions AS t INNER JOIN orders AS o ON t.transactionid = o.transactionid INNER JOIN trays AS tr ON o.orderid = tr.orderid INNER JOIN menu AS m ON tr.menuid = m.menuid WHERE t.time BETWEEN \'' + realStartTime + '\' AND \'' + realEndTime + '\' GROUP BY m.menuid, m.name ORDER BY COUNT(tr.menuid) DESC';
             // const q = 'SELECT m.menuid, m.name, COUNT(tr.menuid) AS occurrence_count FROM transactions AS t INNER JOIN orders AS o ON t.transactionid = o.transactionid INNER JOIN trays AS tr ON o.trayid = tr.trayid INNER JOIN menu AS m ON tr.menuid = m.menuid WHERE t.time BETWEEN \'2025-01-01 10:00:00\' AND \'2025-12-01 20:00:00\' GROUP BY m.menuid, m.name ORDER BY COUNT(tr.menuid) DESC';
-            console.log(q);
             const result = await this.db.query(q);
             if (!result.rows || result.rows.length === 0) {
                 console.log("Empty query");
@@ -492,8 +491,7 @@ class Manager {
                 console.log("Employee id already exists");
                 return { error: 0 };
             }
-            console.log( employeeid + "    " + name + "    " + role + "    " + wage + "    " + isManager + "    " + username + "    " + email + "    " + password);
-            
+
             if (name.length == 0 || name == '') {
                 return { error: 3 };
             }
@@ -813,7 +811,6 @@ class Manager {
                 console.log("Menu id already exists");
                 return { error: 0 };
             }
-            console.log( menuid + "    " + name + "    " + type + "    " + pricemod + "    " + inventoryids);
             
             if (name.length == 0 || name == '') {
                 return { error: 3 };
@@ -851,7 +848,7 @@ class Manager {
             }
             const inventoryarray = String(inventoryids).split(", ");
             for (const inventory of inventoryarray) {
-                console.log(inventory);
+                //console.log(inventory);
                 for (let i = 0; i < inventory.length; i++) {
                     if (isNaN(inventory.substring(i, i + 1))) {
                         return { error: 9 };
@@ -914,7 +911,7 @@ class Manager {
                 console.log("Menu id already exists");
                 return { error: 0 };
             }
-            console.log( menuid + "    " + name + "    " + type + "    " + pricemod + "    " + inventoryids);
+            //console.log( menuid + "    " + name + "    " + type + "    " + pricemod + "    " + inventoryids);
             
             if (name.length == 0 || name == '') {
                 name = result.rows[0].name;
@@ -962,7 +959,7 @@ class Manager {
 
             
             // adding to database
-            console.log(inventoryids);
+            //console.log(inventoryids);
             q = "UPDATE menu SET name = \'" + name + "\', type = \'" + type + "\', pricemod = \'" + pricemod + "\', inventoryids = " + inventoryids + "WHERE menuid = " + menuid;
             result = await this.db.query(q);
             return { error: 55 };
@@ -1009,7 +1006,7 @@ class Manager {
                 console.log("Inventory id already exists");
                 return { error: 0 };
             }
-            console.log(inventoryid + "    " + items + "    " + quantity + "    " + maxstock + "    " + minstock);
+            //console.log(inventoryid + "    " + items + "    " + quantity + "    " + maxstock + "    " + minstock);
             
             if (items.length == 0 || items == '') {
                 return { error: 3 };
@@ -1122,7 +1119,7 @@ class Manager {
                 console.log("Inventory id doesn't exists");
                 return { error: 0 };
             }
-            console.log(inventoryid + "    " + items + "    " + quantity + "    " + maxstock + "    " + minstock);
+            //console.log(inventoryid + "    " + items + "    " + quantity + "    " + maxstock + "    " + minstock);
             
             if (items.length == 0 || items == '') {
                 items = result.rows[0].items;
