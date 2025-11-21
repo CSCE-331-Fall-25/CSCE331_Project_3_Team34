@@ -288,9 +288,17 @@ export default function Kiosk() {
 
   const total = orderItems.reduce((s, it) => s + computeLinePrice(it), 0);
 
-  function handlePurchase() {
+  async function handlePurchase() {
     changeState("Checkout");
-    // Dont clear order here!
+    const res = await fetch('/api/kiosk/submit-order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orderData: orderItems }),
+    });
+    if (!res.ok) {
+      console.error('Order submission failed');
+    }
+    // Dont clear order here
     //clearOrder(); 
   }
 
