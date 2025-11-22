@@ -259,3 +259,155 @@ textarea::placeholder {
     bottom: 22%;
     max-height: 400px;
 }
+
+
+/* Input styling */
+.rc-input {
+  width: 200px;
+  padding: 0.6rem 0.75rem;
+  border: 2px solid #d40000;
+  border-radius: 6px;
+  font-size: 1rem;
+  background-color: white;
+  color: #222;
+  transition: all 0.2s;
+}
+
+.rc-input:focus {
+  outline: none;
+  border-color: #ff1a1a;
+  box-shadow: 0 0 0 3px rgba(255, 0, 0, 0.25);
+}
+
+/* Popup panel */
+.rc-panel {
+  background: #ffffff;
+  border: 2px solid #d40000;
+  border-radius: 10px;
+  padding: 0.75rem;
+  box-shadow: 0 4px 15px rgba(255, 0, 0, 0.25);
+}
+
+/* Calendar table base */
+.rc-panel table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+/* Day cells */
+.rc-panel td {
+  text-align: center;
+  padding: 0.55rem;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 0.2s, color 0.2s;
+  color: #333;
+}
+
+/* Hover */
+.rc-panel td:hover {
+  background-color: #ffe5e5;
+}
+
+/* Selected day */
+.rc-panel td.p-highlight {
+  background-color: #ff0000 !important;
+  color: white !important;
+  font-weight: bold;
+}
+
+/* Weekday header */
+.rc-panel th {
+  padding-bottom: 0.5rem;
+  font-weight: bold;
+  color: #d40000;
+}
+
+/* Month & year title */
+.p-datepicker-title {
+  color: #d40000;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+  font-size: 1.1rem;
+}
+
+.p-datepicker-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem;
+  border-bottom: 2px solid #d40000;
+  margin-bottom: 0.5rem;
+}
+
+/* Month and Year text */
+.p-datepicker-title {
+  display: flex;
+  gap: 4px;
+  color: #d40000;
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+/* Individual month/year spans */
+.p-datepicker-month,
+.p-datepicker-year {
+  color: #d40000;
+}
+
+/* Prev/Next arrow buttons */
+.p-datepicker-prev,
+.p-datepicker-next {
+  background: none;
+  border: none;
+  color: #d40000;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 6px;
+  font-size: 1.2rem;
+  transition: background 0.15s;
+}
+
+.p-datepicker-prev:hover,
+.p-datepicker-next:hover {
+  background: #ffe5e5;
+}
+
+/************************************
+  WEEKDAY LABELS (Sun Mon Tue ...)
+*************************************/
+.p-datepicker-weekday {
+  color: #d40000;
+  font-weight: bold;
+  font-size: 0.9rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #ffd0d0;
+  text-align: center;
+}
+
+.employeeTableContainer table tr.selected {
+  background-color: #ffdddd;
+  color: #b00000;
+}
+
+.employeeTableContainer table tr:hover {
+  background-color: #ffecec;
+  cursor: pointer;
+}
+
+.report-times-container .react-datepicker__day--selected,
+.report-times-container .react-datepicker__day--keyboard-selected {
+  background-color: #cc0000;
+  color: white;
+  border-radius: 4px;
+}
+
+.report-times-container .react-datepicker-wrapper input {
+  width: 180px;
+  padding: 8px 10px;
+  border: 2px solid #cc0000;
+  border-radius: 6px;
+  background: white;
+  color: #cc0000;
+  font-weight: 600;
+}

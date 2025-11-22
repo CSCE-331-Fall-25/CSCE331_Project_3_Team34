@@ -348,8 +348,8 @@ app.post('/api/add-employee', async (req, res) => {
 app.post('/api/remove-employee', async (req, res) => {
   try {
    // console.log("request recieved");
-    const { employeeId } = req.body;
-    res.json(await manager.RemoveEmployee(employeeId));
+    const { employeeId, rowSelection } = req.body;
+    res.json(await manager.RemoveEmployee(employeeId, rowSelection));
   } catch (err) {
     console.error('Error getting data' + err);
     res.json({ error: -2 });
@@ -359,8 +359,8 @@ app.post('/api/remove-employee', async (req, res) => {
 app.post('/api/update-employee', async (req, res) => {
   try {
    // console.log("request recieved");
-    const { employeeId, employeeNewName, employeeRole, employeeWage, employeeIsManager, employeeUsername, employeeEmail, employeePassword } = req.body;
-    res.json(await manager.UpdateEmployee(employeeId, employeeNewName, employeeRole, employeeWage, employeeIsManager, employeeUsername, employeeEmail, employeePassword));
+    const { employeeId, employeeNewName, employeeRole, employeeWage, employeeIsManager, employeeUsername, employeeEmail, employeePassword, rowSelection } = req.body;
+    res.json(await manager.UpdateEmployee(employeeId, employeeNewName, employeeRole, employeeWage, employeeIsManager, employeeUsername, employeeEmail, employeePassword, rowSelection));
   } catch (err) {
     console.error('Error getting data' + err);
     res.json({ error: -2 });
@@ -391,8 +391,8 @@ app.post('/api/add-menu', async (req, res) => {
 app.post('/api/remove-menu', async (req, res) => {
   try {
    // console.log("request recieved");
-    const { menuId } = req.body;
-    res.json(await manager.RemoveMenu(menuId));
+    const { menuId, rowSelection } = req.body;
+    res.json(await manager.RemoveMenu(menuId, rowSelection));
   } catch (err) {
     console.error('Error getting data' + err);
     res.json({ error: -2 });
@@ -402,8 +402,8 @@ app.post('/api/remove-menu', async (req, res) => {
 app.post('/api/update-menu', async (req, res) => {
   try {
    // console.log("request recieved");
-    const { menuId, menuName, menuType, menuPriceMod, menuInventoryIds } = req.body;
-    res.json(await manager.UpdateMenu(menuId, menuName, menuType, menuPriceMod, menuInventoryIds));
+    const { menuId, menuName, menuType, menuPriceMod, menuInventoryIds, rowSelection } = req.body;
+    res.json(await manager.UpdateMenu(menuId, menuName, menuType, menuPriceMod, menuInventoryIds, rowSelection));
   } catch (err) {
     console.error('Error getting data' + err);
     res.json({ error: -2 });
@@ -435,8 +435,8 @@ app.post('/api/add-inventory', async (req, res) => {
 app.post('/api/remove-inventory', async (req, res) => {
   try {
    // console.log("request recieved");
-    const { inventoryId } = req.body;
-    res.json(await manager.RemoveInventory(inventoryId));
+    const { inventoryId, rowSelection } = req.body;
+    res.json(await manager.RemoveInventory(inventoryId, rowSelection));
   } catch (err) {
     console.error('Error getting data' + err);
     res.json({ error: -2 });
@@ -446,8 +446,8 @@ app.post('/api/remove-inventory', async (req, res) => {
 app.post('/api/update-inventory', async (req, res) => {
   try {
    // console.log("request recieved");
-    const { inventoryId, inventoryItems, inventoryQuantity, inventoryMaxStock, inventoryMinStock } = req.body;
-    res.json(await manager.UpdateInventory(inventoryId, inventoryItems, inventoryQuantity, inventoryMaxStock, inventoryMinStock));
+    const { inventoryId, inventoryItems, inventoryQuantity, inventoryMaxStock, inventoryMinStock, rowSelection } = req.body;
+    res.json(await manager.UpdateInventory(inventoryId, inventoryItems, inventoryQuantity, inventoryMaxStock, inventoryMinStock, rowSelection));
   } catch (err) {
     console.error('Error getting data' + err);
     res.json({ error: -2 });

@@ -270,6 +270,7 @@ class Manager {
 
             const q = 'SELECT m.menuid, m.name, COUNT(tr.menuid) AS occurrence_count FROM transactions AS t INNER JOIN orders AS o ON t.transactionid = o.transactionid INNER JOIN trays AS tr ON o.orderid = tr.orderid INNER JOIN menu AS m ON tr.menuid = m.menuid WHERE t.time BETWEEN \'' + realStartTime + '\' AND \'' + realEndTime + '\' GROUP BY m.menuid, m.name ORDER BY COUNT(tr.menuid) DESC';
             // const q = 'SELECT m.menuid, m.name, COUNT(tr.menuid) AS occurrence_count FROM transactions AS t INNER JOIN orders AS o ON t.transactionid = o.transactionid INNER JOIN trays AS tr ON o.trayid = tr.trayid INNER JOIN menu AS m ON tr.menuid = m.menuid WHERE t.time BETWEEN \'2025-01-01 10:00:00\' AND \'2025-12-01 20:00:00\' GROUP BY m.menuid, m.name ORDER BY COUNT(tr.menuid) DESC';
+            console.log(q);
             const result = await this.db.query(q);
             if (!result.rows || result.rows.length === 0) {
                 console.log("Empty query");
@@ -491,7 +492,8 @@ class Manager {
                 console.log("Employee id already exists");
                 return { error: 0 };
             }
-
+            console.log( employeeid + "    " + name + "    " + role + "    " + wage + "    " + isManager + "    " + username + "    " + email + "    " + password);
+            
             if (name.length == 0 || name == '') {
                 return { error: 3 };
             }
@@ -539,10 +541,7 @@ class Manager {
                 else if (email.substring(i, i + 1) == '@') {
                     hasAm = true;
                 }
-                if (!hasAm && !hasDecimal && email.substring(i, i + 1) == '.') {
-                    return { error: 13 };
-                }
-                else if (!hasDecimal && email.substring(i, i + 1) == '.' && i != email.length - 1 && email.substring(i - 1, i) != '@') {
+                else if (!hasDecimal && hasAm && email.substring(i, i + 1) == '.' && i != email.length - 1 && email.substring(i - 1, i) != '@') {
                     hasDecimal = true;
                 }
             }
@@ -610,9 +609,9 @@ class Manager {
         }
     }
 
-    async RemoveEmployee(employeeid) {
+    async RemoveEmployee(employeeid, rowSelection) {
         try {
-            if (employeeid.length == 0 || employeeid == '') {
+            if (!employeeid && Object.keys(rowSelection).length === 0) {
                 return { error: 1 };
             }
             for (let i = 0; i < employeeid.length; i++) {
@@ -620,14 +619,47 @@ class Manager {
                     return { error: 2 };
                 }
             }
-            let q = "SELECT * FROM employees WHERE employeeid = " + employeeid;
+            let q = "SELECT * FROM employees ORDER BY employeeid ASC";
             let result = await this.db.query(q);
+
             if (!result.rows || result.rows.length === 0) {
-                console.log("Employee id doesn't exist");
+                console.log("No employees");
                 return { error: 0 };
             }
-            q = "DELETE FROM employees WHERE employeeid = " + employeeid;
-            result = await this.db.query(q);
+
+            let numEmployees = Object.keys(rowSelection).length;
+            let idList = [];
+            if (employeeid) {
+                numEmployees = numEmployees + 1;
+            }
+            for (let j = 0; j < numEmployees; j++) {
+                let updatedEmployeeid = employeeid;
+                console.log(Object.keys(rowSelection));
+                let i = Object.keys(rowSelection)[j];
+                console.log(i);
+                if (j + 1 == numEmployees && employeeid != '') {
+                    q = "SELECT * FROM employees WHERE employeeid = " + employeeid;
+                    result = await this.db.query(q);
+                    if (!result.rows || result.rows.length === 0) {
+                        console.log("No employees");
+                        return { error: 1 };
+                    }
+                    updatedEmployeeid = result.rows[0].employeeid;
+                    i = 0;
+                }
+                else {
+                    console.log(result.rows[i].employeeid);
+                    updatedEmployeeid = result.rows[i].employeeid;
+                }
+                idList.push(updatedEmployeeid);
+                console.log(idList);
+            }
+            console.log(idList);
+            for (let i = 0; i < idList.length; i++) {
+                console.log(idList[i]);
+                q = "DELETE FROM employees WHERE employeeid = " + idList[i];
+                result = await this.db.query(q);
+            }
             return { error: 55 };
         }
         catch (err) {
@@ -636,131 +668,162 @@ class Manager {
         }
     }
 
-    async UpdateEmployee(employeeid, name, role, wage, isManager, username, email, password) {
+    async UpdateEmployee(employeeid, name, role, wage, isManager, username, email, password, rowSelection) {
         try {
-            if (employeeid.length == 0 || employeeid == '') {
-                return { error: 1 };
+            if (!employeeid && Object.keys(rowSelection).length === 0) {
+                return { error: 13 };
             }
             for (let i = 0; i < employeeid.length; i++) {
                 if (isNaN(employeeid.substring(i, i + 1))) {
-                    return { error: 2 };
+                    return { error: 14 };
                 }
             }
-            let q = "SELECT * FROM employees WHERE employeeid = " + employeeid;
+            let q = "SELECT * FROM employees ORDER BY employeeid ASC";
             let result = await this.db.query(q);
+
             if (!result.rows || result.rows.length === 0) {
-                console.log("Employee id doesn't exist");
+                console.log("No employees");
                 return { error: 0 };
             }
 
-            if (!name) {
-                name = result.rows[0].name;
+            let numEmployees = Object.keys(rowSelection).length;
+            console.log(Object.keys(rowSelection));
+            if (employeeid) {
+                numEmployees = numEmployees + 1;
             }
-            if (!role) {
-                role = result.rows[0].role;
-            }
+            for (let j = 0; j < numEmployees; j++) {
+                let updatedEmployeeid = employeeid;
+                let updatedName = name;
+                let updatedRole = role;
+                let updatedWage = wage;
+                let updatedIsManager = isManager;
+                let updatedUsername = username;
+                let updatedEmail = email;
+                let updatedPassword = password;
 
-            if (!wage) {
-                wage = result.rows[0].wage;
-            }
-            else {
+                let i = 0;
+                if (j + 1 == numEmployees && employeeid) {
+                    q = "SELECT * FROM employees WHERE employeeid = " + employeeid;
+                    result = await this.db.query(q);
+                    if (!result.rows || result.rows.length === 0) {
+                        console.log("No employees");
+                        return { error: 15 };
+                    }
+                    updatedEmployeeid = result.rows[0].employeeid;
+                    i = 0;
+                }
+                else {
+                    i = Object.keys(rowSelection)[j];
+                    updatedEmployeeid = result.rows[i].employeeid;
+                }
+
+                if (!name) {
+                    updatedName = result.rows[i].name;
+                }
+                if (!role) {
+                    updatedRole = result.rows[i].role;
+                }
+
+                if (!wage) {
+                    updatedWage = result.rows[i].wage;
+                }
+                else {
+                    let hasDecimal = false;
+                    for (let i = 0; i < updatedWage.length; i++) {
+                        if (isNaN(updatedWage.substring(i, i + 1))) {
+                            if (!hasDecimal && updatedWage.substring(i, i + 1) == '.') {
+                                hasDecimal = true;
+                            }
+                            else if (hasDecimal && updatedWage.substring(i, i + 1) == '.') {
+                                return { error: 1 };
+                            }
+                            else if (!((i == 0 || i == updatedWage.length - 1) && updatedWage.substring(i, i + 1) == '$')) {
+                                return { error: 2 };
+                            }
+                        }
+                    }
+                }
+
+                if (!isManager) {
+                    updatedIsManager = result.rows[i].ismanager;
+                }
+                else if (isManager.toLowerCase() != "yes" && isManager.toLowerCase() != "no" && isManager.toLowerCase() != "true" && isManager.toLowerCase() != "false" && isManager != 1 && isManager != 2) {
+                    return { error: 3 };
+                }
+
+                if (!username) {
+                    updatedUsername = result.rows[i].username;
+                }
+
+                if (!email) {
+                    updatedEmail = result.rows[i].email;
+                }
+                console.log(updatedEmployeeid + "   " + updatedName + "   " + updatedRole + "   " + updatedWage + "   " + updatedIsManager + "   " + updatedUsername + "   " + updatedEmail + "    " + updatedPassword);
+                let hasAm = false;
                 let hasDecimal = false;
-                for (let i = 0; i < wage.length; i++) {
-                    if (isNaN(wage.substring(i, i + 1))) {
-                        if (!hasDecimal && wage.substring(i, i + 1) == '.') {
-                            hasDecimal = true;
+                for (let i = 0; i < updatedEmail.length; i++) {
+                    if (hasAm && updatedEmail.substring(i, i + 1) == '@') {
+                        return { error: 5 };
+                    }
+                    else if (updatedEmail.substring(i, i + 1) == '@') {
+                        hasAm = true;
+                    }
+                    else if (!hasDecimal && updatedEmail.substring(i, i + 1) == '.' && i != updatedEmail.length - 1 && updatedEmail.substring(i - 1, i) != '@') {
+                        hasDecimal = true;
+                    }
+                }
+                if (!hasAm) {
+                    return { error: 11 };
+                }
+                if (!hasDecimal) {
+                    return { error: 12 };
+                }
+                if (!password) {
+                    updatedPassword = result.rows[i].password;
+                }
+                else {
+                    // checking password length
+                    if (password.length < 16) {
+                        return { error: 7 };
+                    }
+
+                    // checking for upper case
+                    let check = false;
+                    for (let i = 0; i < password.length; i++) {
+                        if (password.substring(i, i + 1).toUpperCase() === password.substring(i, i + 1) && password.substring(i, i + 1).toUpperCase() !== password.substring(i, i + 1).toLowerCase()) {
+                            check = true;
                         }
-                        else if (hasDecimal && wage.substring(i, i + 1) == '.') {
-                            return { error: 1 };
+                    }
+                    if (!check) {
+                        return { error: 8 }
+                    }
+                    // checking for number
+                    check = false;
+                    for (let i = 0; i < password.length; i++) {
+                        if (!isNaN(password.substring(i, i + 1))) {
+                            check = true;
                         }
-                        else if (!((i == 0 || i == wage.length - 1) && wage.substring(i, i + 1) == '$')) {
-                            return { error: 2 };
+                    }
+                    if (!check) {
+                        return { error: 9 }
+                    }
+                    // checking for special character
+                    check = false;
+                    let temp = /[!@#$%^&*()_+|:"<>?\-=\;',.\/"]/
+                    for (let i = 0; i < password.length; i++) {
+                        if (temp.test(password.substring(i, i + 1))) {
+                            check = true;
                         }
                     }
-                }
-            }
-
-            if (!isManager) {
-                isManager = result.rows[0].ismanager;
-            }
-            else if (isManager.toLowerCase() != "yes" && isManager.toLowerCase() != "no" && isManager.toLowerCase() != "true" && isManager.toLowerCase() != "false" && isManager != 1 && isManager != 2) {
-                return { error: 3 };
-            }
-
-            if (!username) {
-                username = result.rows[0].username;
-            }
-
-            if (!email) {
-                email = result.rows[0].email;
-            }
-            let hasAm = false;
-            let hasDecimal = false;
-            for (let i = 0; i < email.length; i++) {
-                if (hasAm && email.substring(i, i + 1) == '@') {
-                    return { error: 5 };
-                }
-                else if (email.substring(i, i + 1) == '@') {
-                    hasAm = true;
-                }
-                if (!hasAm && !hasDecimal && email.substring(i, i + 1) == '.') {
-                    return { error: 6 };
-                }
-                else if (!hasDecimal && email.substring(i, i + 1) == '.' && i != email.length - 1 && email.substring(i - 1, i) != '@') {
-                    hasDecimal = true;
-                }
-            }
-            if (!hasAm) {
-                return { error: 11 };
-            }
-            if (!hasDecimal) {
-                return { error: 12 };
-            }
-
-            if (!password) {
-                password = result.rows[0].password;
-            }
-            else {
-                // checking password length
-                if (password.length < 16) {
-                    return { error: 7 };
-                }
-
-                // checking for upper case
-                let check = false;
-                for (let i = 0; i < password.length; i++) {
-                    if (password.substring(i, i + 1).toUpperCase() === password.substring(i, i + 1) && password.substring(i, i + 1).toUpperCase() !== password.substring(i, i + 1).toLowerCase()) {
-                        check = true;
+                    if (!check) {
+                        return { error: 10 }
                     }
                 }
-                if (!check) {
-                    return { error: 8 }
-                }
-                // checking for number
-                check = false;
-                for (let i = 0; i < password.length; i++) {
-                    if (!isNaN(password.substring(i, i + 1))) {
-                        check = true;
-                    }
-                }
-                if (!check) {
-                    return { error: 9 }
-                }
-                // checking for special character
-                check = false;
-                let temp = /[!@#$%^&*()_+|:"<>?\-=\;',.\/"]/
-                for (let i = 0; i < password.length; i++) {
-                    if (temp.test(password.substring(i, i + 1))) {
-                        check = true;
-                    }
-                }
-                if (!check) {
-                    return { error: 10 }
-                }
+                // adding to database
+                // console.log(updatedEmployeeid + "   " + updatedName + "   " + updatedRole + "   " + updatedWage + "   " + updatedIsManager + "   " + updatedUsername + "   " + updatedEmail + "    " + updatedPassword);
+                q = "UPDATE employees SET employeeid = \'" + updatedEmployeeid + "\', name = \'" + updatedName + "\', role = \'" + updatedRole + "\',  wage = \'" + updatedWage + "\', ismanager = \'" + updatedIsManager + "\',  username = \'" + updatedUsername + "\', email = \'" + updatedEmail + "\', password = \'" + updatedPassword + "\' WHERE employeeid = \'" + updatedEmployeeid + "\'";
+                let unUsed = await this.db.query(q);
             }
-            // adding to database
-            q = "UPDATE employees SET employeeid = \'" + employeeid + "\', name = \'" + name + "\', role = \'" + role + "\',  wage = \'" + wage + "\', ismanager = \'" + isManager + "\',  username = \'" + username + "\', email = \'" + email + "\', password = \'" + password + "\' WHERE employeeid = \'" + employeeid + "\'";
-            result = await this.db.query(q);
             return { error: 55 };
         }
         catch (err) {
@@ -811,6 +874,7 @@ class Manager {
                 console.log("Menu id already exists");
                 return { error: 0 };
             }
+            console.log( menuid + "    " + name + "    " + type + "    " + pricemod + "    " + inventoryids);
             
             if (name.length == 0 || name == '') {
                 return { error: 3 };
@@ -848,7 +912,7 @@ class Manager {
             }
             const inventoryarray = String(inventoryids).split(", ");
             for (const inventory of inventoryarray) {
-                //console.log(inventory);
+                console.log(inventory);
                 for (let i = 0; i < inventory.length; i++) {
                     if (isNaN(inventory.substring(i, i + 1))) {
                         return { error: 9 };
@@ -869,9 +933,9 @@ class Manager {
         }
     }
 
-    async RemoveMenu(menuid) {
+    async RemoveMenu(menuid, rowSelection) {
         try {
-            if (menuid.length == 0 || menuid == '') {
+            if (!menuid && Object.keys(rowSelection).length === 0) {
                 return { error: 1 };
             }
             for (let i = 0; i < menuid.length; i++) {
@@ -879,14 +943,47 @@ class Manager {
                     return { error: 2 };
                 }
             }
-            let q = "SELECT * FROM menu WHERE menuid = " + menuid;
+            let q = "SELECT * FROM menu ORDER BY menuid ASC";
             let result = await this.db.query(q);
+
             if (!result.rows || result.rows.length === 0) {
-                console.log("Menu id doesn't exist");
+                console.log("No menu items");
                 return { error: 0 };
             }
-            q = "DELETE FROM menu WHERE menuid = " + menuid;
-            result = await this.db.query(q);
+
+            let numMenu = Object.keys(rowSelection).length;
+            let idList = [];
+            if (menuid) {
+                numMenu = numMenu + 1;
+            }
+            for (let j = 0; j < numMenu; j++) {
+                let updatedMenuid = menuid;
+                console.log(Object.keys(rowSelection));
+                let i = Object.keys(rowSelection)[j];
+                console.log(i);
+                if (j + 1 == numMenu && menuid != '') {
+                    q = "SELECT * FROM menu WHERE menuid = " + menuid;
+                    result = await this.db.query(q);
+                    if (!result.rows || result.rows.length === 0) {
+                        console.log("No menu");
+                        return { error: 1 };
+                    }
+                    updatedMenuid = result.rows[0].menuid;
+                    i = 0;
+                }
+                else {
+                    console.log(result.rows[i].menuid);
+                    updatedMenuid = result.rows[i].menuid;
+                }
+                idList.push(updatedMenuid);
+                console.log(idList);
+            }
+            console.log(idList);
+            for (let i = 0; i < idList.length; i++) {
+                console.log(idList[i]);
+                q = "DELETE FROM menu WHERE menuid = " + idList[i];
+                result = await this.db.query(q);
+            }
             return { error: 55 };
         }
         catch (err) {
@@ -895,9 +992,9 @@ class Manager {
         }
     }
 
-    async UpdateMenu(menuid, name, type, pricemod, inventoryids) {
+    async UpdateMenu(menuid, name, type, pricemod, inventoryids, rowSelection) {
         try {
-            if (menuid.length == 0 || menuid == '') {
+            if (!menuid && Object.keys(rowSelection).length === 0) {
                 return { error: 1 };
             }
             for (let i = 0; i < menuid.length; i++) {
@@ -905,63 +1002,93 @@ class Manager {
                     return { error: 2 };
                 }
             }
-            let q = "SELECT * FROM menu WHERE menuid = " + menuid + ";";
+            let q = "SELECT * FROM menu ORDER BY menuid ASC";
             let result = await this.db.query(q);
+
             if (!result.rows || result.rows.length === 0) {
-                console.log("Menu id already exists");
+                console.log("No menu");
                 return { error: 0 };
             }
-            //console.log( menuid + "    " + name + "    " + type + "    " + pricemod + "    " + inventoryids);
-            
-            if (name.length == 0 || name == '') {
-                name = result.rows[0].name;
-            }
-            if (type.length == 0 || type == '') {
-                type = result.rows[0].type;
-            }
 
-            if (pricemod.length == 0 || pricemod == '') {
-                name = result.rows[0].pricemod;
+            let numMenu = Object.keys(rowSelection).length;
+            console.log(Object.keys(rowSelection));
+            if (menuid) {
+                numMenu = numMenu + 1;
             }
-            let hasDecimal = false;
-            for (let i = 0; i < pricemod.length; i++) {
-                if (isNaN(pricemod.substring(i, i + 1))) {
-                    if (!hasDecimal && pricemod.substring(i, i + 1) == '.') {
-                        hasDecimal = true;
+            for (let j = 0; j < numMenu; j++) {
+                let updatedMenuid = menuid;
+                let updatedName = name;
+                let updatedType = type;
+                let updatedPricemod = pricemod;
+                let updatedInventoryids= inventoryids;
+
+                let i = 0;
+                if (j + 1 == numMenu && menuid) {
+                    q = "SELECT * FROM menu WHERE menuid = " + menuid;
+                    result = await this.db.query(q);
+                    if (!result.rows || result.rows.length === 0) {
+                        console.log("No menu");
+                        return { error: 15 };
                     }
-                    else if (hasDecimal && pricemod.substring(i, i + 1) == '.') {
-                        return { error: 3 };
-                    }
-                    else if (!((i == 0 || i == pricemod.length - 1) == '$' && pricemod.substring(i, i + 1) == '$')) {
-                        return { error: 4 };
+                    updatedMenuid = result.rows[0].menuid;
+                    i = 0;
+                }
+                else {
+                    i = Object.keys(rowSelection)[j];
+                    updatedMenuid = result.rows[i].menuid;
+                }
+                console.log( menuid + "    " + name + "    " + type + "    " + pricemod + "    " + inventoryids);
+                
+                if (name.length == 0 || name == '') {
+                    updatedName = result.rows[i].name;
+                }
+                if (type.length == 0 || type == '') {
+                    updatedType = result.rows[i].type;
+                }
+
+                if (pricemod.length == 0 || pricemod == '') {
+                    updatedPricemod = result.rows[i].pricemod;
+                }
+                let hasDecimal = false;
+                for (let i = 0; i < pricemod.length; i++) {
+                    if (isNaN(pricemod.substring(i, i + 1))) {
+                        if (!hasDecimal && pricemod.substring(i, i + 1) == '.') {
+                            hasDecimal = true;
+                        }
+                        else if (hasDecimal && pricemod.substring(i, i + 1) == '.') {
+                            return { error: 3 };
+                        }
+                        else if (!((i == 0 || i == pricemod.length - 1) == '$' && pricemod.substring(i, i + 1) == '$')) {
+                            return { error: 4 };
+                        }
                     }
                 }
-            }
 
-            if (inventoryids.length == 0 || inventoryids == '') {
-                inventoryids = result.rows[0].type;
-            }
-            if (inventoryids.substring(0, 1) == "(" || inventoryids.substring(0, 1) == "[" ) {
-                inventoryids = inventoryids.substring(1, inventoryids.length);
-            }
-            if (inventoryids.substring(inventoryids.length - 1, inventoryids.length) == ")" || inventoryids.substring(inventoryids.length - 1, inventoryids.length) == "]") {
-                inventoryids = inventoryids.substring(0, inventoryids.length - 1);
-            }
-            let inventoryarray = inventoryids.split(", ");
-            for (const inventory in inventoryarray) {
-                for (let i = 0; i < inventory.length; i++) {
-                    if (isNaN(inventory.substring(i, i + 1))) {
-                        return { error: 5 };
+                if (inventoryids.length == 0 || inventoryids == '') {
+                    updatedInventoryids = String(result.rows[i].inventoryids);
+                }
+                if (updatedInventoryids.substring(0, 1) == "(" || updatedInventoryids.substring(0, 1) == "[" ) {
+                    updatedInventoryids = updatedInventoryids.substring(1, updatedInventoryids.length);
+                }
+                if (updatedInventoryids.substring(updatedInventoryids.length - 1, updatedInventoryids.length) == ")" || updatedInventoryids.substring(updatedInventoryids.length - 1, updatedInventoryids.length) == "]") {
+                    updatedInventoryids = updatedInventoryids.substring(0, updatedInventoryids.length - 1);
+                }
+                let inventoryarray = updatedInventoryids.split(", ");
+                for (const inventory in inventoryarray) {
+                    for (let i = 0; i < inventory.length; i++) {
+                        if (isNaN(inventory.substring(i, i + 1))) {
+                            return { error: 5 };
+                        }
                     }
                 }
-            }
-            inventoryids = "ARRAY[" + inventoryids + "]";
+                updatedInventoryids = "ARRAY[" + updatedInventoryids + "]";
 
-            
-            // adding to database
-            //console.log(inventoryids);
-            q = "UPDATE menu SET name = \'" + name + "\', type = \'" + type + "\', pricemod = \'" + pricemod + "\', inventoryids = " + inventoryids + "WHERE menuid = " + menuid;
-            result = await this.db.query(q);
+                
+                // adding to database
+                console.log(inventoryids);
+                q = "UPDATE menu SET name = \'" + updatedName + "\', type = \'" + updatedType + "\', pricemod = \'" + updatedPricemod + "\', inventoryids = " + updatedInventoryids + "WHERE menuid = " + updatedMenuid;
+                let unUsed = await this.db.query(q);
+            }
             return { error: 55 };
         }
         catch (err) {
@@ -1006,7 +1133,7 @@ class Manager {
                 console.log("Inventory id already exists");
                 return { error: 0 };
             }
-            //console.log(inventoryid + "    " + items + "    " + quantity + "    " + maxstock + "    " + minstock);
+            console.log(inventoryid + "    " + items + "    " + quantity + "    " + maxstock + "    " + minstock);
             
             if (items.length == 0 || items == '') {
                 return { error: 3 };
@@ -1077,9 +1204,9 @@ class Manager {
         }
     }
 
-    async RemoveInventory(inventoryid) {
+    async RemoveInventory(inventoryid, rowSelection) {
         try {
-            if (inventoryid.length == 0 || inventoryid == '') {
+            if (!inventoryid && Object.keys(rowSelection).length === 0) {
                 return { error: 1 };
             }
             for (let i = 0; i < inventoryid.length; i++) {
@@ -1087,25 +1214,58 @@ class Manager {
                     return { error: 2 };
                 }
             }
-            let q = "SELECT * FROM inventory WHERE inventoryid = " + inventoryid;
+            let q = "SELECT * FROM inventory ORDER BY inventoryid ASC";
             let result = await this.db.query(q);
+
             if (!result.rows || result.rows.length === 0) {
-                console.log("Inventory id doesn't exist");
+                console.log("No menu items");
                 return { error: 0 };
             }
-            q = "DELETE FROM inventory WHERE inventoryid = " + inventoryid;
-            result = await this.db.query(q);
+
+            let numInventory = Object.keys(rowSelection).length;
+            let idList = [];
+            if (inventoryid) {
+                numInventory = numInventory + 1;
+            }
+            for (let j = 0; j < numInventory; j++) {
+                let updatedInventoryid = inventoryid;
+                console.log(Object.keys(rowSelection));
+                let i = Object.keys(rowSelection)[j];
+                console.log(i);
+                if (j + 1 == numInventory && inventoryid != '') {
+                    q = "SELECT * FROM inventory WHERE inventoryid = " + inventoryid;
+                    result = await this.db.query(q);
+                    if (!result.rows || result.rows.length === 0) {
+                        console.log("No inventory");
+                        return { error: 1 };
+                    }
+                    updatedInventoryid = result.rows[0].inventoryid;
+                    i = 0;
+                }
+                else {
+                    console.log(result.rows[i].inventoryid);
+                    updatedInventoryid = result.rows[i].inventoryid;
+                }
+                idList.push(updatedInventoryid);
+                console.log(idList);
+            }
+            console.log(idList);
+            for (let i = 0; i < idList.length; i++) {
+                console.log(idList[i]);
+                q = "DELETE FROM inventory WHERE inventoryid = " + idList[i];
+                result = await this.db.query(q);
+            }
             return { error: 55 };
         }
         catch (err) {
-            console.log("Error removing menu: " + err);
+            console.log("Error removing inventory: " + err);
             return { error: -1 };
         }
     }
 
-    async UpdateInventory(inventoryid, items, quantity, maxstock, minstock) {
+    async UpdateInventory(inventoryid, items, quantity, maxstock, minstock, rowSelection) {
         try {
-            if (inventoryid.length == 0 || inventoryid == '') {
+            if (!inventoryid && Object.keys(rowSelection).length === 0) {
                 return { error: 1 };
             }
             for (let i = 0; i < inventoryid.length; i++) {
@@ -1113,79 +1273,113 @@ class Manager {
                     return { error: 2 };
                 }
             }
-            let q = "SELECT * FROM inventory WHERE inventoryid = " + inventoryid + ";";
+            let q = "SELECT * FROM inventory ORDER BY inventoryid ASC";
             let result = await this.db.query(q);
-            if (!result.rows.length > 0) {
-                console.log("Inventory id doesn't exists");
+
+            if (!result.rows || result.rows.length === 0) {
+                console.log("No inventory");
                 return { error: 0 };
             }
-            //console.log(inventoryid + "    " + items + "    " + quantity + "    " + maxstock + "    " + minstock);
-            
-            if (items.length == 0 || items == '') {
-                items = result.rows[0].items;
-            }
 
-            if (quantity.length == 0 || quantity == '') {
-                quantity = result.rows[0].quantity;
+            let numInventory = Object.keys(rowSelection).length;
+            console.log(Object.keys(rowSelection));
+            if (inventoryid) {
+                numInventory = numInventory + 1;
             }
-            let hasDecimal = false;
-            for (let i = 0; i < quantity.length; i++) {
-                if (isNaN(quantity.substring(i, i + 1))) {
-                    if (!hasDecimal && quantity.substring(i, i + 1) == '.') {
-                        hasDecimal = true;
+            for (let j = 0; j < numInventory; j++) {
+                let updatedInventoryid = inventoryid;
+                let updatedItems = items;
+                let updatedQuantity = quantity;
+                let updatedMaxstock = maxstock;
+                let updatedMinstock = minstock;
+
+                let i = 0;
+                if (j + 1 == numInventory && inventoryid) {
+                    q = "SELECT * FROM inventory WHERE inventoryid = " + inventoryid;
+                    result = await this.db.query(q);
+                    if (!result.rows || result.rows.length === 0) {
+                        console.log("No inventory");
+                        return { error: 15 };
                     }
-                    else if (hasDecimal && quantity.substring(i, i + 1) == '.') {
-                        return { error: 3 };
-                    }
-                    else {
-                        return { error: 4 };
+                    updatedInventoryid = result.rows[0].inventoryid;
+                    i = 0;
+                }
+                else {
+                    i = Object.keys(rowSelection)[j];
+                    updatedInventoryid = result.rows[i].inventoryid;
+                }
+                console.log(inventoryid + "    " + items + "    " + quantity + "    " + maxstock + "    " + minstock);
+                
+                if (items.length == 0 || items == '') {
+                    updatedItems = result.rows[i].items;
+                }
+
+                if (quantity.length == 0 || quantity == '') {
+                    updatedQuantity = result.rows[i].quantity;
+                }
+                else {
+                    let hasDecimal = false;
+                    for (let i = 0; i < quantity.length; i++) {
+                        if (isNaN(quantity.substring(i, i + 1))) {
+                            if (!hasDecimal && quantity.substring(i, i + 1) == '.') {
+                                hasDecimal = true;
+                            }
+                            else if (hasDecimal && quantity.substring(i, i + 1) == '.') {
+                                return { error: 3 };
+                            }
+                            else {
+                                return { error: 4 };
+                            }
+                        }
                     }
                 }
-            }
 
-            if (maxstock.length == 0 || maxstock == '') {
-                maxstock = result.rows[0].maxstock;
-            }
-            hasDecimal = false;
-            for (let i = 0; i < maxstock.length; i++) {
-                if (isNaN(maxstock.substring(i, i + 1))) {
-                    if (!hasDecimal && maxstock.substring(i, i + 1) == '.') {
-                        hasDecimal = true;
-                    }
-                    else if (hasDecimal && maxstock.substring(i, i + 1) == '.') {
-                        return { error: 5 };
-                    }
-                    else {
-                        return { error: 6 };
+                if (maxstock.length == 0 || maxstock == '') {
+                    updatedMaxstock = result.rows[i].maxstock;
+                }
+                else {
+                    let hasDecimal = false;
+                    for (let i = 0; i < maxstock.length; i++) {
+                        if (isNaN(maxstock.substring(i, i + 1))) {
+                            if (!hasDecimal && maxstock.substring(i, i + 1) == '.') {
+                                hasDecimal = true;
+                            }
+                            else if (hasDecimal && maxstock.substring(i, i + 1) == '.') {
+                                return { error: 5 };
+                            }
+                            else {
+                                return { error: 6 };
+                            }
+                        }
                     }
                 }
-            }
 
-            if (quantity > maxstock) {
-                quantity = maxstock;
-            }
+                if (Number(updatedQuantity) > Number(updatedMaxstock)) {
+                    updatedQuantity = updatedMaxstock;
+                }
 
-            if (minstock.length == 0 || minstock == '') {
-                minstock = result.rows[0].minstock;
-            }
-            hasDecimal = false;
-            for (let i = 0; i < minstock.length; i++) {
-                if (isNaN(minstock.substring(i, i + 1))) {
-                    if (!hasDecimal && minstock.substring(i, i + 1) == '.') {
-                        hasDecimal = true;
-                    }
-                    else if (hasDecimal && minstock.substring(i, i + 1) == '.') {
-                        return { error: 7 };
-                    }
-                    else {
-                        return { error: 8 };
+                if (minstock.length == 0 || minstock == '') {
+                    updatedMinstock = result.rows[i].minstock;
+                }
+                else {
+                    let hasDecimal = false;
+                    for (let i = 0; i < minstock.length; i++) {
+                        if (isNaN(minstock.substring(i, i + 1))) {
+                            if (!hasDecimal && minstock.substring(i, i + 1) == '.') {
+                                hasDecimal = true;
+                            }
+                            else if (hasDecimal && minstock.substring(i, i + 1) == '.') {
+                                return { error: 7 };
+                            }
+                            else {
+                                return { error: 8 };
+                            }
+                        }
                     }
                 }
+                q = "UPDATE inventory SET items = \'" + updatedItems + "\', quantity = \'" + updatedQuantity + "\', maxstock = \'" + updatedMaxstock + "\', minstock = " + updatedMinstock + "WHERE inventoryid = " + updatedInventoryid;
+                let unUsed = await this.db.query(q);
             }
-            
-            // adding to 
-            q = "UPDATE inventory SET items = \'" + items + "\', quantity = \'" + quantity + "\', maxstock = \'" + maxstock + "\', minstock = " + minstock + "WHERE inventoryid = " + inventoryid;
-            result = await this.db.query(q);
             return { error: 55 };
         }
         catch (err) {
