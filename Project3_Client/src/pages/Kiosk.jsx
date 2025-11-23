@@ -265,6 +265,7 @@ export default function Kiosk() {
         groupId: currentGroupId,
         isParent: false,
         parentItemId: currentParentItemIdRef.current,
+        type: activeSelection?.type
       }, insertAt);
     } else {
       addToOrder(option, {}, insertAt);
@@ -275,6 +276,9 @@ export default function Kiosk() {
     }
 
     if (selectionQueue.length === 0) {
+      // Meal is complete - send to backend
+      await sendCompletedMealToBackend();
+      
       setActiveSelection(null);
       setMenuItems([]);
       setCurrentGroupId(null);
@@ -285,20 +289,70 @@ export default function Kiosk() {
     await startNextSelection();
   }
 
+  async function sendCompletedMealToBackend() {
+    if (currentGroupId == null) return;
+    
+    // Find all items in the current group
+    const groupItems = orderItems.filter(item => item.groupId === currentGroupId);
+    const parentItem = groupItems.find(item => item.isParent);
+    
+    if (!parentItem) {
+      console.error('No parent item found for group:', currentGroupId);
+      return;
+    }
+
+    // Separate entrees and sides
+    const entreeList = groupItems
+      .filter(item => !item.isParent && item.type === 'entree')
+      .map(item => item.name);
+    
+    const sideList = groupItems
+      .filter(item => !item.isParent && item.type === 'side')
+      .map(item => item.name);
+
+    try {
+      const res = await fetch('/api/buy-item', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          itemID: parentItem.name,
+          entreeList,
+          sideList,
+          size: null
+        })
+      });
+      
+      const data = await res.json();
+      if (data.success) {
+        console.log('Item added to backend transaction:', data);
+      } else {
+        console.error('Failed to add item to backend:', data);
+      }
+    } catch (err) {
+      console.error('Error sending item to backend:', err);
+    }
+  }
+
   const total = orderItems.reduce((s, it) => s + computeLinePrice(it), 0);
 
   async function handlePurchase() {
     changeState("Checkout");
-    const res = await fetch('/api/kiosk/submit-order', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ orderData: orderItems }),
-    });
-    if (!res.ok) {
-      console.error('Order submission failed');
+    try {
+      // Use the same purchase endpoint as Cashier to store in database
+      const res = await fetch('/api/purchase', {
+        method: 'POST',
+        credentials: 'include'
+      });
+      const data = await res.json();
+      if (data && data.success) {
+        console.log('Purchase stored in database successfully');
+      } else {
+        console.error('Purchase failed:', data);
+      }
+    } catch (err) {
+      console.error('Error during purchase:', err);
     }
-    // Dont clear order here
-    //clearOrder(); 
   }
 
   function handlePayment(method) {
