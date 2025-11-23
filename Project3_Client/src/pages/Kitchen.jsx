@@ -134,6 +134,7 @@ export default function Kitchen() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ transactionID }),
       });
+      console.log('Updating stage for transaction ID:', transactionID);
       if (!res.ok) throw new Error('Failed to update stage');
       
       // Silently refresh from backend to ensure consistency
