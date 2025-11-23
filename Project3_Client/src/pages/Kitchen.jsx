@@ -4,9 +4,9 @@ import '../styles/Kitchen.css';
 // Configuration for the three kitchen display columns
 // Each column shows orders at different stages of preparation
 const COLUMN_CONFIG = [
-  { key: 'waiting', label: 'Waiting', endpoint: '/api/kitchen/get-not-started' },
-  { key: 'started', label: 'Started', endpoint: '/api/kitchen/get-in-progress' },
-  { key: 'complete', label: 'Complete', endpoint: '/api/kitchen/get-completed' },
+  { key: 'waiting', label: 'Waiting', endpoint: '/api/kitchen/get-not-started', leftButton: '', rightButton: 'Start'},
+  { key: 'started', label: 'Started', endpoint: '/api/kitchen/get-in-progress', rightButton: 'Complete', leftButton: 'Back to Waiting' },
+  { key: 'complete', label: 'Complete', endpoint: '/api/kitchen/get-completed', leftButton: 'Back to Started', rightButton: 'Clear' },
 ];
 
 // How often to refresh order data from the backend (in milliseconds)
@@ -148,6 +148,64 @@ export default function Kitchen() {
     }
   }
 
+  async function revertStage(transactionID) {
+    if (!transactionID) return;
+
+    setTickets(prev => {
+      const updated = { ...prev };
+
+      for (const col of columnDefinitions) {
+        const columnTickets = updated[col.key] || [];
+        const ticketIndex = columnTickets.findIndex(
+          t => (t.transactionid ?? t.id) === transactionID
+        );
+
+        if (ticketIndex !== -1) {
+          const ticket = columnTickets[ticketIndex];
+          updated[col.key] = columnTickets.filter((_, i) => i !== ticketIndex);
+
+          const currentStageIndex = columnDefinitions.findIndex(c => c.key === col.key);
+          if (currentStageIndex > 0) {
+            const prevColumn = columnDefinitions[currentStageIndex - 1];
+            updated[prevColumn.key] = [...(updated[prevColumn.key] || []), ticket];
+          } else {
+            // Already at earliest stage; keep it in current column
+            updated[col.key] = [...(updated[col.key] || []), ticket];
+          }
+
+          break;
+        }
+      }
+
+      return updated;
+    });
+
+    try {
+      const res = await fetch('/api/kitchen/revert-stage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ transactionID }),
+      });
+      console.log('Reverting stage for transaction ID:', transactionID);
+      if (!res.ok) throw new Error('Failed to revert stage');
+
+      loadAll(true);
+    } catch (err) {
+      console.error(err);
+      setError('Unable to revert ticket stage.');
+      loadAll(true);
+    }
+  }
+
+  const [openTransactions, setOpenTransactions] = useState({});
+
+  const toggle = (transactionID) => {
+    setOpenTransactions((prev) => ({
+      ...prev,
+      [transactionID]: !prev[transactionID],
+    }));
+  }
+
   // Render: Three-column layout displaying order tickets at different stages
   // Each column shows tickets that can be clicked to advance to next stage
   return (
@@ -175,8 +233,9 @@ export default function Kitchen() {
                   <article
                     key={ticket.transactionid ?? ticket.id}
                     className="kitchen-ticket"
-                    onClick={() => updateStage(ticket.transactionid ?? ticket.id)}
+                    onClick={() => toggle(ticket.transactionid ?? ticket.id)}
                   >
+                    {openTransactions[ticket.transactionid ?? ticket.id]}
                     {/* Ticket header: ID and timestamp */}
                     <div className="kitchen-ticket-header">
                       <div className="kitchen-ticket-id">
@@ -191,20 +250,46 @@ export default function Kitchen() {
                         </div>
                       )}
                     </div>
-                    
-                    {/* Optional customer name */}
-                    {ticket.customername && (
-                      <div className="kitchen-ticket-name">{ticket.customername}</div>
-                    )}
-                    
-                    {/* List of items in the order */}
-                    {Array.isArray(ticket.items) && ticket.items.length > 0 && (
-                      <div className="kitchen-ticket-items">
-                        {(ticket.items ?? []).map((item, idx) => (
-                          <div key={idx} className="kitchen-ticket-item">
-                            {item.name ?? item}
+                    {openTransactions[ticket.transactionid ?? ticket.id] && (
+                      <div className="kitchen-ticket-divider">
+                        {ticket.customername && (
+                          <div className="kitchen-ticket-name">{ticket.customername}</div>
+                        )}
+                        
+                        {/* List of items in the order */}
+                        {Array.isArray(ticket.items) && ticket.items.length > 0 && (
+                          <div className="kitchen-ticket-items">
+                            {(ticket.items ?? []).map((item, idx) => (
+                              <div key={idx} className="kitchen-ticket-item">
+                                {item.name ?? item}
+                              </div>
+                            ))}
                           </div>
-                        ))}
+                        )}
+                        <div className="kitchen-ticket-actions">
+                          {column.leftButton && (
+                            <button
+                              className="kitchen-ticket-left-button"
+                              onClick={e => {
+                                e.stopPropagation();
+                                revertStage(ticket.transactionid ?? ticket.id);
+                              }}
+                            >
+                              {column.leftButton}
+                            </button>
+                          )}
+                          {column.rightButton && (
+                            <button
+                              className="kitchen-ticket-right-button"
+                              onClick={e => {
+                                e.stopPropagation();
+                                updateStage(ticket.transactionid ?? ticket.id);
+                              }}
+                            >
+                              {column.rightButton}
+                            </button>
+                          )}
+                        </div>
                       </div>
                     )}
                   </article>

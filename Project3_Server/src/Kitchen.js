@@ -123,4 +123,19 @@ kitchenRouter.post('/update-stage', async (req, res) => {
     }
 });
 
+kitchenRouter.post('/revert-stage', async (req, res) => {
+    try {
+        const { transactionID } = req.body;
+        if (!transactionID) {
+            return res.status(400).json({ error: 'Missing transaction ID' });
+        }
+        const q = 'UPDATE transactions SET stage = stage + 1 WHERE transactionid = $1';
+        await pool.query(q, [transactionID]);
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Error reverting transaction stage:', err);
+        res.status(500).json({ error: 'Failed to revert transaction stage' });
+    }
+});
+
 export default kitchenRouter;
