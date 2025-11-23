@@ -119,7 +119,7 @@ app.get('/api/get-user', async (req, res) => {
 });
 
 app.get("/auth/google", (req, res) => {
- oAuth.redirectToAppWithLoginSuccess(res);
+ oAuth.redirectToAppWithLoginSuccess(req, res);
 });
 
 app.get("/auth/google/callback", async (req, res) => {
@@ -137,6 +137,17 @@ app.get('/api/auth/me', (req, res) => {
   }
 });
 
+app.post('/api/link-googleid', async (req, res) => {
+  const { username, googleid } = req.body;
+  try {
+    console.log(`Linking Google ID ${googleid} to user ${username}`);
+    const success = await oAuth.LinkGoogleIDToUser(req.app.locals.dbPool, username, googleid);
+    res.json({ success });;
+  } catch (err) {
+    console.error('Error linking Google ID to user:', err);
+    res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
+});
 
 
 // Example: create a test user and main page instance (pass the pool so it has DB access)

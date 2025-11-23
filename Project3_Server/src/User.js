@@ -115,7 +115,27 @@ class User {
             return Customer.FetchByUsername(db, username, pass, email);
         }
     }
-
+    static async LinkGoogleIdToUser(db, username, googleId) {
+        if (!db || typeof db.query !== 'function') {
+            throw new Error('DB pool not provided or invalid');
+        }
+        const q = 'UPDATE Users SET googleid = $1 WHERE username = $2';
+        const res = await db.query(q, [googleId, username]);
+        if (res.rowCount === 0) {
+            console.log('No user found to update with username:', username);
+            return false;
+        }
+        console.log('Updated user with Google ID:', username);
+        if(res.isemployee) {
+            console.log('Linking Google ID to Employee');
+            await Employee.LinkGoogleIdToEmployee(db, username, googleId);
+        }
+        else {
+            console.log('Linking Google ID to Customer not implemented yet.');
+            // await Customer.LinkGoogleIdToCustomer(db, username, googleId);
+        }
+        return true;
+    }
         
 }
 
@@ -185,6 +205,19 @@ class Employee extends User {
         }
 
         return employees;
+    }
+    static async LinkGoogleIdToEmployee(db, username, googleId) {
+        if (!db || typeof db.query !== 'function') {
+            throw new Error('DB pool not provided or invalid');
+        }
+        const q = 'UPDATE Employees SET googleid = $1 WHERE username = $2';
+        const res = await db.query(q, [googleId, username]);
+        if (res.rowCount === 0) {
+            console.log('No user found to update with username:', username);
+            return false;
+        }
+        console.log('Updated user with Google ID:', username);
+        return true;
     }
 }
 
