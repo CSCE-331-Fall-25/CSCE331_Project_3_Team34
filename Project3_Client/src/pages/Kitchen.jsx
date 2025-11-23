@@ -94,35 +94,39 @@ export default function Kitchen() {
               {(tickets[column.key] ?? []).length === 0 && (
                 <div className="kitchen-empty">No orders</div>
               )}
-              {(tickets[column.key] ?? []).map(ticket => (
-                <article key={ticket.transactionid ?? ticket.id} className="kitchen-ticket">
-                  <div className="kitchen-ticket-header">
-                    <div className="kitchen-ticket-id">#{ticket.transactionid ?? ticket.id ?? '—'}</div>
-                    {ticket.time && (
-                      <div className="kitchen-ticket-time">
-                        {new Date(ticket.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                {(tickets[column.key] ?? []).map(ticket => (
+                  <article
+                    key={ticket.transactionid ?? ticket.id}
+                    className="kitchen-ticket"
+                    onClick={() => updateStage(ticket.transactionid ?? ticket.id)} // <-- add here
+                  >
+                    <div className="kitchen-ticket-header">
+                      <div className="kitchen-ticket-id">
+                        #{ticket.transactionid ?? ticket.id ?? '—'}
+                      </div>
+                      {ticket.time && (
+                        <div className="kitchen-ticket-time">
+                          {new Date(ticket.time).toLocaleTimeString([], {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </div>
+                      )}
+                    </div>
+                    {ticket.customername && (
+                      <div className="kitchen-ticket-name">{ticket.customername}</div>
+                    )}
+                    {Array.isArray(ticket.items) && ticket.items.length > 0 && (
+                      <div className="kitchen-ticket-items">
+                        {(ticket.items ?? []).map((item, idx) => (
+                          <div key={idx} className="kitchen-ticket-item">
+                            {item.name ?? item}
+                          </div>
+                        ))}
                       </div>
                     )}
-                  </div>
-                  {ticket.customername && (
-                    <div className="kitchen-ticket-name">{ticket.customername}</div>
-                  )}
-                  {Array.isArray(ticket.items) && ticket.items.length > 0 && (
-                    <div className="kitchen-ticket-items">
-                      {(ticket.items ?? []).map((item, idx) => (
-                        <button
-                          key={idx}
-                          type="button"
-                          className="kitchen-ticket-btn"
-                          onClick={() => updateStage(ticket.transactionid ?? ticket.id)}
-                        >
-                          {item.name ?? item}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </article>
-              ))}
+                  </article>
+                ))}
             </div>
           </section>
         ))}
