@@ -10,7 +10,6 @@ export default function Hub() {
         <Link to="/manager"><button>Manager</button></Link>
         <Link to="/menu"><button>Menu</button></Link>
         <Link to="/kitchen"><button>Kitchen</button></Link>
-        
     </div>
     );
 }

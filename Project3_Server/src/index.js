@@ -8,6 +8,7 @@ import { Manager } from "./Manager.js";
 import Item, { Menu } from "./Item.js";
 import session from "express-session";
 import cookieParser from "cookie-parser";
+import * as oAuth from "./oAuth.js";
 
 // Kiosk router file is named `Kiosk.js` (capital K). Use the exact filename so imports work
 // on case-sensitive filesystems (e.g. Linux used by many CI/CD hosts).
@@ -17,6 +18,7 @@ import kitchenRouter from "./Kitchen.js";
 dotenv.config();
 
 const app = express();
+app.locals.dbPool = pool;
 // Configure CORS and sessions so client (Vite) can communicate with backend and receive cookies
 const clientOrigin = process.env.CLIENT_ORIGIN || "http://localhost:5173";
 const sessionPrefab = session({
@@ -115,6 +117,27 @@ app.get('/api/get-user', async (req, res) => {
   res.json({ success: true, user: currUser });
 
 });
+
+app.get("/auth/google", (req, res) => {
+ oAuth.redirectToAppWithLoginSuccess(res);
+});
+
+app.get("/auth/google/callback", async (req, res) => {
+  oAuth.googleAuthCallbackHandler(req, res);
+});
+
+
+app.get('/api/auth/me', (req, res) => {
+  //console.log('Received /auth/me request');
+  try {
+    oAuth.authMeHandler(req, res);
+  } catch (err) {
+    console.error('Error in /auth/me:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+
 
 // Example: create a test user and main page instance (pass the pool so it has DB access)
 const user = new User("testUser", "password123", "bob@gmail.com");
