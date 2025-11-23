@@ -106,7 +106,15 @@ export default function App() {
         alert('Google Login Failed: Server did not return JSON.');
       }
     } else if (isSuccess === 'false') {
-      alert('Google Login Failed. Please try again.');
+      // Prevent double alert by cleaning up URL and returning immediately
+      if (window.location.search.includes('success=false')) {
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+      if (!window._googleLoginFailedAlerted) {
+        window._googleLoginFailedAlerted = true;
+        alert('Google Login Failed. Please try again.');
+      }
+      return;
     }
   }
   function clearInputs (){
