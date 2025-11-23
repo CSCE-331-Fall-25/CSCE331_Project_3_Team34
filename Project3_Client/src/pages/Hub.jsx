@@ -71,7 +71,7 @@ export default function Hub() {
     .then(data => {
       if (data.user) {
         // Step 2: User is logged in, redirect to Google OAuth
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+        const apiUrl = (import.meta.env.VITE_API_URL || 'http://localhost:8080').replace(/\/+$/, ''); // Remove trailing slashes
         window.location.href = `${apiUrl}/auth/google?returnTo=${encodeURIComponent('/hub')}&link=true`;
       } else {
         alert('Please log in first before linking a Google account.');

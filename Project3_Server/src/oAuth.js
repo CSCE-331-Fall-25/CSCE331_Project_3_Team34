@@ -8,10 +8,15 @@ import User from './User.js';
 
 import { OAuth2Client } from 'google-auth-library';
 
+// Build redirect URI from API URL if GOOGLE_REDIRECT_URI is not explicitly set
+// Remove trailing slashes to prevent double slashes in the URL
+const apiUrl = (process.env.VITE_API_URL || 'http://localhost:8080').replace(/\/+$/, '');
+const redirectUri = process.env.GOOGLE_REDIRECT_URI || `${apiUrl}/auth/google/callback`;
+
 const client = new OAuth2Client(
   process.env.GOOGLE_CLIENT_ID,
   process.env.GOOGLE_CLIENT_SECRET,
-  process.env.GOOGLE_REDIRECT_URI
+  redirectUri
 );
  
 function redirectToAppWithLoginSuccess(req, res) {
