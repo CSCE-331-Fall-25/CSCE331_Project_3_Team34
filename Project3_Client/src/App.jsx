@@ -1,5 +1,5 @@
-import { Routes, Route, useNavigate, useLocation } from 'react-router-dom'
-import { useState } from 'react'
+import { Routes, Route, useNavigate, useLocation, parsePath } from 'react-router-dom'
+import { use, useState, useEffect } from 'react'
 import WeatherScreen from './pages/WeatherScreen.jsx'
 import pandaLogo from './assets/PandaLogo.svg'
 import Cashier from './pages/Cashier.jsx'
@@ -9,8 +9,10 @@ import Kitchen from './pages/Kitchen.jsx'
 import Kiosk from './pages/Kiosk.jsx'
 import Hub from './pages/Hub.jsx'
 import MealAttributes  from './pages/MealAttributes.jsx' 
-import Reports from './pages/Reports.jsx'
+import React from 'react'
+import GoogleLoginButton from './Components/googleLoginButton.jsx'
 import './styles/App.css'
+//import app from '../../Project3_Server/src/index.js'
 
 
 
@@ -30,7 +32,28 @@ export default function App() {
     setEmployeePassword(event.target.value);
   }
 
-  function handleLogin(event) {
+  async function isValidLogin(userName, password) {
+    try {
+      const res = await fetch('/api/authenticate-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ username: userName, password })
+      });
+      const data = await res.json().catch(() => null);
+      if (res.ok && data && data.success) {
+        console.log('Login successful for user:', userName);
+        return true;
+      }
+      console.log('Login failed for user:', userName, data);
+      return false;
+    } catch (error) {
+      console.error('Error during login request:', error);
+      return false;
+    }
+  }
+
+  async function handleLogin(event) {
     event.preventDefault();
     const trimmedId = employeeId ? employeeId.trim() : '';
     const trimmedPassword = employeePassword ? employeePassword.trim() : '';
@@ -40,16 +63,79 @@ export default function App() {
     }
     console.log("Logging in with ID:", employeeId, "and Password:", employeePassword);
 
-    if(trimmedId === 'admin' && trimmedPassword === 'password') {
-      // navigate to the hub route (use lowercase route path to match route definition)
-      navigate("/hub");
+    const ok = await isValidLogin(trimmedId, trimmedPassword);
+    if (ok) {
+      navigate('/hub');
     } else {
       alert('Invalid Employee ID or Password.');
     }
   }
 
+  //called when returning from Google OAuth flow
+  async function handleGoogleLogin(params, googleid = null) {
+    //console.log('Handling Google Login callback');
+    const isSuccess = params.get('success');
+    const add = params.get('add');
+    if (isSuccess === 'true') {
+      // Fetch user info from backend
+      const res = await fetch('/api/auth/me', { credentials: 'include' });
+
+      if (res.headers.get('content-type')?.includes('application/json')) {
+        const data = await res.json();
+        if(!data || !data.user) {
+          alert('Google Login Failed: No user data returned.');
+          return;
+        }
+        if (data.user && data.user.isEmployee) {
+          // Proceed with your logic
+          if(add === 'true'){ 
+            await fetch('/api/add-googleid', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ username: data.user.userName, googleid: '107052280673566149562' })
+            });
+            alert('added');
+          }
+          navigate('/hub');
+        } else {
+          alert('Google Login Failed: Not an Employee.');
+        }
+      } else {
+        const text = await res.text();
+        console.error('Non-JSON response from /auth/me:', text);
+        alert('Google Login Failed: Server did not return JSON.');
+      }
+    } else if (isSuccess === 'false') {
+      // Prevent double alert by cleaning up URL and returning immediately
+      if (window.location.search.includes('success=false')) {
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+      if (!window._googleLoginFailedAlerted) {
+        window._googleLoginFailedAlerted = true;
+        alert('Google Login Failed. Please try again.');
+      }
+      return;
+    }
+  }
+  function clearInputs (){
+    setEmployeeId('');
+    setEmployeePassword('');
+  }
+  
+    // Clear inputs when the login view is shown (runs on mount and whenever route returns to "/")
+    useEffect(() => {
+      if (showButtons) clearInputs();
+    }, [showButtons]);
+    useEffect(() => {
+      console.log('App mounted, checking for Google Login callback');
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('success')) {
+        handleGoogleLogin(params);
+      }
+    }, []);
   return (
     <div>
+      
       {showButtons && (
         <div className="login-container">
           <img
@@ -71,12 +157,17 @@ export default function App() {
               onChange={handlePasswordChange}
             />
             <button type="submit">Login</button>
+            
           </form>
           <button onClick={() => navigate("/hub")}>
             Debugging Skip Login
           </button>
+          <GoogleLoginButton />
+         
         </div>
+
       )}
+     
 
       {/* Routing logic */}
       <Routes>
@@ -88,7 +179,6 @@ export default function App() {
         <Route path="/kitchen" element={<Kitchen />} />
         <Route path="/kiosk" element={<Kiosk />} />
         <Route path="/hub" element={<Hub />} />
-        <Route path="/reports" element={<Reports />} />
         {/* Root path shows the login UI (App displays the login form when pathname === "/").
             Keep the route lightweight so the login form isn't duplicated with another page. */}
         <Route path="/" element={<div />} />

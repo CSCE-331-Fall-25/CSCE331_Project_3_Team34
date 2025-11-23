@@ -2,331 +2,107 @@ import React from "react";
 import "../styles/Cashier/Cashier.css";
 import "../styles/Cashier/DiscountModal.css";
 import { useEffect, useState, useRef } from "react";
-import CashierMainPage from "../../../Project3_Server/src/MainPage.js";
+// don't import server code into the client bundle
+// replace server-side debugging checks with a local flag
+const debugging = false;
 import { useNavigate } from 'react-router-dom';
+
+//components
+import SignOutButton from "../Components/SignOut.jsx";
+import DiscountModal from "../Components/DiscountModal.jsx";
+import CashierCostTable from "../Components/CashierCostTable.jsx";
+import ClearTransactionButton from "../Components/ClearTransactionButton.jsx";
+import RemoveItemButton from "../Components/RemoveItemButton.jsx";
+import PurchaseButton from "../Components/PurchaseButton.jsx";
+import BuyItemButton from "../Components/BuyItemButton.jsx";
+import CreateMealModal from "../Components/CreateMealModal.jsx";
+import SizeModal from "../Components/SizeModal.jsx";
 export default function Cashier() {
   const navigate = useNavigate();
   //newest Row reference for auto scrolling
   const lastRowRef = useRef(null);
   //handles selected row of items (used for removal/customization)
   const [selectedRow, setSelectedRow] = useState(null);
-  //Discount buttons
+
+  //modal to confirm sign out
+  const [showSignOutModal, setShowSignOutModal] = useState(false);
   const [showCreateMeal, setShowCreateMealModal] = useState(false);
+  // modal mode handled in CreateMealModal
+
+  // Discount buttons/state
   const [showDiscountModal, setShowDiscountModal] = useState(false);
-  const [discountCode, setDiscountCode] = useState("");
   const [discountAmount, setDiscountAmount] = useState(0);
   const [discountPriceOff, setDiscountPriceOff] = useState(0);
-  const [errorMessage, setErrorMessage] = useState("");
+
+  //sizeModal
+  const [showSizeModal, setShowSizeModal] = useState(false);
+  const [selectedSize, setSelectedSize] = useState(null);
+  // pending callback for child components to receive the chosen size
+  const [pendingSizeCallback, setPendingSizeCallback] = useState(null);
+  const sizeOptions = ["Small", "Medium", "Large"]; //UPDATE BASED ON WHAT SIZES WE HAVE
 
   //updates for orderTable
   const [currCost, setCurrCost] = useState(0);
-  const TAXRATE = 0.0825;
+  const [tax, setTax] = useState(0);
+  const [priceTotal, setPriceTotal] = useState(0);
   const [transactionItems, setTransactionItems] = useState([]);
-
-  const [numEntree, setNumEntree] = useState(0);
-  const [numSide, setNumSide] = useState(0);
   const [itemType, setItemType] = useState("NULL");
-  
-  const [entreeList, setEntreeList] = useState(() => Array(numEntree).fill(null));
-  const [sideList, setSideList] = useState(() => Array(numSide).fill(null));
-  const [indexEntree, setIndexEntree] = useState(0);
-  const [indexSide, setIndexSide] = useState(0);
-   
-  const items = [];
-  
-  const items_sides = [];
-  const items_entrees = [];
+  // modal-specific state moved to CreateMealModal
 
-  
-  function foodItem(name, cost, calories, premium, ID, type) {
-    this.name = name;
-    this.cost = cost;
-    this.calories = calories;
-    this.premium = premium;
-    this.ID = ID;
-    this.type = type;
-  } 
-
-  // TODO: Use for loop to populate this list, USE DATABASE!!!!
-  items.push(new foodItem("Orange Chicken", 0.0, 400, true, 67, "entree"))
-  items.push(new foodItem("Teriyaki Chicken", 0.0, 400, true, 68, "entree"))
-  items.push(new foodItem("Butter Chicken", 0.0, 400, true, 67, "entree"))
-  items.push(new foodItem("Bejing Beef", 0.0, 400, true, 68, "entree"))
-  items.push(new foodItem("Black Pepper Angus Beef", 0.0, 400, true, 67, "entree"))
-  items.push(new foodItem("String Bean Chicken", 0.0, 400, true, 68, "entree"))
-
-  items.push(new foodItem("Fried Rice", 0.0, 400, true, 69, "side"))
-  items.push(new foodItem("Chow Mein", 0.0, 400, true, 70, "side"))
-
-  for (let i = 0; i < items.length; i++) {
-    if (items.at(i).type == "entree") {
-      items_entrees.push(items.at(i));
-    } else {
-      items_sides.push(items.at(i));
-    }
-  }
-
-  const finished = (indexEntree === numEntree) && (indexSide === numSide);
-
-  // TODO: Replace these with actual React state or backend calls
-  const handleFinishSelection = () => {
-    if (finished) {
-
-
-      // TODO: CREATE THE TRAY TO ADD TRANSACTION LIST!!! ALL YOUR INFORMATION IS PRINTED BELOW!
-      fetch("/api/buy-item", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ itemID: itemType, entreeList: entreeList, sideList: sideList }),
-      })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success) {
-          console.log("Item bought:", itemType);
-          UpdatePage();
-        }
-        else {
-          console.log("ERROR: Failed to buy item:", itemType);
-        }
-        //console.log("Cost is: ", data.cost)
-      });
-      // console.log("Meal Created with the following items:");
-      // entreeList.forEach((e) => console.log(e ? e.name : "empty"));
-      // sideList.forEach((e) => console.log(e ? e.name : "empty"));
-
-      setShowCreateMealModal(false);
-    }
-    else {
-      console.log("Finish Adding Items!");
-    }
-  };
-
-  const selectEntree = (item) => {
-    const updated = [...entreeList];
-    let updatedIndex = indexEntree;
-    if (indexEntree < numEntree) {
-      updated[indexEntree] = item;
-      updatedIndex = indexEntree + 1; 
-        
-      setEntreeList(updated);
-      setIndexEntree(indexEntree + 1)
-
-      console.log("Item Added: " + item.name);
-    } else {
-      console.log("No more slots")
-    }
-
-    console.log("Current Entree List and index: ")
-    updated.forEach((e) => console.log(e ? e.name : "empty"));
-    console.log("Slots Left: " + updatedIndex + "/" + numEntree);
-  }
-
-  const selectSide = (item) => {
-    const updated_side = [...sideList];
-    let updated_sideIndex = indexSide;
-    if (indexSide < numSide) {
-      updated_side[indexSide] = item;
-      updated_sideIndex = indexSide + 1;
-      setSideList(updated_side);
-      setIndexSide(indexSide + 1)
-
-      console.log("Item Added: " + item.name);
-    } else {
-      console.log("No more slots")
-    }
-
-    console.log("Current Side List and index: ")
-    updated_side.forEach((e) => console.log(e ? e.name : "empty"));
-    console.log("Slots Left: " + updated_sideIndex + "/" + numSide);
-  }
-
-  const removeIndex = (i, type) => {
-    if (type === "entree") {
-      const updated = [...entreeList];
-      updated[i] = null; 
-
-      const compact = updated.filter(x => x !== null);
-
-      while (compact.length < numSide) {
-        compact.push(null);
-      }
-
-      setEntreeList(compact);
-      setIndexEntree(Math.max(indexEntree - 1, 0));
-    } else if (type === "side") {
-      const updated = [...sideList];      
-      updated[i] = null; // remove the selected item
-
-      const compact = updated.filter(x => x !== null);
-
-      while (compact.length < numSide) {
-        compact.push(null);
-      }
-
-      setSideList(compact);
-      setIndexSide(Math.max(indexSide - 1, 0));
-    }
-    
-  };
- 
-  const rows_entree = [];
-  for (let i = 0; i < items_entrees.length; i += 5) {
-    rows_entree.push(items_entrees.slice(i, i + 5));
-  }
-
-  const rows_side = [];
-  for (let i = 0; i < items_sides.length; i += 5) {
-    rows_side.push(items_sides.slice(i, i + 5));
-  }
 
   const handleBuildItem = (e) => {
-    setItemType(e.target.id);
-    switch(e.target.id) {
-      case "Bowl":
-        setNumEntree(1);
-        setNumSide(1);
-        break;
-      case "Plate":
-        setNumEntree(2);
-        setNumSide(1);
-        break;
-      case "Bigger":
-        setNumEntree(3);
-        setNumSide(1);
-        break;
-      case "Family":
-        setNumEntree(3);
-        setNumSide(2);
-        break;
-      default:
-        console.log("Not a valid type");
-        break;
-    }
-
-    setEntreeList(Array(numEntree).fill(null));
-    setSideList(Array(numSide).fill(null));
-    setIndexEntree(0);
-    setIndexSide(0);
-
-    console.log("numEntrees: " + numEntree + ", Sides: " + numSide)
+    const id = e.target.id;
+    setItemType(id);
+    // Let CreateMealModal handle its own internal state and UI
     setShowCreateMealModal(true);
   };
   
-  const handleBuyItem = (e) => {
-  fetch("/api/buy-item", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ itemID: e.target.id }),
-     
+  const openDrinkModal = () => { setItemType("Drink"); setShowCreateMealModal(true); };
+  const openAlacarteModal = () => { setItemType("A La Carte"); setShowCreateMealModal(true); };
+  
+  //login features
+  const [User, setUser] = useState(null);
+  const [isManager, setisManager] = useState(false);
+  function fetchUserData() {
+    // console.log("Fetching user data...");
+    fetch('/api/get-user', {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include'
     })
       .then((res) => res.json())
       .then((data) => {
         if (data.success) {
-          console.log("Item bought:", e.target.id);
-          UpdatePage();
-        }
-        else {
-          console.log("ERROR: Failed to buy item:", e.target.id);
-        }
-        //console.log("Cost is: ", data.cost)
-      });
-  };
-  const handleClearItem = (e) => {
-    if(CashierMainPage.debugging)console.log("Remove item clicked");
-    //Tells server to clear transaction
-    fetch("/api/clear-transaction", {
-        method: "delete",
-      })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success) {
-          if(CashierMainPage.debugging)console.log("Transaction cleared");
-          //server should be clear at this point so now we update frontend
-          UpdatePage();
+          setUser(data.user || null);
+          setisManager(data.isManager || false);
+          // console.log("Fetched user data:", data.user, "Is Manager:", data.isManager);
         }
       });
-  }
-  const handleRemoveItem = (e) => {
-    console.log("Remove item clicked");
-  fetch("/api/remove-item", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ index: selectedRow }) // Pass the index in the body
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success) {
-          console.log("Item removed");
-          setSelectedRow(null);
-          UpdatePage();
-        }
-        else {
-          console.log("ERROR: Failed to remove item at index:", selectedRow);
-        }
-      });
-  }
-  const handlePurchase = (e) => {
-    console.log("Purchase order");
-    fetch("/api/purchase", {
-      method: "POST",
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success) {
-          console.log("Purchase successful");
-          //server should be clear at this point so now we clear frontend
-          UpdatePage();
-        }
-      });
-  }
+    }
+
+  // Note: buy/clear/remove/purchase actions are implemented in their own components
 
   // Navigate back to the top-level login page (App shows login UI when pathname === '/')
   const handleSignOut = () => navigate('/');
-  //modal to confirm sign out
-  const [showSignOutModal, setShowSignOutModal] = useState(false);
-
-
+  const handleReset = () => {
+    // simply close the create meal modal; CreateMealModal owns its state
+    setShowCreateMealModal(false);
+  }
 
   const handleViewReports = () => navigate('/reports')
   const handleAddDiscount = () => setShowDiscountModal(true);
   const handleCreateMeal = () => setShowCreateMealModal(true);
 
-  const handleDiscountSubmit = () => {
-  fetch("/api/add-discount", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ discountCode }),
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        console.log("Discount response:", data);
-        if (data.acceptedDiscount === 1) {
-          setShowDiscountModal(false);
-          //setErrorMessage("");
-          if(CashierMainPage.debugging)console.log("Discount Amount:", data.discountAmount);
-          //setDiscountAmount(data.discountAmount);} 
-          UpdatePage();
-        }
-        else if (data.acceptedDiscount === -1) {
-          if(CashierMainPage.debugging)console.log("Cannot apply discount before adding items");
-          setErrorMessage("Cannot apply discount before adding items");
-          
-
-        }
-        else {
-          setErrorMessage("Invalid discount code");
-          
-        }
-      });
-  };
+ 
 
   //TODO: Make update based on INPUT from CUSTOMIZATION MODAL
   const handleCustomizeOrder = () => {
-    if(CashierMainPage.debugging)console.log("Customize order clicked");
+  if (debugging) console.log("Customize order clicked");
     // Implement customization logic here
     fetch("/api/customize-order", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      credentials: 'include', // Include cookies with this request
       body: JSON.stringify({ index: selectedRow }) // Pass the index in the body
     })
       .then((res) => res.json())
@@ -334,6 +110,7 @@ export default function Cashier() {
         if (data.success) {
           console.log("Order customized");
           setSelectedRow(null);
+          fetchUserData();
           UpdatePage();
         }
       });
@@ -343,8 +120,19 @@ export default function Cashier() {
 
   //Called on page refresh, should update frontend based on what is on the server
   useEffect(() => {
-    console.log("Fetching current state from server...");
     
+    console.log("Fetching current state from server...");
+    // Guard against double runs in development caused by React.StrictMode (React 18 double-mount)
+    // and by HMR remounts. Use a window-scoped flag so the fetch only happens once per page load.
+    try {
+      if (typeof window !== 'undefined') {
+        if (window.__cashier_initial_fetch_done) return;
+        window.__cashier_initial_fetch_done = true;
+      }
+    } catch (e) {
+      // ignore any access errors and continue
+    }
+
     UpdatePage();
   }, []);
   
@@ -357,28 +145,33 @@ export default function Cashier() {
   }, [transactionItems]);
 
   const UpdatePage = () => {
-  fetch("/api/current-state")
+  fetch("/api/current-state", {
+    credentials: 'include' // Include cookies with this request
+  })
       .then((res) => res.json())
       .then((data) => {
         //Formats orders into a flat array for display
-        console.log("Current State Data:", data);
+        // console.log("Update Page Current State Data:", data);
         if (Array.isArray(data.orders)) {
           const formattedItems = data.orders.flatMap(order => [
             { cost: order.cost, item: order.item, type: "main"},
             ...(order.entrees ? order.entrees.map(entree => ({ item: (typeof entree === 'string' ? { name: entree } : entree), type: "entree" })) : []),
             ...(order.sides ? order.sides.map(side => ({ item: (typeof side === 'string' ? { name: side } : side), type: "side" })) : [])
           ]);
-          console.log("Formatted Items:", formattedItems);
+          // console.log("UpdatePage Formatted:", formattedItems);
           //updates the front end to show current items
           setTransactionItems(formattedItems);
         } else {
           setTransactionItems([]);
         }
         //Calls functions to update their states
-        setCurrCost(data.totalPrice || 0);
+        setCurrCost(data.currCost || 0);
+        setPriceTotal(data.totalPrice || 0);
+        setTax(data.tax || 0);
         setDiscountAmount(data.discountAmount || 0);
         setDiscountPriceOff(data.priceOff || 0);
       });
+      fetchUserData();
   }
 
 
@@ -386,173 +179,54 @@ export default function Cashier() {
 
   return (
     <div className="main-page bkgColor cashier-container">
-      {showCreateMeal && (
-      <div className="modal-overlay-meal" 
-      style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            width: "100vw",
-            height: "100vh",
-            background: "rgba(0,0,0,0.6)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 1000
+      {/* //to use the size modal, set sizes based on options, then collect setSelectedSize for output */}
+      {showSizeModal && (
+        <SizeModal
+          // pass a function so we don't call the setter during render
+          onClose={() => {
+            setShowSizeModal(false);
+            setPendingSizeCallback(null);
           }}
-      onClick={() => setShowCreateMealModal(false)}>
-        <div className="p-4 space-y-3 modal-menu-container"
-        style={{
-              background: "#f9f9fb",
-              padding: "2.5rem 2rem 2rem 2rem",
-              borderRadius: "16px",
-              boxShadow: "0 8px 32px rgba(0,0,0,0.25)",
-              minWidth: "90vw",
-              maxWidth: "90vw",
-              position: "relative",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center"
-            }}
-        onClick={e => e.stopPropagation()}>
-          <div className="main-layout">
-            <div className="menu-wrapper">
-              <div className="section section-entrees">
-
-                <h3 className="section-title">Entrees:</h3>
-
-                {rows_entree.map((row, rowIndex) => (
-                  <div key={rowIndex} className={`menu-row `}>
-                    {row.map((item, itemIndex) => (
-                      <button
-                        key={itemIndex}
-                        id={item.name}
-                        className="buy-button"
-                        //onClick={() => console.log("The item is: " + item.name + " and it costs this much: " + item.cost)}
-                        onClick={() => selectEntree(item)}
-                      >
-                        {item.name}
-                      </button>
-                    ))}
-                  </div>
-                ))}
-
-              </div>   
-
-              <div className="section section-sides"> 
-
-                <h3 className="section-title">Sides:</h3>
-
-                  {rows_side.map((row, rowIndex) => (
-                    <div key={rowIndex} className={`menu-row ${rowIndex > 0 ? 'spaced' : ''}`}>
-                      {row.map((item, itemIndex) => (
-                        <button
-                          key={itemIndex}
-                          id={item.name}
-                          className="buy-button"
-                          //onClick={() => console.log("The item is: " + item.name + " and it costs this much: " + item.cost)}
-                          onClick={() => selectSide(item)}
-                        >
-                          {item.name}
-                        </button>
-                      ))}
-                    </div>
-                  ))}    
-                </div>
-              </div>
-            </div>
-
-            <div className="selected-panel">
-                <div className="selected-group">
-                  <h3 className="section-title">Selected Entrees</h3>
-                  {Array.from({ length: numEntree }).map((_, i) => (
-                    <button
-                      key={i}
-                      className="selected-button"
-                      onClick={() => removeIndex(i, "entree")}
-                    >
-                      {entreeList[i] ? entreeList[i].name : "NONE"}
-                    </button>
-                  ))}
-                </div>
-
-                
-                <div className="selected-group">
-                  <h3 className="section-title">Selected Sides</h3>
-                  {Array.from({ length: numSide }).map((_, i) => (
-                    <button
-                      key={i}
-                      className="selected-button"
-                      onClick={() => removeIndex(i, "side")}
-                    >
-                      {sideList[i] ? sideList[i].name : "NONE"}
-                    </button>
-                  ))}
-                </div>
-          </div>
-
-          <button
-            className="continue-button"
-            onClick={handleFinishSelection}
-          >
-            Continue
-          </button>
-        </div> 
-      </div>
+          onSelectSize={(size) => {
+            setSelectedSize(size);
+            setShowSizeModal(false);
+            if (typeof pendingSizeCallback === 'function') {
+              try { pendingSizeCallback(size); } catch (e) { console.error(e); }
+              setPendingSizeCallback(null);
+            }
+          }}
+          sizes={sizeOptions}
+        />
       )}
-      {showDiscountModal && (
-        <div
-          className="modal-overlay"
-          onClick={() => setShowDiscountModal(false)}
-        >
-          <div
-            className="modal-window"
-            onClick={e => e.stopPropagation()}
-          >
-            <h2 className="modal-title">Enter Discount Code</h2>
-            <input
-              type="text"
-              value={discountCode}
-              onChange={e => setDiscountCode(e.target.value)}
-              placeholder="Discount Code"
-              className="modal-input"
-            />
-            <div className="modal-error">{errorMessage}</div>
-            <div className="modal-actions">
-              <button
-                onClick={handleDiscountSubmit}
-                className="modal-submit"
-              >
-                Submit
-              </button>
-              <button
-                onClick={() => setShowDiscountModal(false)}
-                className="modal-back"
-              >
-                Back
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+
+      <CreateMealModal
+        show={showCreateMeal}
+        onClose={handleReset}
+        initialType={itemType}
+        onBought={() => { UpdatePage(); }}
+        // allow the modal to request a size selection; the modal provides a callback to receive the selected size
+        requestSizeSelection={(receiveSizeCallback) => {
+          if (typeof receiveSizeCallback === 'function') {
+            setPendingSizeCallback(() => receiveSizeCallback);
+            setShowSizeModal(true);
+          }
+        }}
+        selectedSize={selectedSize}
+      />
+      <DiscountModal
+        show={showDiscountModal}
+        onClose={() => setShowDiscountModal(false)}
+        onApplied={({ discountAmount: amt, priceOff: off, discountPer }) => {
+          // update local discount view and refresh state from server
+          setShowDiscountModal(false);
+          setDiscountAmount(amt || 0);
+          setDiscountPriceOff(off || 0);
+          UpdatePage();
+        }}
+        userIsManager={isManager}
+      />
       {showSignOutModal && (
-        <div
-          className="modal-overlay"
-          onClick={() => setShowSignOutModal(false)}
-            >
-          <div className="modal-window" onClick={e => e.stopPropagation()}>
-            <div className="modal-title">
-              <h2>Confirm Sign Out</h2>
-            <div>
-              Are you sure you want to sign out?
-            </div>
-            </div>
-            <div className= "modal-actions">
-              <button className="button" onClick={handleSignOut}>Yes</button>
-              <button className="button" onClick={() => setShowSignOutModal(false)}>No</button>
-            </div>
-          </div>
-        </div>
+        <SignOutButton onClose={() => setShowSignOutModal(false)} />
       )}
       {/* Sidebar */}
       <div className="sidebar-left" />
@@ -564,131 +238,55 @@ export default function Cashier() {
       <div className="label-employee">Employee:</div>
       <div className="label-time">Time:</div>
 
-      {/* Order summary area */}
+      {/* Order summary area (moved to CashierCostTable for clarity) */}
       <div className="order-area">
-        <div className="order-table-scroll">
-          <table className="orderTable order-table">
-            <thead>
-              <tr>
-                <th>Cost</th>
-                <th>Item</th>
-              </tr>
-            </thead>
-            <tbody>
-              {/* Group transactionItems by main items, then render each main with its entrees/sides as subrows */}
-              {(() => {
-                // Build grouped array: [{ main, entrees: [], sides: [] }]
-                const grouped = [];
-                let i = 0;
-                while (i < transactionItems.length) {
-                  if (transactionItems[i].type === "main") {
-                    const main = transactionItems[i];
-                    const group = { main, entrees: [], sides: [] };
-                    let j = i + 1;
-                    while (j < transactionItems.length && transactionItems[j].type !== "main") {
-                      if (transactionItems[j].type === "entree") group.entrees.push(transactionItems[j]);
-                      if (transactionItems[j].type === "side") group.sides.push(transactionItems[j]);
-                      j++;
-                    }
-                    grouped.push(group);
-                    i = j;
-                  } else {
-                    i++;
-                  }
-                }
-                return grouped.map((group, mainIdx) => (
-                  // takes group and renders main row plus entrees/sides
-                  <React.Fragment key={`group-${mainIdx}`}>
-                    <tr
-                      key={`main-${mainIdx}`}
-                      ref={mainIdx === grouped.length - 1 ? lastRowRef : null}
-                      className={mainIdx === selectedRow ? "selected-row" : "clickable-row"}
-                      onClick={() => setSelectedRow(mainIdx)}
-                    >
-                    <td>{`$${group.main.cost}`}</td>
-                    <td>{
-                      group.main && typeof group.main.item === 'object' && group.main.item !== null
-                        ? group.main.item.name
-                        : group.main.item
-                    }</td>
-                    </tr>
-                    {/* Render entrees as indented subrows */}
-                    {group.entrees.map((entree, eIdx) => (
-                      <tr key={`main-${mainIdx}-entree-${eIdx}-${entree.item.name}`} className="subrow">
-                        <td></td>
-                        <td style={{ paddingLeft: "2em" }}>{`Entree: ${entree.item.name}`}</td>
-                      </tr>
-                    ))}
-                    {/* Render sides as indented subrows */}
-                    {group.sides.map((side, sIdx) => (
-                      <tr key={`main-${mainIdx}-side-${sIdx}-${side.item.name}`} className="subrow">
-                        <td></td>
-                        <td style={{ paddingLeft: "2em" }}>{`Side: ${side.item.name}`}</td>
-                      </tr>
-                    ))}
-                  </React.Fragment>
-                ));
-              })()}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="order-stats">
-          {/* (total price - price off) * discountPercent */}
-          <p>Total Cost: ${(currCost).toFixed(2)}</p>
-          <p>Discount Amount: ${typeof discountAmount === "number" ? discountAmount.toFixed(2) : "0.00"}</p>
-          <p>Tax: ${(currCost * TAXRATE).toFixed(2)}</p>
-          <p>Price Total: ${((currCost - (typeof discountAmount === "number" ? discountAmount : 0)) + TAXRATE * currCost).toFixed(2)}</p>
-        </div>
-
-        <button onClick={handlePurchase} className="miscButtonFlex purchase-button">
-          Purchase
-        </button>
+        <CashierCostTable
+          transactionItems={transactionItems}
+          selectedRow={selectedRow}
+          setSelectedRow={setSelectedRow}
+          lastRowRef={lastRowRef}
+          currCost={currCost}
+          tax={tax}
+          priceTotal={priceTotal}
+          discountAmount={discountAmount}
+          discountPriceOff={discountPriceOff}
+          onPurchase={UpdatePage}
+        />
       </div>
 
       {/* Menu buttons */}
       <div className="menu-area">
         <div className="menu-row">
-          {["Bowl", "Plate", "Bigger", "Family"].map((item) => ( //Can we set this to be filled by the DB?
+          {["Bowl", "Plate", "Bigger", "Family"].map((item) => (
             <button key={item} id={item} className="buy-button" onClick={handleBuildItem}>
               {item}
             </button>
           ))}
         </div>
         <div className="menu-row spaced">
-          {["A La Carte", "Appetizer"].map((item) => (
-            <button key={item} id={item} className="buy-button" onClick={handleBuyItem}>
-              {item}
-            </button>
-          ))}
-        </div>
-        <div className="menu-row spaced">
-          {["Small Drink", "Medium Drink", "Large Drink", "Bottle"].map((item) => (
-            <button key={item} id={item} className="buy-button" onClick={handleBuyItem}>
+          {["A La Carte", "Appetizer", "Drink", "Bottle"  ].map((item) => (
+            <button key={item} id={item} className="buy-button" onClick={handleBuildItem}>
               {item}
             </button>
           ))}
         </div>
       </div>
 
-      {/* update order buttons */}
+      {/* update order buttons (extracted components) */}
       <div className="updateOrder-button-row">
-        {/* Render all orderUpdate buttons in a row here */}
-        <button onClick={handleRemoveItem} className="UpdateOrderButton">REMOVE</button>
-        <button onClick={handleClearItem} className="UpdateOrderButton">CLEAR TRANS</button>
+        <RemoveItemButton index={selectedRow} onRemoved={() => { setSelectedRow(null); UpdatePage(); }} />
+        <ClearTransactionButton onCleared={() => { UpdatePage(); }} />
         <button onClick={handleCustomizeOrder} className="UpdateOrderButton">CUSTOMIZE</button>
       </div>
+
+      {/* Purchase handled inside CashierCostTable to preserve original layout */}
 
       {/* Function buttons (left sidebar) */}
       <div className="functions-column">
         {[
           { text: "Discount", handler: handleAddDiscount },
           { text: "Reports", handler: handleViewReports },
-          // { text: "Inventory", handler: handleOpenInventory },
-          // { text: "Employees", handler: handleOpenEmployee },
-          // { text: "Edit Items", handler: handleEditItems },
-          // { text: "Edit Menu", handler: handleEditMenu },
-          { text: "Sign Out", handler: setShowSignOutModal },
+          { text: "Sign Out", handler: () => setShowSignOutModal(true) },
         ].map((btn) => (
           <button key={btn.text} onClick={btn.handler} className="function-button">
             {btn.text}

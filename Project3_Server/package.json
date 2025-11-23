@@ -4,6 +4,7 @@
   "type": "module",
   "main": "src/index.js",
   "scripts": {
+    "start": "node src/index.js",
     "test": "node --test",
     "dev": "node --watch src/index.js"
   },
@@ -13,9 +14,12 @@
   "description": "",
   "dependencies": {
     "@tanstack/react-table": "^8.21.3",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
+    "express-session": "^1.18.2",
+    "google-auth-library": "^10.5.0",
     "pg": "^8.16.3"
   },
   "devDependencies": {

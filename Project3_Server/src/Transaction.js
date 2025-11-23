@@ -2,7 +2,8 @@ import { Menu } from './Item.js';
 import { Employee } from './User.js';
 
 class Transaction {
-    constructor(employee) {
+    constructor(db, employee) {
+        this.db = db;
         this.employee = employee || new Employee('','','');
         this.amount = 0;
         this.profit = 0;
@@ -12,8 +13,8 @@ class Transaction {
         this.customerID = null;
     }
 
-    NewOrder(item) {
-        this.currOrder = new Order(this, item);
+    NewOrder(item, size = null) {
+        this.currOrder = new Order(this, item, size);
         this.orders.push(this.currOrder);
         return this.currOrder;
     }
@@ -38,7 +39,7 @@ class Transaction {
             transaction.amount,
             transaction.profit,
             transaction.customerID || null,
-            0 // Assuming '0' is the initial stage
+            4 // Stage 4 = "Waiting" in kitchen display (not started)
         ]);
         
         for (const order of transaction.orders) {
@@ -47,19 +48,43 @@ class Transaction {
 
         return transactionID;
     }
+
+    async calculateTotals(db) {
+        let totalAmount = 0;
+        let totalProfit = 0;
+
+        for (const order of this.orders) {
+            const orderPrice = await order.calculatePrice(db);
+            totalAmount += orderPrice;
+            // For simplicity, assume profit is 20% of the price
+            totalProfit += orderPrice * 0.2;
+        }
+
+        // Round totals to two decimal places
+        totalAmount = Math.round((totalAmount + Number.EPSILON) * 100) / 100;
+        totalProfit = Math.round((totalProfit + Number.EPSILON) * 100) / 100;
+
+        this.amount = totalAmount;
+        this.profit = totalProfit;
+
+        return this.amount;
+    }
 }
 
 class Order {
-    constructor(transaction, item) {
+    constructor(transaction, item, size = null) {
         this.item = item;
         this.transaction = transaction;
-        
+        this.size = size;
+        this.price = 0;
+        this.db = transaction.db;
+
         this.entrees = [];
         this.sides = [];
     }
 
-    NewTray(menu, type) {
-        const newTray = new Tray(this, menu, type);
+    NewTray(menu, type, size) {
+        const newTray = new Tray(this, menu, this.item, size);
         // Initialize arrays if they don't exist
         this.entrees = this.entrees || [];
         this.sides = this.sides || [];
@@ -69,34 +94,36 @@ class Order {
         } else {
             this.entrees.push(newTray);
         }
+
         return newTray;
     }
 
-    async AddTrays(db, entreeList = [], sideList = []) {
+    async AddTrays(db, entreeList = [], sideList = [], size) {
         // Helper to get a name whether caller passed a string or { name }
         const getName = (x) => (typeof x === 'string' ? x : x?.name);
 
-        // Always add all provided entrees
+        // Always add all provided entrees, using per-entry size if present, otherwise fallback to provided size
         for (const entree of (entreeList || [])) {
             const name = getName(entree);
             if (!name) continue;
             let menu = await Menu.fetchByName(db, name);
-            console.log('Fetched menu for entree:', menu);
+            console.log('Fetched menu for entree:', menu.name);
             if (!menu) menu = { name };
-            this.NewTray(menu, 'entree');
+            this.NewTray(menu, 'entree', size);
         }
 
-        // Always add all provided sides
+        // Always add all provided sides, using per-entry size if present, otherwise fallback to provided size
         for (const side of (sideList || [])) {
             const name = getName(side);
             if (!name) continue;
             let menu = await Menu.fetchByName(db, name);
             if (!menu) menu = { name };
-            this.NewTray(menu, 'side');
+            this.NewTray(menu, 'side', size);
         }
 
         // If nothing was provided (e.g., non-meal items), do nothing here.
         // Such items are typically handled elsewhere, or have zero trays.
+        await this.transaction.calculateTotals(db);
     }
 
     static async AddToDatabase(db, transactionID, order) {
@@ -123,20 +150,38 @@ class Order {
             await Tray.AddToDatabase(db, orderID, tray);
         }
     }
+
+    async calculatePrice(db) {
+        let price = this.item.price || 0;
+        for (const tray of [...(this.entrees || []), ...(this.sides || [])]) {
+            price += await tray.calculatePrice(db);
+        }
+        // Round price to two decimal places
+        price = Math.round((price + Number.EPSILON) * 100) / 100;
+        this.price = price;
+        return price;
+    }
 }
 
 class Tray {
-    constructor(order, menu, type) {
+    constructor(order, menu, item, size = null) {
         this.order = order;
         this.menu = menu;
-        this.type = type;
+        this.item = item;
+        this.size = size;
+        this.price = 0;
+
+        this.db = order.db;
+        this.calculatePrice(this.db);
+        order.calculatePrice(this.db);
+        order.transaction.calculateTotals(this.db);
     }
 
     static async AddToDatabase(db, orderID, tray) {
         // Output to database
         const insertTrayQuery = `
-            INSERT INTO trays (orderid, menuid, type)
-            VALUES ($1, $2, $3)
+            INSERT INTO trays (orderid, menuid, type, size)
+            VALUES ($1, $2, $3, $4)
         `;
         // Determine menuid: prefer tray.menu.menuid, fall back to a lookup by name if available
         let menuid = tray?.menu?.menuid ?? null;
@@ -153,9 +198,37 @@ class Tray {
         await db.query(insertTrayQuery, [
             orderID,
             menuid,
-            tray.type
+            tray.item.type,
+            tray.size
         ]);
     }
+
+    async calculatePrice(db) {
+        // Fetch menu item price from DB if not already present
+        let price = 0;
+        if (this.size !== null) {
+            // console.log('Calculating price for tray with size:', this.size);
+            // Query the price from the sizemod table with the size
+            const sizeQuery = 'SELECT pricemod FROM sizemods WHERE name = $1 AND size = $2 AND type = $3';
+            
+            let type = this.menu.type;
+            if (this.menu.pricemod !== 0) {
+                type = 'premium';
+            }
+
+            const sizeRes = await db.query(sizeQuery, [this.item.itemType, this.size, type]);
+            if (sizeRes && sizeRes.rows && sizeRes.rows.length > 0) {
+                price += sizeRes.rows[0].pricemod || 0;
+            }
+        } else {
+            price += this.menu.pricemod;
+        }
+        // Round price to two decimal places
+        price = Math.round((price + Number.EPSILON) * 100) / 100;
+        this.price = price;
+        return price;
+    }
+
 }
 
 export default Transaction;

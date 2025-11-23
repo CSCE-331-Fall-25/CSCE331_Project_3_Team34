@@ -147,12 +147,14 @@
     margin-top: 10px;
 }
 .table-container {
-    max-height: 100; 
-    overflow: auto; /* scroll both axes if needed (mostly vertical) */
+    max-height: 410px;
+    overflow-y: auto;
     width: 100%;
     margin-left: auto;
     margin-right: auto;
-    display: block; /* block so the container's overflow works predictably */
+    display: flex;
+    justify-content: center;
+    border-collapse: collapse;
 }
 
 .table-container thead th {
@@ -178,4 +180,234 @@
     border-color:#ababab;
     border-style: solid;
     text-align: center;
+}
+
+.text-box-container {
+    position: absolute;
+    bottom: 3%;
+    display: flex;
+    justify-content: center;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 10px;
+    width: calc(100% - 40px); /* respect modal padding */
+}
+
+.management-buttons-container {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 20%;
+    display: flex;
+    justify-content: center;
+    flex-direction: row;
+    gap: 10px;
+    width: calc(100% - 32px); /* respect modal padding */
+    max-width: 1600px; /* avoid stretching too wide */
+}
+
+.textbox {
+    width: 250px;
+    height: 35px;
+    font-size: 18px;
+    cursor: pointer;
+    border-radius: 8px;
+    border: black 2px solid;
+    background-color: #d60606;
+    color: white;
+    font-weight: 700;
+}
+.textbox:hover {
+    background-color: #cc1e1e;
+    box-shadow: 0 10px 10px rgba(0,0,0,0.2);
+    transform: translateY(-4px);
+}
+input::placeholder,
+textarea::placeholder {
+  text-align: center;
+  color: rgb(222, 222, 222);
+}
+
+.employeeTableContainer {
+    max-height: 350px;
+    overflow-y: auto;
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    display: flex;
+    justify-content: center;
+    border-collapse: collapse;
+}
+  
+.menu-text-box-container {
+    position: absolute;
+    bottom: 3%;
+    display: flex;
+    justify-content: center;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 10px;
+    width: calc(90% - 80px); /* respect modal padding */
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.line-chart {
+    position: absolute;
+    width: 70%;
+    left: 25%;
+    bottom: 22%;
+    max-height: 400px;
+}
+
+
+/* Input styling */
+.rc-input {
+  width: 200px;
+  padding: 0.6rem 0.75rem;
+  border: 2px solid #d40000;
+  border-radius: 6px;
+  font-size: 1rem;
+  background-color: white;
+  color: #222;
+  transition: all 0.2s;
+}
+
+.rc-input:focus {
+  outline: none;
+  border-color: #ff1a1a;
+  box-shadow: 0 0 0 3px rgba(255, 0, 0, 0.25);
+}
+
+/* Popup panel */
+.rc-panel {
+  background: #ffffff;
+  border: 2px solid #d40000;
+  border-radius: 10px;
+  padding: 0.75rem;
+  box-shadow: 0 4px 15px rgba(255, 0, 0, 0.25);
+}
+
+/* Calendar table base */
+.rc-panel table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+/* Day cells */
+.rc-panel td {
+  text-align: center;
+  padding: 0.55rem;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 0.2s, color 0.2s;
+  color: #333;
+}
+
+/* Hover */
+.rc-panel td:hover {
+  background-color: #ffe5e5;
+}
+
+/* Selected day */
+.rc-panel td.p-highlight {
+  background-color: #ff0000 !important;
+  color: white !important;
+  font-weight: bold;
+}
+
+/* Weekday header */
+.rc-panel th {
+  padding-bottom: 0.5rem;
+  font-weight: bold;
+  color: #d40000;
+}
+
+/* Month & year title */
+.p-datepicker-title {
+  color: #d40000;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+  font-size: 1.1rem;
+}
+
+.p-datepicker-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem;
+  border-bottom: 2px solid #d40000;
+  margin-bottom: 0.5rem;
+}
+
+/* Month and Year text */
+.p-datepicker-title {
+  display: flex;
+  gap: 4px;
+  color: #d40000;
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+/* Individual month/year spans */
+.p-datepicker-month,
+.p-datepicker-year {
+  color: #d40000;
+}
+
+/* Prev/Next arrow buttons */
+.p-datepicker-prev,
+.p-datepicker-next {
+  background: none;
+  border: none;
+  color: #d40000;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 6px;
+  font-size: 1.2rem;
+  transition: background 0.15s;
+}
+
+.p-datepicker-prev:hover,
+.p-datepicker-next:hover {
+  background: #ffe5e5;
+}
+
+/************************************
+  WEEKDAY LABELS (Sun Mon Tue ...)
+*************************************/
+.p-datepicker-weekday {
+  color: #d40000;
+  font-weight: bold;
+  font-size: 0.9rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #ffd0d0;
+  text-align: center;
+}
+
+.employeeTableContainer table tr.selected {
+  background-color: #ffdddd;
+  color: #b00000;
+}
+
+.employeeTableContainer table tr:hover {
+  background-color: #ffecec;
+  cursor: pointer;
+}
+
+.report-times-container .react-datepicker__day--selected,
+.report-times-container .react-datepicker__day--keyboard-selected {
+  background-color: #cc0000;
+  color: white;
+  border-radius: 4px;
+}
+
+.report-times-container .react-datepicker-wrapper input {
+  width: 180px;
+  padding: 8px 10px;
+  border: 2px solid #cc0000;
+  border-radius: 6px;
+  background: white;
+  color: #cc0000;
+  font-weight: 600;
 }

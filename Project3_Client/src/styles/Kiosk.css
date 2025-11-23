@@ -1,0 +1,339 @@
+.kiosk-root{
+  display: grid;
+  grid-template-columns: 220px 1fr 320px;
+  gap: 16px;
+  height: 100vh;
+  padding: 16px;
+  box-sizing: border-box;
+  background: #D71920;
+}
+
+.kiosk-left, .kiosk-middle, .kiosk-right{
+  background: white;
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  display: flex;
+  flex-direction: column;
+  min-height: 0; /* allow children to size/scroll correctly */
+}
+
+.kiosk-title{
+  margin: 0 0 8px 0;
+  font-size: 1.1rem;
+  color: #222;
+}
+
+.kiosk-type-list{
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 8px;
+  align-content: flex-start;
+  align-items: start;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px; /* give space for scrollbar */
+}
+
+.kiosk-type-btn{
+  padding: 10px 8px;
+  width: 100%; /* fill the grid cell */
+  border: 1px solid #e3e3e3;
+  background: #fff;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: center;
+  justify-self: stretch;
+}
+
+.kiosk-type-btn.active{
+  background: #D71920;
+  color: white;
+  border-color: transparent;
+}
+
+.kiosk-middle{
+  overflow-y: auto;
+}
+
+.kiosk-items-grid{
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.kiosk-item{
+  border: 1px solid #e3e3e3;
+  padding: 12px;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: #fff;
+  text-align: left;
+  width: 100%;
+  align-items: flex-start;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  transition: border-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
+  min-height: 140px;
+  justify-content: flex-start;
+}
+
+.kiosk-item:hover{
+  border-color: #2b7cff;
+  box-shadow: 0 6px 16px rgba(43, 124, 255, 0.15);
+  transform: translateY(-2px);
+}
+
+.kiosk-item:focus-visible{
+  outline: 2px solid #2b7cff;
+  outline-offset: 2px;
+}
+
+.kiosk-item:active{
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(43, 124, 255, 0.2);
+}
+
+.kiosk-selection-banner{
+  margin-bottom: 12px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.kiosk-selection-remaining{
+  font-weight: 400;
+  color: #666;
+}
+
+.kiosk-item-name{
+  font-weight: 600;
+}
+
+
+.kiosk-right{
+  display: flex;
+  flex-direction: column;
+}
+
+.kiosk-order-list{
+  flex: 1 1 auto;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.kiosk-order-row{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px;
+  border: 1px solid #f0f0f0;
+  border-radius: 6px;
+}
+
+.kiosk-order-row-parent{
+  background: #fff;
+}
+
+.kiosk-order-row-child{
+  margin-left: 16px;
+  border-left: 3px solid #f4c27a;
+  padding-left: 12px;
+  background: #fff9f0;
+}
+
+.kiosk-order-actions{
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.kiosk-remove-btn{
+  background: transparent;
+  border: none;
+  padding: 6px 8px;
+  cursor: pointer;
+}
+
+.kiosk-swap-btn{
+  background: transparent;
+  border: none;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.kiosk-order-summary{
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.kiosk-clear-btn{ background: #f2f2f2; padding: 8px 10px; border-radius:6px; border:none; cursor:pointer }
+.kiosk-checkout-btn{ background: #1a9c3b; color:white; padding: 8px 10px; border-radius:6px; border:none; cursor:pointer }
+
+.kiosk-empty{ color:#666; padding: 18px; text-align:center }
+
+.kiosk-logo-wrapper{
+  flex: 1 1 auto;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: clamp(20px, 6vh, 64px);
+}
+
+.kiosk-logo{
+  width: clamp(160px, 30%, 380px);
+  height: auto;
+  max-width: 100%;
+}
+
+/* Wrapper fills the viewport and centers the card */
+.purchase-screen-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background-color: #D71920;
+}
+
+/* Card container */
+.purchase-screen-card {
+  background-color: white;
+  border-radius: 20px;
+  width: 85vw;
+  height: 85vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 30px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+}
+
+.awaiting-purchase-img {
+  width: 200px;
+  height: auto;
+  margin-bottom: 30px;
+}
+
+
+.purchase-logo {
+  width: 120px;
+  height: 120px;
+  margin-bottom: 10px;
+}
+
+.option-button {
+  width: 150px;
+  height: 50%;
+  padding: 10px 20px;
+  font-size: 16px;
+  cursor: pointer;
+  border-radius: 10px;
+  border: none;
+  background-color: #e33;
+  color: white;
+  font-family: Furtiger, sans-serif;
+  transition: background-color 0.2s;
+}
+
+.option-button:hover {
+  background-color: #D71920;
+}
+
+.purchase-screen-title {
+  font-size: 3rem;
+  font-weight: 600;
+  margin-bottom: 20px;
+  color: #D71920;
+  font-family: Furtiger, sans-serif;
+}
+
+
+.purchase-screen-price {
+  font-size: 2rem;
+  font-weight: 600;
+  margin-bottom: 20px;
+  color: #1a1a1a;
+  font-family: Furtiger, sans-serif;
+}
+
+.purchase-buttons {
+  display: flex;
+  justify-content: space-around;
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.purchase-option {
+  width: 240px; /* square width */
+  height: 240
+  px; /* square height */
+  border: 2px solid black;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.2s, background-color 0.2s;
+
+}
+
+.purchase-option:hover {
+  transform: scale(1.05);
+  background-color: #f0f0f0;
+}
+
+.option-img {
+  width: 100px;
+  height: 100px;
+  margin-bottom: 10px;
+}
+
+.option-text {
+  font-weight: bold;
+  font-size: 16px;
+  font-family: Furtiger, sans-serif;
+  padding: 5px;
+}
+
+.finished-img {
+  width: 250px;
+  height: auto;
+  margin-bottom: 20px;
+}
+
+.finished-option {
+  width: 180px;
+  height: 50px;
+  padding: 10px 20px;
+  font-size: 16px;
+  cursor: pointer;
+  border-radius: 10px;
+  border: none;
+  background-color: #e33;
+  color: white;
+  font-family: Furtiger, sans-serif;
+  transition: background-color 0.2s;
+
+  display: flex;              
+  justify-content: center;    /* NEW */
+  align-items: center;        /* NEW */
+}
+
+.remove-icon {         /* NEW */
+  width: 16px;            /* NEW */
+  height: 16px;           /* NEW */
+}
+
+.swap-icon {         /* NEW */
+  width: 16px;            /* NEW */
+  height: 16px;           /* NEW */
+}
