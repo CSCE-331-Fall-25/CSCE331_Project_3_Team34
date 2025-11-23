@@ -15,6 +15,8 @@ import * as oAuth from "./oAuth.js";
 import kioskRouter from "./Kiosk.js";
 import kitchenRouter from "./Kitchen.js";
 
+// Load .env file only if it exists (for local development)
+// In production (Render), environment variables are set directly
 dotenv.config();
 
 const app = express();

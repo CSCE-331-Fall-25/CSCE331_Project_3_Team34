@@ -1,4 +1,6 @@
 import dotenv from 'dotenv';
+// Load .env file only if it exists (for local development)
+// In production (Render), environment variables are set directly
 dotenv.config();
 import User from './User.js';
 

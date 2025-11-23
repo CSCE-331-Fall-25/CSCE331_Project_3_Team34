@@ -2,10 +2,9 @@ import pkg from "pg";
 
 const { Pool } = pkg;
 
-// Connect to PostgreSQL (assignable so tests can inject a mock)
-// Create a Postgres pool if we can. Use DATABASE_URL from environment (.env) with a standard
-// postgres://user:pass@host:port/dbname format. If connection fails (wrong creds or network)
-// we log a clear message and continue with `pool = null` so the server doesn't crash.
+// Connect to PostgreSQL
+// In production (Render), DATABASE_URL is provided as an environment variable
+// For local development, falls back to the default connection string
 const connectionString = process.env.DATABASE_URL || "postgres://team_34:bobross@csce-315-db.engr.tamu.edu:5432/team_34_db";
 
 export const pool = new Pool({
