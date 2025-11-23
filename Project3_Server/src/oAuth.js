@@ -10,7 +10,7 @@ const client = new OAuth2Client(
   process.env.GOOGLE_CLIENT_SECRET,
   process.env.GOOGLE_REDIRECT_URI
 );
-
+ 
 function redirectToAppWithLoginSuccess(res) {
   const url = client.generateAuthUrl({
     access_type: "offline",
@@ -46,9 +46,10 @@ async function googleAuthCallbackHandler(req, res) {
   // Payload contains user info
   const user = await User.FetchByGoogleId(req.app.locals.dbPool, payload.sub);
   const add = req.query.add === 'true' ? '&add=true' : '';
+  const clientOrigin = process.env.CLIENT_ORIGIN || 'http://localhost:5173';
   if (!user) {
     // Not found or not an employee
-    return res.redirect(`http://localhost:5173/?success=false${add}`);
+    return res.redirect(`${clientOrigin}/?success=false${add}`);
   }
   // const user = {
   //   googleId: payload.sub,
@@ -58,7 +59,7 @@ async function googleAuthCallbackHandler(req, res) {
   // };
   req.session.user = user;            // store user on the server session
   // redirect to your React app - use a safe front-end route
-  res.redirect(`http://localhost:5173/?success=true${add}`); //passing login success param
+  res.redirect(`${clientOrigin}/?success=true${add}`); //passing login success param
 }
 
 function authMeHandler(req, res) {
