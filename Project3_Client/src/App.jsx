@@ -72,18 +72,40 @@ export default function App() {
   }
 
   //called when returning from Google OAuth flow
-  async function handleGoogleLogin() {
-    params = new URLSearchParams(window.location.search);
+  async function handleGoogleLogin(params, googleid = null) {
+    //console.log('Handling Google Login callback');
     const isSuccess = params.get('success');
+    const add = params.get('add');
     if (isSuccess === 'true') {
-      //VALIDATE is actually an employee in DB not just anyone with a Google account
-      if(user.isEmployee){      navigate('/hub');
+      // Fetch user info from backend
+      const res = await fetch('/api/auth/me', { credentials: 'include' });
+
+      if (res.headers.get('content-type')?.includes('application/json')) {
+        const data = await res.json();
+        if(!data || !data.user) {
+          alert('Google Login Failed: No user data returned.');
+          return;
+        }
+        if (data.user && data.user.isEmployee) {
+          // Proceed with your logic
+          if(add === 'true'){ 
+            await fetch('/api/add-googleid', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ username: data.user.userName, googleid: '107052280673566149562' })
+            });
+            alert('added');
+          }
+          navigate('/hub');
+        } else {
+          alert('Google Login Failed: Not an Employee.');
+        }
+      } else {
+        const text = await res.text();
+        console.error('Non-JSON response from /auth/me:', text);
+        alert('Google Login Failed: Server did not return JSON.');
       }
-      else{
-        alert('Google Login Failed: Not an Employee.');
-      }
-    }
-    else if (isSuccess === 'false') {
+    } else if (isSuccess === 'false') {
       alert('Google Login Failed. Please try again.');
     }
   }
@@ -97,11 +119,10 @@ export default function App() {
       if (showButtons) clearInputs();
     }, [showButtons]);
     useEffect(() => {
+      console.log('App mounted, checking for Google Login callback');
       const params = new URLSearchParams(window.location.search);
-      if (params.get('add') === 'true' && params.get('success') === 'true') {
-        alert('added');
-        // Optionally, you can clear the query params after alert
-        window.history.replaceState({}, document.title, window.location.pathname);
+      if (params.get('success')) {
+        handleGoogleLogin(params);
       }
     }, []);
   return (
@@ -134,11 +155,7 @@ export default function App() {
             Debugging Skip Login
           </button>
           <GoogleLoginButton />
-          <button onClick={() => {
-              window.location.href = 'http://localhost:8080/auth/google?add=true';
-            }}>
-              Add Google Sign-In
-          </button>
+         
         </div>
 
       )}

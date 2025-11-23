@@ -72,7 +72,7 @@ class User {
     }
     static async AuthenticateLogin(db, username = "", password = "", googleId = null) {
         //googleId auth
-        const user = null;
+        let user = null;
         if (googleId) {
             console.log(`Authenticating Google ID `);
             user = await User.FetchByGoogleId(db, googleId);
@@ -101,17 +101,13 @@ class User {
         if (!res || !res.rows || res.rows.length === 0) {
             console.log('No employee found with Google ID:', googleId);
             
-            //return null;
+            return null;
         }
         const row = res.rows[0];
+        const username = row.username ?? '';
         const pass = row.password ?? '';
         const email = row.email ?? '';
         const isEmployee = row.isemployee ?? false;
-
-        if (pass !== password) {
-            console.log('Password mismatch for user:', username);
-            return null; 
-        }
 
         if (isEmployee) {
             return Employee.FetchByUsername(db, username, pass, email);

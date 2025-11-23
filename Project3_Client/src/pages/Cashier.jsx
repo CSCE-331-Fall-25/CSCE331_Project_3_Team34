@@ -293,9 +293,6 @@ export default function Cashier() {
           </button>
         ))}
       </div>
-      <button onClick={() => setShowSizeModal(true)}>
-        Open Size Modal
-      </button>
     </div>
   );
 }

@@ -17,6 +17,7 @@ import kioskRouter from "./Kiosk.js";
 dotenv.config();
 
 const app = express();
+app.locals.dbPool = pool;
 // Configure CORS and sessions so client (Vite) can communicate with backend and receive cookies
 const clientOrigin = process.env.CLIENT_ORIGIN || "http://localhost:5173";
 const sessionPrefab = session({
@@ -125,8 +126,14 @@ app.get("/auth/google/callback", async (req, res) => {
 });
 
 
-app.get('/auth/me', (req, res) => {
- oAuth.authMeHandler(req, res);
+app.get('/api/auth/me', (req, res) => {
+  //console.log('Received /auth/me request');
+  try {
+    oAuth.authMeHandler(req, res);
+  } catch (err) {
+    console.error('Error in /auth/me:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 
