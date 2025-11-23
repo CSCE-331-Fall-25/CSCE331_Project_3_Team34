@@ -9,7 +9,8 @@ import User from './User.js';
 import { OAuth2Client } from 'google-auth-library';
 
 // Build redirect URI from API URL if GOOGLE_REDIRECT_URI is not explicitly set
-const apiUrl = process.env.VITE_API_URL || 'http://localhost:8080';
+// Remove trailing slashes to prevent double slashes in the URL
+const apiUrl = (process.env.VITE_API_URL || 'http://localhost:8080').replace(/\/+$/, '');
 const redirectUri = process.env.GOOGLE_REDIRECT_URI || `${apiUrl}/auth/google/callback`;
 
 const client = new OAuth2Client(
