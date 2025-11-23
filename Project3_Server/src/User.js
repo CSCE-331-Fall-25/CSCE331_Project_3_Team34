@@ -22,10 +22,17 @@ class User {
         const pass = row.password ?? '';
         const email = row.email ?? '';
         const isEmployee = row.isemployee ?? false;
-
-        if (pass !== password) {
-            console.log('Password mismatch for user:', username);
-            return null; 
+        // Verify password
+        // If password is undefined/null, allow fetch for internal operations (e.g., unlink), but not for login
+        if (typeof password === 'undefined' || password === null) {
+            // Internal fetch, skip password check
+            console.log('Internal fetch of user without password check:', username);
+        } 
+        else {
+            if (pass !== password) {
+                console.log('Password mismatch for user:', username);
+                return null; 
+            }
         }
 
         if (isEmployee) {
@@ -136,7 +143,37 @@ class User {
         }
         return true;
     }
-        
+    static async UnlinkGoogleIdFromUser(db, username) {
+                if (!db || typeof db.query !== 'function') {
+                    throw new Error('DB pool not provided or invalid');
+                }
+                const q = 'UPDATE Users SET googleid = NULL WHERE username = $1';
+                const res = await db.query(q, [username]);
+                if (res.rowCount > 0) {
+                    console.log('Unlinked Google ID from user:', username);
+                    return true;
+                }
+                console.log('No user found to unlink Google ID:', username);
+                return false;
+            }
+           
+    static async UnlinkGoogleId(db, username) {
+        if (!db || typeof db.query !== 'function') {
+            throw new Error('DB pool not provided or invalid');
+        }
+        // Fetch user to determine type
+        const user = await User.FetchByUsername(db, username, undefined);
+        if (!user) {
+            console.log('No user found for unlink operation:', username);
+            return false;
+        }
+        let result = await User.UnlinkGoogleIdFromUser(db, username);
+        if (user.isEmployee) {
+            result = await Employee.UnlinkGoogleIdFromEmployee(db, username) || result;
+        }
+        // If you add a Customer.UnlinkGoogleIdFromCustomer, call it here
+        return result;
+    }
 }
 
 class Employee extends User {
@@ -218,6 +255,19 @@ class Employee extends User {
         }
         console.log('Updated user with Google ID:', username);
         return true;
+    }
+     static async UnlinkGoogleIdFromEmployee(db, username) {
+        if (!db || typeof db.query !== 'function') {
+            throw new Error('DB pool not provided or invalid');
+        }
+        const q = 'UPDATE Employees SET googleid = NULL WHERE username = $1';
+        const res = await db.query(q, [username]);
+        if (res.rowCount > 0) {
+            console.log('Unlinked Google ID from employee:', username);
+            return true;
+        }
+        console.log('No employee found to unlink Google ID:', username);
+        return false;
     }
 }
 

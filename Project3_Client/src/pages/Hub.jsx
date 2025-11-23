@@ -11,6 +11,8 @@ export default function Hub() {
     // Check if returning from Google OAuth with googleid
     const params = new URLSearchParams(window.location.search);
     if (params.get('link') === 'true' && params.get('googleid')) {
+      // Remove link/googleid from URL immediately to prevent double execution
+      window.history.replaceState({}, document.title, '/hub');
       const googleId = params.get('googleid');
       
       // Get current user and link the Google ID
@@ -21,15 +23,10 @@ export default function Hub() {
       })
       .then(response => response.json())
       .then(data => {
-        console.log('Auth/me response:', data);
         if (data.user) {
           const username = data.user.username;
-          console.log('Username to link:', username);
-          
           if (!username) {
-            console.error('No username found in user object:', data.user);
             alert('Error: Could not find username in session.');
-            window.history.replaceState({}, document.title, '/hub');
             return;
           }
           
@@ -47,8 +44,6 @@ export default function Hub() {
             } else {
               alert('Failed to link Google ID.');
             }
-            // Clean up URL
-            window.history.replaceState({}, document.title, '/hub');
           })
           .catch(error => {
             console.error('Error linking Google ID:', error);
@@ -56,7 +51,6 @@ export default function Hub() {
           });
         } else {
           alert('No authenticated user. Please log in first.');
-          window.history.replaceState({}, document.title, '/hub');
         }
       })
       .catch(error => {
@@ -89,6 +83,50 @@ export default function Hub() {
     });
   };
 
+  const handleUnlinkGoogleId = () => {
+    // Step 1: Check if user is logged in
+    fetch('/api/auth/me', {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include'
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.user) {
+        const username = data.user.username;
+        if (!username) {
+          alert('No username found in session.');
+          return;
+        }
+        // Step 2: Unlink Google ID for current user
+        fetch('/api/unlink-googleid', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ username })
+        })
+        .then(response => response.json())
+        .then(unlinkData => {
+          if (unlinkData.success) {
+            alert('Google ID unlinked successfully!');
+          } else {
+            alert('Failed to unlink Google ID.');
+          }
+        })
+        .catch(error => {
+          console.error('Error unlinking Google ID:', error);
+          alert('Error unlinking Google ID.');
+        });
+      } else {
+        alert('Please log in first before unlinking a Google account.');
+      }
+    })
+    .catch(error => {
+      console.error('Error checking authentication:', error);
+      alert('Error checking authentication.');
+    });
+  };
+
   return (
     <div className="home-grid">
         <Link to="/weather"><button>Kiosk</button></Link>
@@ -97,6 +135,7 @@ export default function Hub() {
         <Link to="/menu"><button>Menu</button></Link>
         <Link to="/kitchen"><button>Kitchen</button></Link>
         <button onClick={handleLinkGoogleId}>Link Google ID</button>
+        <button onClick={handleUnlinkGoogleId}>Unlink Google ID</button>
          
         
         

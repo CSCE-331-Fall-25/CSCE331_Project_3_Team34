@@ -3,6 +3,7 @@ dotenv.config();
 import User from './User.js';
 
 
+
 import { OAuth2Client } from 'google-auth-library';
 
 const client = new OAuth2Client(
@@ -102,4 +103,10 @@ async function LinkGoogleIDToUser(dbPool, username, googleId) {
   return success;
 }
 
-export { redirectToAppWithLoginSuccess, googleAuthCallbackHandler, authMeHandler, LinkGoogleIDToUser };
+
+async function UnlinkGoogleIDFromUser(dbPool, username) {
+  // Use User.UnlinkGoogleId to handle unlinking logic
+  return await User.UnlinkGoogleId(dbPool, username);
+}
+
+export { redirectToAppWithLoginSuccess, googleAuthCallbackHandler, authMeHandler, LinkGoogleIDToUser, UnlinkGoogleIDFromUser };

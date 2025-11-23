@@ -137,14 +137,27 @@ app.get('/api/auth/me', (req, res) => {
   }
 });
 
+
 app.post('/api/link-googleid', async (req, res) => {
   const { username, googleid } = req.body;
   try {
     console.log(`Linking Google ID ${googleid} to user ${username}`);
     const success = await oAuth.LinkGoogleIDToUser(req.app.locals.dbPool, username, googleid);
-    res.json({ success });;
+    res.json({ success });
   } catch (err) {
     console.error('Error linking Google ID to user:', err);
+    res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
+});
+
+// Unlink Google ID from both Users and Employees tables
+app.post('/api/unlink-googleid', async (req, res) => {
+  const { username } = req.body;
+  try {
+    const success = await oAuth.UnlinkGoogleIDFromUser(req.app.locals.dbPool, username);
+    res.json({ success });
+  } catch (err) {
+    console.error('Error unlinking Google ID:', err);
     res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 });
