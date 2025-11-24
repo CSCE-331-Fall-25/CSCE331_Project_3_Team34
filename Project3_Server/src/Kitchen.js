@@ -3,6 +3,39 @@ import { pool } from './db.js';
 
 const kitchenRouter = express.Router();
 
+async function buildTraySummaries(transactionId) {
+    const trayRows = await pool.query(
+        `SELECT t.orderid,
+                i.name AS tray_type,
+                m.name AS menu_item
+         FROM trays t
+         JOIN orders o ON t.orderid = o.orderid
+         JOIN items i ON o.itemid = i.itemid
+         JOIN menu m ON t.menuid = m.menuid
+         WHERE o.transactionid = $1
+         ORDER BY t.orderid, m.name`,
+        [transactionId]
+    );
+
+    const grouped = trayRows.rows.reduce((acc, row) => {
+        const key = `${row.orderid}-${row.tray_type}`;
+        if (!acc[key]) {
+            acc[key] = {
+                orderId: row.orderid,
+                trayType: row.tray_type,
+                menuItems: [],
+            };
+        }
+        acc[key].menuItems.push(row.menu_item);
+        return acc;
+    }, {});
+
+    return Object.values(grouped).map(tray => {
+        const itemLines = tray.menuItems.map(item => `- ${item}`).join('\n');
+        return `${tray.trayType} (Order ${tray.orderId}):\n${itemLines}`;
+    });
+}
+
 kitchenRouter.get('/get-not-started', async (req, res) => {
     try {
         const limit = parseInt(req.query.limit) || 50;
@@ -10,23 +43,16 @@ kitchenRouter.get('/get-not-started', async (req, res) => {
         
         // Fetch transactions with their items
         const transactionsResult = await pool.query(
-            'SELECT * FROM transactions WHERE stage = 4 ORDER BY time ASC LIMIT $1 OFFSET $2',
+            'SELECT transactionid, time, stage FROM transactions WHERE stage = 4 ORDER BY time ASC LIMIT $1 OFFSET $2',
             [limit, offset]
         );
         
         // Enrich each transaction with its items
         const enrichedTransactions = await Promise.all(
             transactionsResult.rows.map(async (transaction) => {
-                const itemsResult = await pool.query(`
-                    SELECT i.name 
-                    FROM orders o
-                    JOIN items i ON o.itemid = i.itemid
-                    WHERE o.transactionid = $1
-                `, [transaction.transactionid]);
-                
                 return {
                     ...transaction,
-                    items: itemsResult.rows.map(row => row.name)
+                    items: await buildTraySummaries(transaction.transactionid),
                 };
             })
         );
@@ -45,23 +71,16 @@ kitchenRouter.get('/get-in-progress', async (req, res) => {
         
         // Fetch transactions with their items
         const transactionsResult = await pool.query(
-            'SELECT * FROM transactions WHERE stage = 3 ORDER BY time ASC LIMIT $1 OFFSET $2',
+            'SELECT transactionid, time, stage FROM transactions WHERE stage = 3 ORDER BY time ASC LIMIT $1 OFFSET $2',
             [limit, offset]
         );
         
         // Enrich each transaction with its items
         const enrichedTransactions = await Promise.all(
             transactionsResult.rows.map(async (transaction) => {
-                const itemsResult = await pool.query(`
-                    SELECT i.name 
-                    FROM orders o
-                    JOIN items i ON o.itemid = i.itemid
-                    WHERE o.transactionid = $1
-                `, [transaction.transactionid]);
-                
                 return {
                     ...transaction,
-                    items: itemsResult.rows.map(row => row.name)
+                    items: await buildTraySummaries(transaction.transactionid),
                 };
             })
         );
@@ -80,23 +99,16 @@ kitchenRouter.get('/get-completed', async (req, res) => {
         
         // Fetch transactions with their items
         const transactionsResult = await pool.query(
-            'SELECT * FROM transactions WHERE stage = 2 ORDER BY time ASC LIMIT $1 OFFSET $2',
+            'SELECT transactionid, time, stage FROM transactions WHERE stage = 2 ORDER BY time ASC LIMIT $1 OFFSET $2',
             [limit, offset]
         );
         
         // Enrich each transaction with its items
         const enrichedTransactions = await Promise.all(
             transactionsResult.rows.map(async (transaction) => {
-                const itemsResult = await pool.query(`
-                    SELECT i.name 
-                    FROM orders o
-                    JOIN items i ON o.itemid = i.itemid
-                    WHERE o.transactionid = $1
-                `, [transaction.transactionid]);
-                
                 return {
                     ...transaction,
-                    items: itemsResult.rows.map(row => row.name)
+                    items: await buildTraySummaries(transaction.transactionid),
                 };
             })
         );
