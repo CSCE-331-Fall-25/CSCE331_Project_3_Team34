@@ -5,7 +5,7 @@
   height: 100vh;
   padding: 16px;
   box-sizing: border-box;
-  background: #D71920;
+  background: #242323;
 }
 
 .kiosk-left, .kiosk-middle, .kiosk-right{
@@ -80,16 +80,17 @@
   transition: border-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
   min-height: 140px;
   justify-content: flex-start;
+  justify-items: center;
 }
 
 .kiosk-item:hover{
-  border-color: #2b7cff;
+  border-color: #e33;
   box-shadow: 0 6px 16px rgba(43, 124, 255, 0.15);
   transform: translateY(-2px);
 }
 
 .kiosk-item:focus-visible{
-  outline: 2px solid #2b7cff;
+  outline: 2px solid #e33;
   outline-offset: 2px;
 }
 
@@ -199,7 +200,7 @@
   justify-content: center;
   align-items: center;
   height: 100vh;
-  background-color: #D71920;
+  background-color: #242323;
 }
 
 /* Card container */
@@ -224,8 +225,8 @@
 
 
 .purchase-logo {
-  width: 120px;
-  height: 120px;
+  width: 200px;
+  height: 200px;
   margin-bottom: 10px;
 }
 
@@ -237,30 +238,31 @@
   cursor: pointer;
   border-radius: 10px;
   border: none;
-  background-color: #e33;
+  background-color: #1a1a1a;
   color: white;
   font-family: Furtiger, sans-serif;
   transition: background-color 0.2s;
 }
 
 .option-button:hover {
-  background-color: #D71920;
+  background-color: #e33;
+  color: #e33;
 }
 
 .purchase-screen-title {
-  font-size: 3rem;
+  font-size: 1.5rem;
   font-weight: 600;
   margin-bottom: 20px;
-  color: #D71920;
+  color: #1a1a1a;
   font-family: Furtiger, sans-serif;
 }
 
 
 .purchase-screen-price {
-  font-size: 2rem;
+  font-size: 1.5rem;
   font-weight: 600;
   margin-bottom: 20px;
-  color: #1a1a1a;
+  color: #D71920;
   font-family: Furtiger, sans-serif;
 }
 
@@ -275,7 +277,7 @@
   width: 240px; /* square width */
   height: 240
   px; /* square height */
-  border: 2px solid black;
+  border: 2px solid #1a1a1a;
   border-radius: 8px;
   display: flex;
   flex-direction: column;
@@ -289,6 +291,8 @@
 .purchase-option:hover {
   transform: scale(1.05);
   background-color: #f0f0f0;
+  color: #e33;
+  border: 2px solid #e33;
 }
 
 .option-img {
@@ -336,4 +340,13 @@
 .swap-icon {         /* NEW */
   width: 16px;            /* NEW */
   height: 16px;           /* NEW */
+}
+
+.kiosk-menu-image {
+  width: 100px;
+  height: auto;
+  max-width: 120px;
+  border-radius: 6px;
+  object-fit: cover;
+  align-self: center;
 }

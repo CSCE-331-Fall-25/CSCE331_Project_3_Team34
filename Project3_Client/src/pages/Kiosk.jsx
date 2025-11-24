@@ -321,8 +321,8 @@ export default function Kiosk() {
 
     clearOrder();
     changeState("Kiosk");
-    setOrderFinalized(false);
     navigate('/weather');
+    setOrderFinalized(false);
   }
 
   return (
@@ -379,6 +379,11 @@ export default function Kiosk() {
                       className="kiosk-item kiosk-item-button"
                       onClick={() => handleMenuChoice(it)}
                     >
+                      <img
+                        src={getImageForItem(it.name)}
+                        alt={it.name || 'item'}
+                        className="kiosk-menu-image"
+                      />
                       <div className="kiosk-item-name">{it.name}</div>
                       <div className="kiosk-item-price">{hide ? '' : `$${value.toFixed(2)}`}</div>
                     </button>
