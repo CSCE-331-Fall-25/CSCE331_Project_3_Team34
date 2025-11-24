@@ -181,8 +181,18 @@ export default function Kiosk() {
     }
   }
 
+  async function getNextTransactionNum() {
+    try {
+      const res = await fetch('/api/kiosk/get-next-transaction-number');
+    }
+    catch (err) {
+      console.error('fetch failed', err);
+    }
+  }
+
   useEffect(() => {
     fetchItems();
+    getNextTransactionNum();
   }, []);
 
   async function getMenuByType(type) {
