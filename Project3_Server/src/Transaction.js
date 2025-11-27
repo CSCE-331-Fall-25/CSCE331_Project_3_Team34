@@ -149,6 +149,9 @@ class Order {
         for (const tray of [...(order.entrees || []), ...(order.sides || [])]) {
             await Tray.AddToDatabase(db, orderID, tray);
         }
+
+        // `AddToDatabase` is static; call the instance method on the order instance
+        await order.handleInventory(db);
     }
 
     async calculatePrice(db) {
@@ -160,6 +163,44 @@ class Order {
         price = Math.round((price + Number.EPSILON) * 100) / 100;
         this.price = price;
         return price;
+    }
+
+    async handleInventory(db) {        
+        // Helper to normalize inventory id sources (arrays or Postgres array strings like "{1,2}")
+        const parseInvIDs = (val) => {
+            if (!val && val !== 0) return [];
+            if (Array.isArray(val)) return val.map(x => String(x).trim()).filter(Boolean);
+            if (typeof val === 'string') {
+                // Remove surrounding braces and quotes if present, then split by comma
+                const cleaned = val.replace(/[{}"\s]/g, '');
+                if (!cleaned) return [];
+                return cleaned.split(',').map(s => s.trim()).filter(Boolean);
+            }
+            // Fallback: convert to string and split
+            return String(val).split(',').map(s => s.trim()).filter(Boolean);
+        };
+
+        const invList = parseInvIDs(this.item.inventoryIDs);
+        for (const invID of invList) {
+            const trimmedID = String(invID).trim();
+            if (!trimmedID) continue;
+            const updateQuery = `
+                UPDATE inventory
+                SET quantity = quantity - 1
+                WHERE inventoryid = $1
+            `;
+            try {
+                await db.query(updateQuery, [trimmedID]);
+                console.log(`Decreased inventory for id: ${trimmedID}`);
+            } catch (err) {
+                console.error(`Failed to decrease inventory for id ${trimmedID}:`, err);
+            }
+        }
+
+        // Decrease inventory for each tray item
+        for (const tray of [...(this.entrees || []), ...(this.sides || [])]) {
+            await tray.handleInventory(db);
+        }
     }
 }
 
@@ -229,6 +270,36 @@ class Tray {
         return price;
     }
 
+    async handleInventory(db) {
+        // Normalize inventory ids for menu (may be string like "{1,2}" or an array)
+        const parseInvIDs = (val) => {
+            if (!val && val !== 0) return [];
+            if (Array.isArray(val)) return val.map(x => String(x).trim()).filter(Boolean);
+            if (typeof val === 'string') {
+                const cleaned = val.replace(/[{}"\s]/g, '');
+                if (!cleaned) return [];
+                return cleaned.split(',').map(s => s.trim()).filter(Boolean);
+            }
+            return String(val).split(',').map(s => s.trim()).filter(Boolean);
+        };
+
+        const invList = parseInvIDs(this.menu.inventoryids);
+        for (const invID of invList) {
+            const trimmedID = String(invID).trim();
+            if (!trimmedID) continue;
+            const updateQuery = `
+                UPDATE inventory
+                SET quantity = quantity - 1
+                WHERE inventoryid = $1
+            `;
+            try {
+                await db.query(updateQuery, [trimmedID]);
+                console.log(`Decreased inventory for id: ${trimmedID}`);
+            } catch (err) {
+                console.error(`Failed to decrease inventory for id ${trimmedID}:`, err);
+            }
+        }
+    }
 }
 
 export default Transaction;
