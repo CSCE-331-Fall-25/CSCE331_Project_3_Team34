@@ -356,7 +356,11 @@ export default function Kiosk() {
       });
       const data = await res.json();
       if (data && data.success) {
-        console.log('Purchase stored in database successfully');
+        console.log('Purchase stored in database successfully', data);
+        if (data.transactionId) {
+          // Show the transaction ID on the finished screen
+          setTransactionNumber(Number(data.transactionId));
+        }
       } else {
         console.error('Purchase failed:', data);
       }

@@ -225,15 +225,19 @@ class CashierMainPage {
             this.currTransaction.employee = this.user;
         }
 
-        Transaction.AddToDatabase(this.db, this.currTransaction).then((transactionID) => {
-            console.log("Transaction stored in database with ID: " + transactionID);
-        }).catch((err) => {
-            console.error("Error storing transaction in database: ", err);
-        });
-
-        console.log("Total Price: $" + Math.ceil(total).toFixed(2));
-        //add logic to store transaction in database, print receipt, etc.
-        this.PrintReceipt(this.currTransaction);
+        // Return the promise so callers can await the inserted transaction ID.
+        return Transaction.AddToDatabase(this.db, this.currTransaction)
+            .then((transactionID) => {
+                console.log("Transaction stored in database with ID: " + transactionID);
+                console.log("Total Price: $" + Math.ceil(total).toFixed(2));
+                // Print receipt and clear transaction
+                this.PrintReceipt(this.currTransaction);
+                return transactionID;
+            })
+            .catch((err) => {
+                console.error("Error storing transaction in database: ", err);
+                throw err;
+            });
     }
 
     RemoveItemByIndex(index) {
