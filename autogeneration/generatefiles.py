@@ -14,6 +14,9 @@ def main():
     START_DATE = datetime.date(2020, 1, 1)
     START_TIME = datetime.time(10, 0, 0)
     
+    END_DATE = datetime.date(2025, 11, 26)
+    END_TIME = datetime.time(22, 0, 0)
+    
     PEAK_DAYS = [(5, 15), (8, 20)] # (month, day)
     
     # Open files
@@ -43,7 +46,7 @@ def main():
     time = datetime.datetime.combine(START_DATE, START_TIME) + datetime.timedelta(minutes=random.randint(0, 60))
     
     # Generate transactions until reaching MAX_SUM
-    while cur_sum < MAX_SUM:
+    while time.date() <= END_DATE:
         # Select a random employee
         emp_row = employee_lines[random.randint(0, len(employee_lines) - 1)]
         employee_id = int(emp_row[0])
@@ -180,7 +183,7 @@ def main():
             amount += item_price
                     
         # Update transactions.csv
-        transactions.write(f"{transaction_id},{employee_id},{time.strftime('%Y-%m-%d %H:%M:%S')},{round(amount, 2)},{round(amount * 0.2, 2)}\n")
+        transactions.write(f"{transaction_id},{employee_id},{time.strftime('%Y-%m-%d %H:%M:%S')},{round(amount, 2)},{round(amount * 0.2, 2)},-1,0\n")
             
         # Increment transaction ID and update current sum
         transaction_id += 1
