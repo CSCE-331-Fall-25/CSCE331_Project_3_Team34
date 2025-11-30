@@ -39,7 +39,7 @@ class Transaction {
             transaction.amount,
             transaction.profit,
             transaction.customerID || null,
-            0 // Assuming '0' is the initial stage
+            4 // Stage 4 = "Waiting" in kitchen display (not started)
         ]);
         
         for (const order of transaction.orders) {

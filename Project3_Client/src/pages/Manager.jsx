@@ -2,7 +2,7 @@ import React from 'react';
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import "../styles/Manager/Manager.css";
-import { flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table'
+import { flexRender, getCoreRowModel, getPaginationRowModel, useReactTable } from '@tanstack/react-table'
 import { Line } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -24,6 +24,9 @@ ChartJS.register(
   Tooltip,
   Legend
 );
+
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
 export default function Manager() {
 
@@ -129,23 +132,30 @@ export default function Manager() {
   }, []);
 
   /* ---------------------- Reports Variables and Funtions Start --------------------- */
-  const [startTime, setStartTime] = useState('');
-  const [endTime, setEndTime] = useState('');
+  const date = new Date();
   const [tableData, setTableData] = useState([]);
   const [tableColumns, setTableColumns] = useState([]);
   const data = useMemo(() => tableData, [tableData]);
   const columns = useMemo(() => tableColumns, [tableColumns]);
   const coreRowModel = useMemo(() => getCoreRowModel(), []);
+  const [rowSelection, setRowSelection] = useState({});
   const [labelValue, setLabel] = useState('');
-  const table = useReactTable({ data, columns, getCoreRowModel: coreRowModel });
 
-  function handleStartChange(event) {
-    setStartTime(event.target.value);
-  }
+// const table = useReactTable({
+//     data,
+//     columns,
+//     state: {
+//       rowSelection,
+//     },
+//     onRowSelectionChange: setRowSelection,
+//     enableRowSelection: true,           // 🔥 REQUIRED
+//     getCoreRowModel: getCoreRowModel(),
+//     getPaginationRowModel: getPaginationRowModel(),
+//   });
 
-  function handleEndChange(event) {
-    setEndTime(event.target.value);
-  }
+  const table = useReactTable({ data, columns, state: {rowSelection}, getCoreRowModel: coreRowModel, onRowSelectionChange: setRowSelection, enableRowSelection: true});
+  const [startTime, setStartTime] = useState(new Date());
+  const [endTime, setEndTime] = useState(new Date());
 
   const generateXReport = async () => {
     console.log("X");
@@ -457,6 +467,7 @@ export default function Manager() {
         setErrorLabel('No Employees');
       }
       setTableData(Array.isArray(newData) ? newData.slice() : [newData]);
+      table.setPageSize(newData.length + 1);
     }
   }
 
@@ -562,7 +573,7 @@ export default function Manager() {
     const response = await fetch("/api/remove-employee", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ employeeId }),
+      body: JSON.stringify({ employeeId, rowSelection }),
     });
     if (!response.ok) {
       console.log("Error in function call");
@@ -576,6 +587,7 @@ export default function Manager() {
       const newData = await response.json();
       console.log(newData);
       getEmployeeData();
+      setRowSelection([]);
       if (newData.error == -2) {
         setErrorLabel("Failed to connect to backend");
       }
@@ -586,10 +598,10 @@ export default function Manager() {
         setErrorLabel("Employee not found");
       }
       else if (newData.error == 1) {
-        setErrorLabel("Menu ID not found");
+        setErrorLabel("Employee ID not found");
       }
       else if (newData.error == 2) {
-        setErrorLabel("Non-numeric character found in Menu ID");
+        setErrorLabel("Non-numeric character found in Employee ID");
       }
       else {
         setErrorLabel("");
@@ -599,10 +611,11 @@ export default function Manager() {
 
   const updateEmployee = async () => {
     console.log("update employee");
+    console.log(rowSelection);
     const response = await fetch("/api/update-employee", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ employeeId, employeeNewName, employeeRole, employeeWage, employeeIsManager, employeeUsername, employeeEmail, employeePassword }),
+      body: JSON.stringify({ employeeId, employeeNewName, employeeRole, employeeWage, employeeIsManager, employeeUsername, employeeEmail, employeePassword, rowSelection }),
     });
     if (!response.ok) {
       console.log("Error in function call");
@@ -661,6 +674,15 @@ export default function Manager() {
           break;
         case 12:
           setErrorLabel("Dot not found, at end of email, or immediately following \'@\'");
+          break;
+        case 13:
+          setErrorLabel("No employees selected");
+          break;
+        case 14:
+          setErrorLabel("Non-numeric character found in Employee id");
+          break;
+        case 15:
+          setErrorLabel("Employee id not found");
           break;
         case 55:
           setErrorLabel("");
@@ -780,7 +802,7 @@ export default function Manager() {
     const response = await fetch("/api/remove-menu", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ menuId }),
+      body: JSON.stringify({ menuId, rowSelection }),
     });
     if (!response.ok) {
       console.log("Error in function call");
@@ -793,6 +815,7 @@ export default function Manager() {
     else {
       const newData = await response.json();
       console.log(newData);
+      setRowSelection([]);
       getMenuData();
       if (newData.error == -2) {
         setErrorLabel("Failed to connect to backend");
@@ -820,7 +843,7 @@ export default function Manager() {
     const response = await fetch("/api/update-menu", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ menuId, menuName, menuType, menuPriceMod, menuInventoryIds }),
+      body: JSON.stringify({ menuId, menuName, menuType, menuPriceMod, menuInventoryIds, rowSelection }),
     });
     if (!response.ok) {
       console.log("Error in function call");
@@ -858,6 +881,9 @@ export default function Manager() {
           break;
         case 5:
           setErrorLabel("Illegal character found in inventory IDs");
+          break;
+        case 15:
+          setErrorLabel("Menu id not found");
           break;
         case 55:
           setErrorLabel("");
@@ -978,7 +1004,7 @@ export default function Manager() {
     const response = await fetch("/api/remove-inventory", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ inventoryId }),
+      body: JSON.stringify({ inventoryId, rowSelection }),
     });
     if (!response.ok) {
       console.log("Error in function call");
@@ -992,6 +1018,7 @@ export default function Manager() {
       const newData = await response.json();
       console.log(newData);
       getInventoryData();
+      setRowSelection([]);
       if (newData.error == -2) {
         setErrorLabel("Failed to connect to backend");
       }
@@ -1015,10 +1042,10 @@ export default function Manager() {
 
   const updateInventory = async () => {
     console.log("update inventory");
-    const response = await fetch("/api/update-inventory", {
+    let response = await fetch("/api/update-inventory", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ inventoryId, inventoryItems, inventoryQuantity, inventoryMaxStock, inventoryMinStock }),
+      body: JSON.stringify({ inventoryId, inventoryItems, inventoryQuantity, inventoryMaxStock, inventoryMinStock, rowSelection }),
     });
     if (!response.ok) {
       console.log("Error in function call");
@@ -1066,6 +1093,8 @@ export default function Manager() {
         case 8:
           setErrorLabel("Non-numeric character found in minstock");
           break;
+        case 15:
+          setErrorLabel("Inventory id not found")
         case 55:
           setErrorLabel("");
           break;
@@ -1167,16 +1196,10 @@ export default function Manager() {
                 <button className="report-button" onClick={() => generateSalesReport()}>Sales Report</button>
               </div>
               <div className= "report-times-container">
-                <input className="report-time-button"
-                  type="text"
-                  placeholder="Start Time (yyyy-mm-dd hh:mm:ss)"
-                  value={startTime ?? ''}
-                  onChange={handleStartChange}/>
-                <input className="report-time-button"
-                  type="text"
-                  placeholder="End Time (yyyy-mm-dd hh:mm:ss)"
-                  value={endTime ?? ''}
-                  onChange={handleEndChange}/>
+                {/* <Calendar value={startTime} onChange={(e) => setStartTime(e.value as Date)} appendTo={null} inputClassName="rc-input" panelClassName="rc-panel" pt={{panel: { className: "rc-panel" }}}/>
+                <Calendar value={endTime} onChange={(e) => setEndTime(e.value as Date)} appendTo={null} inputClassName="rc-input" panelClassName="rc-panel" unstyled /> */}
+                <DatePicker selected={startTime} onChange={(date) => setStartTime(date)} />
+                <DatePicker selected={endTime} onChange={(date) => setEndTime(date)} />
               </div>
               <div className= "back-container">
                 <button className="back-button" onClick={handleShowReportModal}>Close</button>
@@ -1199,7 +1222,7 @@ export default function Manager() {
                     <table>
                       <thead>
                         {table.getHeaderGroups().map((hg) => (
-                          <tr key={hg.id}>
+                          <tr key={hg.id} className="row">
                             {hg.headers.map((header) => (
                               <th key={header.id} className = "tableHeader">
                                 {flexRender(header.column.columnDef.header, header.getContext())}
@@ -1210,7 +1233,7 @@ export default function Manager() {
                       </thead>
                       <tbody>
                         {table.getRowModel().rows.map((row) => (
-                          <tr key={row.id}>
+                          <tr key={row.id} onClick={() => row.toggleSelected()} className={row.getIsSelected() ? "selected" : ""} style={{ cursor: "pointer" }}>
                             {row.getVisibleCells().map((cell) => (
                               <td key={cell.id} className="tableRow">
                                 {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -1253,7 +1276,7 @@ export default function Manager() {
                     <table>
                       <thead>
                         {table.getHeaderGroups().map((hg) => (
-                          <tr key={hg.id}>
+                          <tr key={hg.id} className="row">
                             {hg.headers.map((header) => (
                               <th key={header.id} className = "tableHeader">
                                 {flexRender(header.column.columnDef.header, header.getContext())}
@@ -1264,7 +1287,7 @@ export default function Manager() {
                       </thead>
                       <tbody>
                         {table.getRowModel().rows.map((row) => (
-                          <tr key={row.id}>
+                          <tr key={row.id} onClick={() => row.toggleSelected()} className={row.getIsSelected() ? "selected" : ""} style={{ cursor: "pointer" }}>
                             {row.getVisibleCells().map((cell) => (
                               <td key={cell.id} className="tableRow">
                                 {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -1315,7 +1338,7 @@ export default function Manager() {
                       </thead>
                       <tbody>
                         {table.getRowModel().rows.map((row) => (
-                          <tr key={row.id}>
+                          <tr key={row.id} onClick={() => row.toggleSelected()} className={row.getIsSelected() ? "selected" : ""} style={{ cursor: "pointer" }}>
                             {row.getVisibleCells().map((cell) => (
                               <td key={cell.id} className="tableRow">
                                 {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -1372,6 +1395,7 @@ export default function Manager() {
         <button className = "button manager-button" onClick={()=> {
             setShowInventoryModal(true);
             setErrorLabel("");
+            setRowSelection([]);
             getInventoryData();}
           }
         >
@@ -1380,6 +1404,7 @@ export default function Manager() {
         <button className = "button manager-button"onClick={()=> {
             setShowEmployeeModal(true);
             setErrorLabel("");
+            setRowSelection([]);
             getEmployeeData();}
           }
         >
@@ -1388,6 +1413,7 @@ export default function Manager() {
         <button className = "button manager-button"onClick={()=> {
             setShowMenuModal(true);
             setErrorLabel("");
+            setRowSelection([]);
             getMenuData();}
           }
         >

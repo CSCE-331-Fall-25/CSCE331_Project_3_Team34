@@ -178,8 +178,24 @@ class CashierMainPage {
         console.log("----- Receipt -----");
         transaction.orders.forEach((order, index) => {
             const itemId = order.item?.itemID ?? order.item?.name ?? 'unknown';
-            const price = typeof order.item?.price === 'number' ? order.item.price : Number(order.item?.price) || 0;
-            console.log(`${index + 1}. Item ID: ${itemId}, Price: $${price.toFixed(2)}`);
+            const price = order.price || 0;
+            console.log(`${index + 1}. ${itemId}, Price: $${price.toFixed(2)}`);
+            
+            // Print entrees if they exist
+            if (order.entrees && order.entrees.length > 0) {
+                order.entrees.forEach(entree => {
+                    const entreeName = entree.menu?.name || entree.name || 'Unknown Entree';
+                    console.log(`   - Entree: ${entreeName}`);
+                });
+            }
+            
+            // Print sides if they exist
+            if (order.sides && order.sides.length > 0) {
+                order.sides.forEach(side => {
+                    const sideName = side.menu?.name || side.name || 'Unknown Side';
+                    console.log(`   - Side: ${sideName}`);
+                });
+            }
         });
     // Use GetCostInformation and coerce values to numbers to avoid runtime errors
     const costInfo = this.GetCostInformation();

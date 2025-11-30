@@ -13,7 +13,12 @@
     "concurrently": "^9.2.1"
   },
   "dependencies": {
+    "chart.js": "^4.5.1",
     "cookie-parser": "^1.4.7",
-    "express-session": "^1.18.2"
+    "express": "^5.1.0",
+    "express-session": "^1.18.2",
+    "primereact": "^10.9.7",
+    "react-chartjs-2": "^5.3.1",
+    "react-datepicker": "^8.9.0"
   }
 }

@@ -8,15 +8,19 @@ import { Manager } from "./Manager.js";
 import Item, { Menu } from "./Item.js";
 import session from "express-session";
 import cookieParser from "cookie-parser";
+import * as oAuth from "./oAuth.js";
 
 // Kiosk router file is named `Kiosk.js` (capital K). Use the exact filename so imports work
 // on case-sensitive filesystems (e.g. Linux used by many CI/CD hosts).
 import kioskRouter from "./Kiosk.js";
 import kitchenRouter from "./Kitchen.js";
 
+// Load .env file only if it exists (for local development)
+// In production (Render), environment variables are set directly
 dotenv.config();
 
 const app = express();
+app.locals.dbPool = pool;
 // Configure CORS and sessions so client (Vite) can communicate with backend and receive cookies
 const clientOrigin = process.env.CLIENT_ORIGIN || "http://localhost:5173";
 const sessionPrefab = session({
@@ -115,6 +119,51 @@ app.get('/api/get-user', async (req, res) => {
   res.json({ success: true, user: currUser });
 
 });
+
+app.get("/auth/google", (req, res) => {
+ oAuth.redirectToAppWithLoginSuccess(req, res);
+});
+
+app.get("/auth/google/callback", async (req, res) => {
+  oAuth.googleAuthCallbackHandler(req, res);
+});
+
+
+app.get('/api/auth/me', (req, res) => {
+  //console.log('Received /auth/me request');
+  try {
+    oAuth.authMeHandler(req, res);
+  } catch (err) {
+    console.error('Error in /auth/me:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+
+app.post('/api/link-googleid', async (req, res) => {
+  const { username, googleid } = req.body;
+  try {
+    console.log(`Linking Google ID ${googleid} to user ${username}`);
+    const success = await oAuth.LinkGoogleIDToUser(req.app.locals.dbPool, username, googleid);
+    res.json({ success });
+  } catch (err) {
+    console.error('Error linking Google ID to user:', err);
+    res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
+});
+
+// Unlink Google ID from both Users and Employees tables
+app.post('/api/unlink-googleid', async (req, res) => {
+  const { username } = req.body;
+  try {
+    const success = await oAuth.UnlinkGoogleIDFromUser(req.app.locals.dbPool, username);
+    res.json({ success });
+  } catch (err) {
+    console.error('Error unlinking Google ID:', err);
+    res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
+});
+
 
 // Example: create a test user and main page instance (pass the pool so it has DB access)
 const user = new User("testUser", "password123", "bob@gmail.com");
@@ -348,8 +397,8 @@ app.post('/api/add-employee', async (req, res) => {
 app.post('/api/remove-employee', async (req, res) => {
   try {
    // console.log("request recieved");
-    const { employeeId } = req.body;
-    res.json(await manager.RemoveEmployee(employeeId));
+    const { employeeId, rowSelection } = req.body;
+    res.json(await manager.RemoveEmployee(employeeId, rowSelection));
   } catch (err) {
     console.error('Error getting data' + err);
     res.json({ error: -2 });
@@ -359,8 +408,8 @@ app.post('/api/remove-employee', async (req, res) => {
 app.post('/api/update-employee', async (req, res) => {
   try {
    // console.log("request recieved");
-    const { employeeId, employeeNewName, employeeRole, employeeWage, employeeIsManager, employeeUsername, employeeEmail, employeePassword } = req.body;
-    res.json(await manager.UpdateEmployee(employeeId, employeeNewName, employeeRole, employeeWage, employeeIsManager, employeeUsername, employeeEmail, employeePassword));
+    const { employeeId, employeeNewName, employeeRole, employeeWage, employeeIsManager, employeeUsername, employeeEmail, employeePassword, rowSelection } = req.body;
+    res.json(await manager.UpdateEmployee(employeeId, employeeNewName, employeeRole, employeeWage, employeeIsManager, employeeUsername, employeeEmail, employeePassword, rowSelection));
   } catch (err) {
     console.error('Error getting data' + err);
     res.json({ error: -2 });
@@ -391,8 +440,8 @@ app.post('/api/add-menu', async (req, res) => {
 app.post('/api/remove-menu', async (req, res) => {
   try {
    // console.log("request recieved");
-    const { menuId } = req.body;
-    res.json(await manager.RemoveMenu(menuId));
+    const { menuId, rowSelection } = req.body;
+    res.json(await manager.RemoveMenu(menuId, rowSelection));
   } catch (err) {
     console.error('Error getting data' + err);
     res.json({ error: -2 });
@@ -402,8 +451,8 @@ app.post('/api/remove-menu', async (req, res) => {
 app.post('/api/update-menu', async (req, res) => {
   try {
    // console.log("request recieved");
-    const { menuId, menuName, menuType, menuPriceMod, menuInventoryIds } = req.body;
-    res.json(await manager.UpdateMenu(menuId, menuName, menuType, menuPriceMod, menuInventoryIds));
+    const { menuId, menuName, menuType, menuPriceMod, menuInventoryIds, rowSelection } = req.body;
+    res.json(await manager.UpdateMenu(menuId, menuName, menuType, menuPriceMod, menuInventoryIds, rowSelection));
   } catch (err) {
     console.error('Error getting data' + err);
     res.json({ error: -2 });
@@ -435,8 +484,8 @@ app.post('/api/add-inventory', async (req, res) => {
 app.post('/api/remove-inventory', async (req, res) => {
   try {
    // console.log("request recieved");
-    const { inventoryId } = req.body;
-    res.json(await manager.RemoveInventory(inventoryId));
+    const { inventoryId, rowSelection } = req.body;
+    res.json(await manager.RemoveInventory(inventoryId, rowSelection));
   } catch (err) {
     console.error('Error getting data' + err);
     res.json({ error: -2 });
@@ -446,8 +495,8 @@ app.post('/api/remove-inventory', async (req, res) => {
 app.post('/api/update-inventory', async (req, res) => {
   try {
    // console.log("request recieved");
-    const { inventoryId, inventoryItems, inventoryQuantity, inventoryMaxStock, inventoryMinStock } = req.body;
-    res.json(await manager.UpdateInventory(inventoryId, inventoryItems, inventoryQuantity, inventoryMaxStock, inventoryMinStock));
+    const { inventoryId, inventoryItems, inventoryQuantity, inventoryMaxStock, inventoryMinStock, rowSelection } = req.body;
+    res.json(await manager.UpdateInventory(inventoryId, inventoryItems, inventoryQuantity, inventoryMaxStock, inventoryMinStock, rowSelection));
   } catch (err) {
     console.error('Error getting data' + err);
     res.json({ error: -2 });
