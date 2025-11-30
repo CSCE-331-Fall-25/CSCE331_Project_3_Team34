@@ -348,32 +348,33 @@ export default function Kiosk() {
   const total = orderItems.reduce((s, it) => s + computeLinePrice(it), 0);
 
   async function handlePurchase() {
+    // Move to Checkout screen; actual purchase should occur after payment
     changeState("Checkout");
-    try {
-      // Use the same purchase endpoint as Cashier to store in database
-      const res = await fetch('/api/purchase', {
-        method: 'POST',
-        credentials: 'include'
-      });
-      const data = await res.json();
-      if (data && data.success) {
-        console.log('Purchase stored in database successfully');
-      } else {
-        console.error('Purchase failed:', data);
-      }
-    } catch (err) {
-      console.error('Error during purchase:', err);
-    }
   }
 
   function handlePayment(method) {
     console.log("Payment method selected: " + method);
-    changeState("Finished");
-    
+    // Perform purchase on payment confirmation, wait for server transaction id,
+    // then show Finished screen so `transactionNumber` is available.
+    (async () => {
+      try {
+        const res = await fetch('/api/purchase', { method: 'POST', credentials: 'include' });
+        const data = await res.json();
+        if (data && data.success) {
+          if (data.transactionId) setTransactionNumber(Number(data.transactionId));
+        } else {
+          console.error('Purchase failed:', data);
+        }
+      } catch (err) {
+        console.error('Error during purchase:', err);
+      }
 
-    timeoutRef.current = setTimeout(() => {
-      goBackToKiosk(); 
-    }, 5000);
+      changeState("Finished");
+
+      timeoutRef.current = setTimeout(() => {
+        goBackToKiosk(); 
+      }, 5000);
+    })();
   }
 
   function goBackToKiosk() {

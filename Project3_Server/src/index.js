@@ -266,11 +266,15 @@ app.delete('/api/clear-transaction', (req, res) => {
   res.json({ success: true });
 });
 // API endpoint to purchase the transaction
-app.post('/api/purchase', (req, res) => {
+app.post('/api/purchase', async (req, res) => {
   const mainPage = getMainPageForSession(req);
-  mainPage.PurchaseTransaction();
-  res.json({ success: true });
-  
+  try {
+    const transactionId = await mainPage.PurchaseTransaction();
+    res.json({ success: true, transactionId });
+  } catch (err) {
+    console.error('Purchase failed:', err);
+    res.status(500).json({ success: false, error: 'Failed to complete purchase' });
+  }
 });
 
 // Simple route

@@ -5,24 +5,26 @@ const kitchenRouter = express.Router();
 
 async function buildTraySummaries(transactionId) {
     const trayRows = await pool.query(
-        `SELECT t.orderid,
-                i.name AS tray_type,
-                m.name AS menu_item
-         FROM trays t
-         JOIN orders o ON t.orderid = o.orderid
-         JOIN items i ON o.itemid = i.itemid
-         JOIN menu m ON t.menuid = m.menuid
-         WHERE o.transactionid = $1
-         ORDER BY t.orderid, m.name`,
+        `SELECT trays.orderid,
+                items.name AS tray_type,
+                menu.name AS menu_item,
+                trays.size AS tray_size
+         FROM orders
+         JOIN trays ON orders.orderid = trays.orderid
+         JOIN items ON orders.itemid = items.itemid
+         JOIN menu ON trays.menuid = menu.menuid
+         WHERE orders.transactionid = $1
+         ORDER BY trays.orderid, menu.name`,
         [transactionId]
     );
 
     const grouped = trayRows.rows.reduce((acc, row) => {
-        const key = `${row.orderid}-${row.tray_type}`;
+        const key = `${row.orderid}-${row.tray_type}-${row.tray_size ?? ''}`;
         if (!acc[key]) {
             acc[key] = {
                 orderId: row.orderid,
                 trayType: row.tray_type,
+                traySize: row.tray_size,
                 menuItems: [],
             };
         }
@@ -32,7 +34,8 @@ async function buildTraySummaries(transactionId) {
 
     return Object.values(grouped).map(tray => {
         const itemLines = tray.menuItems.map(item => `- ${item}`).join('\n');
-        return `${tray.trayType} (Order ${tray.orderId}):\n${itemLines}`;
+        const sizeLabel = tray.traySize ? ` (${tray.traySize})` : '';
+        return `${tray.trayType}${sizeLabel}:\n${itemLines}`;
     });
 }
 

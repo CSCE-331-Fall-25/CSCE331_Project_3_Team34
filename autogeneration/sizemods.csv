@@ -1,0 +1,12 @@
+id,name,size,pricemod,type
+1,drink,small,0,drink
+2,drink,medium,0.2,drink
+3,drink,large,0.4,drink
+4,a la carte,small,0.8,entree
+5,a la carte,medium,4.1,entree
+6,a la carte,large,6.8,entree
+7,a la carte,medium,0,side
+8,a la carte,large,1,side
+9,a la carte,small,2.3,premium
+10,a la carte,medium,7.1,premium
+11,a la carte,large,11.3,premium

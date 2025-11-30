@@ -1,0 +1,45 @@
+menuid,name,type,pricemod,inventoryids
+0,Honey Walnut Shrimp,entree,1.5,"{1,2}"
+1,Black Pepper Sirloin Steak,entree,1.5,"{6,7}"
+2,Mushroom Chicken,entree,0,"{3,7,12}"
+3,Kung Pao Chicken,entree,0,"{3,7}"
+4,String Bean Chicken Breast,entree,0,"{3,7,12}"
+5,The Original Orange Chicken,entree,0,"{3,4}"
+6,Honey Sesame Chicken Breast,entree,0,"{3,5}"
+7,Grilled Teriyaki Chicken,entree,0,"{3,7}"
+8,Broccoli Beef,entree,0,"{6,7,12}"
+9,Beijing Beef,entree,0,"{6,7}"
+10,Black Pepper Chicken,entree,0,"{3,7}"
+11,Eggplant Tofu,entree,0,"{8,9}"
+12,Super Greens,side,0,{10}
+13,White Steamed Rice,side,0,{11}
+14,Fried Rice,side,0,"{7,11,12}"
+15,Chow Mein,side,0,"{7,12,13}"
+16,Veggie Spring Roll,appetizer,0,{14}
+17,Chicken Egg Roll,appetizer,0,{15}
+18,Cream Cheese Rangoon,appetizer,0,{16}
+40,Teriyaki Sauce Packets,sauce,0,{27}
+41,Sweet and Sour Sauce Packets,sauce,0,{28}
+42,Sweet Chili Sauce,sauce,0,{29}
+19,Mange Guava Flavored Tea,drink,0,"{17,18}"
+20,Peach Lychee Flavored Refresher,drink,0,"{17,18}"
+21,Pomegranate Pineapple Flavored Lemonade,drink,0,"{17,18}"
+22,Watermelon Mango Flavored Refresher,drink,0,"{17,18}"
+23,Dr Pepper,drink,0,"{17,18}"
+24,Coca Cola,drink,0,"{17,18}"
+25,Diet Coke,drink,0,"{17,18}"
+26,Coca Cola Zero Sugar,drink,0,"{17,18}"
+27,Barq's Root Beer,drink,0,"{17,18}"
+28,Fanta Orange,drink,0,"{17,18}"
+29,Minute Maid Lemonade,drink,0,"{17,18}"
+30,Sprite,drink,0,"{17,18}"
+31,Coca Cola Cherry,drink,0,"{17,18}"
+32,Fanta Strawberry,drink,0,"{17,18}"
+33,Passion Mango Black Tea,drink,0,"{17,18}"
+34,Sweet Tea,drink,0,"{17,18}"
+35,Powerade Fruit Punch,bottle,0,{21}
+36,Dasani,bottle,0,{21}
+37,Powerade Berry Blast,bottle,0,{21}
+38,Soy Sauce Packets,sauce,0,{7}
+39,Hot Mustard Sauce Packets,sauce,0,{26}
+100,Dr Pepper Chicken,entree,99,"{3,7,17,18}"

@@ -1,0 +1,9 @@
+itemid,name,price,numsides,numentrees,inventoryids,type,numlargesides,numlargeentrees
+1,Bowl,8.5,1,1,"{22,24,25,30,31}",meal,0,0
+2,Plate,10.1,1,2,"{23,24,25,30,31}",meal,0,0
+3,Bigger,11.7,1,3,"{23,24,25,30,31,32}",meal,0,0
+4,Family,44,2,3,"{24,25,30,31,32}",meal,0,0
+11,Appetizer,2.1,0,0,{33},appetizer,0,0
+12,Bottle,2.4,0,0,{33},bottle,0,0
+13,Drink,2.2,0,0,{19},drink,0,0
+6,A La Carte,4.6,0,1,{32},a la carte,0,0
