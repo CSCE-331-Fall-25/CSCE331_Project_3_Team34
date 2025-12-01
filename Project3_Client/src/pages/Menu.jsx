@@ -21,6 +21,8 @@ export default function Menu() {
 
   const cycleInterval = 3000; // 5 seconds
 
+  const [HeaderOn, setHeaderOn] = useState(false);
+
   const [extraMenus, setExtraMenus] = useState([]);
   const [displayed, setDisplayed] = useState({
     items: [],
@@ -156,12 +158,14 @@ export default function Menu() {
 
   return (
     <div className="mainBackground">
-      <div className="header-container">
+      {HeaderOn && (
+        <div className="header-container">
 
-      <div className="center-logo">
-        <img src={pandaLogo} alt="Panda Logo" className="logo" />
-      </div>
-    </div>
+          <div className="center-logo">
+            <img src={pandaLogo} alt="Panda Logo" className="logo" />
+          </div>
+        </div>
+      )}
       <div className="menu-page-container">
         {showSignOutModal && <SignOutButton />}
         <div className="menu-content">
@@ -253,7 +257,7 @@ export default function Menu() {
           </div>
         </div>
           <br></br>
-    <button className = "sign-out-button" onClick={() => setShowSignOutModal(true)}>Sign Out</button>
+      {HeaderOn && (<button className = "sign-out-button" onClick={() => setShowSignOutModal(true)}>Sign Out</button>)}
       </div>
     </div>
   );
