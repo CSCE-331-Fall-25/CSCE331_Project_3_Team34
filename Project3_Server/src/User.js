@@ -7,75 +7,12 @@ class User {
     }
 
     static async FetchByUsername(db, username, password) {
-        if (!db || typeof db.query !== 'function') {
-            throw new Error('DB pool not provided or invalid');
-        }
-
-        const q = 'SELECT * FROM users WHERE username = $1';
-        const res = await db.query(q, [username]);
-        if (!res || !res.rows || res.rows.length === 0) {
-            console.log('No user found with username:', username);
-            return null;
-        }
-
-        const row = res.rows[0];
-        const pass = row.password ?? '';
-        const email = row.email ?? '';
-        const isEmployee = row.isemployee ?? false;
-        // Verify password
-        // If password is undefined/null, allow fetch for internal operations (e.g., unlink), but not for login
-        if (typeof password === 'undefined' || password === null) {
-            // Internal fetch, skip password check
-            console.log('Internal fetch of user without password check:', username);
-        } 
-        else {
-            if (pass !== password) {
-                console.log('Password mismatch for user:', username);
-                return null; 
-            }
-        }
-
-        if (isEmployee) {
-            return Employee.FetchByUsername(db, username, pass, email);
-        } else {
-            return Customer.FetchByUsername(db, username, pass, email);
-        }
+        return Employee.FetchByUsername(db, username, password);
     }
 
-    static async FetchAllUsers(db) {
-        if (!db || typeof db.query !== 'function') {
-            throw new Error('DB pool not provided or invalid');
-        }
-
-        const q = 'SELECT * FROM users';
-        const res = await db.query(q);
-        if (!res || !res.rows || res.rows.length === 0) {
-            console.log('No users found in the database.');
-            return [];
-        }
-
-        const users = [];
-        for (const row of res.rows) {
-            const username = row.username ?? '';
-            const pass = row.password ?? '';
-            const email = row.email ?? '';
-            const isEmployee = row.isemployee ?? false;
-
-            let user;
-            if (isEmployee) {
-                user = await Employee.fetchByUsername(db, username, pass, email);
-            } else {
-                user = await Customer.fetchByUsername(db, username, pass, email);
-            }
-
-            if (user) {
-                users.push(user);
-            }
-
-            console.log(`Fetched User from DB: Username=${username}, Employee=${isEmployee}`);
-        }
-
-        return users;
+    FetchAllUsers(db) {
+        console.log('Deprecated: FetchAllUsers called. Use FetchAllEmployees');
+        return null;
     }
     static async AuthenticateLogin(db, username = "", password = "", googleId = null) {
         //googleId auth
@@ -206,7 +143,13 @@ class Employee extends User {
         const role = row.role ?? '';
         const wage = row.wage ?? 0;
         const isManager = row.ismanager ?? false;
-        
+        const pass = row.password ?? password;
+
+        // If password is incorrect:
+        if (pass !== password) {
+            console.log('Incorrect password for employee:', username);
+            return null;
+        }
 
         // console.log(`Fetched Employee from DB: Username=${username}, ID=${employeeID}`);
         return new Employee(username, password, email, employeeID, name, role, wage, isManager);
@@ -271,6 +214,7 @@ class Employee extends User {
     }
 }
 
+// THis entire class is deprecated but i don't want to delete it because it may break stuff
 class Customer extends User {
     constructor(username, password, email, name, rewardsPoints, phoneNumber) {
         super(username, password, email, false);
