@@ -11,7 +11,7 @@ export default function WeatherScreen() {
   const [error, setError] = useState(null);
   const navigate = useNavigate();
   
-  const [weatherOn, setWeatherOn] = useState(false);
+  const [weatherOn, setWeatherOn] = useState(true);
 
   const [fadeOut, setFadeOut] = useState(false);
 
@@ -114,9 +114,9 @@ export default function WeatherScreen() {
                       <div className="weatherIcon">
                         <img src={icon} alt={current.shortForecast} />
                       </div>
-                      <div className="temperature">
+                      {/* <div className="temperature">
                         <p style={{ margin: 0 }}>{current.temperature}°</p>
-                      </div>
+                      </div> */}
                     </>
                   );
                 })()}
