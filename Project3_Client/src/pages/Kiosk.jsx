@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import pandaLogo from '../assets/PandaLogo.svg'
+import WeatherScreen from './WeatherScreen';
 // Transaction is a server-side class; don't import it into the client bundle.
 import '../styles/Kiosk.css';
 
@@ -385,8 +386,8 @@ export default function Kiosk() {
 
     clearOrder();
     changeState("Kiosk");
+    navigate('/weather');
     setOrderFinalized(false);
-    navigate("/weather");   
   }
 
   return (
@@ -443,6 +444,11 @@ export default function Kiosk() {
                       className="kiosk-item kiosk-item-button"
                       onClick={() => handleMenuChoice(it)}
                     >
+                      <img
+                        src={getImageForItem(it.name)}
+                        alt={it.name || 'item'}
+                        className="kiosk-menu-image"
+                      />
                       <div className="kiosk-item-name">{it.name}</div>
                       <div className="kiosk-item-price">{hide ? '' : `$${value.toFixed(2)}`}</div>
                     </button>

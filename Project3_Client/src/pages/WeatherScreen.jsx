@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../styles/WeatherScreen.css'
+//import { motion } from "framer-motion";
 
 import { getImageForItem } from '../assets/utils/imageMapper';
 
@@ -9,6 +10,10 @@ export default function WeatherScreen() {
   const [weather, setWeather] = useState(null);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
+  
+  const [weatherOn, setWeatherOn] = useState(true);
+
+  const [fadeOut, setFadeOut] = useState(false);
 
   useEffect(() => {
     if (navigator.geolocation) {
@@ -82,36 +87,24 @@ export default function WeatherScreen() {
   }, [location]);
 
   function handleClick() {
-    navigate("/kiosk");
+    setFadeOut(true);
+    setTimeout(() => navigate("/kiosk"), 350); // match CSS fadeOut time
   }
 
   return (
-    <div className="screen" onClick={() => handleClick()}>
-      
-      {/* LEFT COLUMN */}
-      <div className="side">
-        <img src={getImageForItem("Bamboo")} className="bambooImage" alt="bamboo" />
-      </div>
+    <div
+      className={`kiosk-start-container ${fadeOut ? "fade-out" : ""}`}
+      onClick={handleClick}
+    >
+      {/* Background */}
+      <img src={getImageForItem("bambooforest")} alt="background" className="kiosk-start-background" />
+      <div className="kiosk-start-overlay" />
 
-      {/* CENTER COLUMN */}
-      <div className="middle">
-
-        {/* TOP: PANDA EXPRESS */}
-        <div className="title">Panda Express</div>
-
-        {/* MIDDLE: WEATHER */}
-        <div className="weather">
-          {location ? (
-            <p></p>
-          ) : error ? (
-            console.log(`Error: ${error}`)
-          ) : (
-            console.log("Fetching location...")
-          )}
-
-          {weather ? (
-            <div>
-              {weather.periods?.[0] &&
+      {/* Weather bubble */}
+      {weather && weatherOn && (
+        <div className="weather-bubble-container">
+        <div className="weather-bubble">
+          {weather.periods?.[0] &&
                 (() => {
                   const current = weather.periods[0];
                   const icon = mapShortForecastToFallback(current.shortForecast);
@@ -121,26 +114,21 @@ export default function WeatherScreen() {
                       <div className="weatherIcon">
                         <img src={icon} alt={current.shortForecast} />
                       </div>
-                      <div className="temperature">
+                      {/* <div className="temperature">
                         <p style={{ margin: 0 }}>{current.temperature}°</p>
-                      </div>
+                      </div> */}
                     </>
                   );
                 })()}
-            </div>
-          ) : (
-            console.log("Loading weather data...")
-          )}
         </div>
-
-        {/* BOTTOM: PANDA WAVE IMAGE */}
-        <img src={getImageForItem("bobrosspanda")} className="pandaWaveImage" alt="Panda Wave" />
-
       </div>
+      )}
 
-      {/* RIGHT COLUMN */}
-      <div className="side">
-        <img src={getImageForItem("Bamboo")} className="bambooImage" alt="bamboo" />
+      {/* Main icon */}
+      <div className="kiosk-content">
+        <img src={getImageForItem("pandalogotrans")} className="kiosk-start-icon" alt="Start Icon" />
+
+        <div className="tap-to-start">Tap To Start</div>
       </div>
     </div>
   );
