@@ -158,106 +158,108 @@ export default function Menu() {
 
   return (
     <div className="mainBackground">
-      {HeaderOn && (
-        <div className="header-container">
-
-          <div className="center-logo">
-            <img src={pandaLogo} alt="Panda Logo" className="logo" />
-          </div>
-        </div>
-      )}
       <div className="menu-page-container">
-        {showSignOutModal && <SignOutButton />}
-        <div className="menu-content">
+        {HeaderOn && (
+          <div className="header-container">
 
-          {/* COLUMN 1 – MENU ITEMS */}
-          <div className="column">
-            <div className="menu-section">
-              <h3 className="section-title">Menu Items</h3>
-
-              <div className="section-grid">
-                {displayed.items.map(item => (
-                  <div key={item.itemID} className="menu-item">
-                    <img src={getImageForItem(item.itemName)} alt={item.itemName} className="menu-item-image" />
-                    <div className="menu-item-name">{item.itemName}</div>
-                    <div className="menu-item-price">${item.itemPrice?.toFixed(2) || ''}</div>
-                  </div>
-                ))}
-              </div>
+            <div className="center-logo">
+              <img src={pandaLogo} alt="Panda Logo" className="logo" />
             </div>
           </div>
+        )}
+        <div className="menu-page-container">
+          {showSignOutModal && <SignOutButton />}
+          <div className="menu-content">
 
-          {/* COLUMN 2 – ENTREES */}
-          <div className="column">
+            {/* COLUMN 1 – MENU ITEMS */}
+            <div className="column">
+              <div className="menu-section">
+                <h3 className="section-title">Menu Items</h3>
 
-            {/* ENTREES */}
-            <div className="menu-section">
-              <h3 className="section-title">Entrees</h3>
-
-              <div className="section-grid">
-                {displayed.entrees.map(item => (
-                  <div key={`entree-${item.menuID}`} className="menu-item">
-                    <img src={getImageForItem(item.menuName)} alt={item.menuName} className="menu-item-image" />
-                    <div className="menu-item-name">{item.menuName}</div>
-                    {item.priceMod > 0 && (
-                      <img src={getImageForItem("P")} alt="Premium" className="menu-item-image-premium" />
-                    )}
-                  </div>
-                ))}
+                <div className="section-grid">
+                  {displayed.items.map(item => (
+                    <div key={item.itemID} className="menu-item">
+                      <img src={getImageForItem(item.itemName)} alt={item.itemName} className="menu-item-image" />
+                      <div className="menu-item-name">{item.itemName}</div>
+                      <div className="menu-item-price">${item.itemPrice?.toFixed(2) || ''}</div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
 
-            {/* SIDES */}
-            <div className="menu-section">
-              <h3 className="section-title">Sides</h3>
+            {/* COLUMN 2 – ENTREES */}
+            <div className="column">
 
-              <div className="section-grid">
-                {displayed.sides.map(item => (
-                  <div key={`side-${item.menuID}`} className="menu-item">
-                    <img src={getImageForItem(item.menuName)} alt={item.menuName} className="menu-item-image" />
-                    <div className="menu-item-name">{item.menuName}</div>
-                  </div>
-                ))}
+              {/* ENTREES */}
+              <div className="menu-section">
+                <h3 className="section-title">Entrees</h3>
+
+                <div className="section-grid">
+                  {displayed.entrees.map(item => (
+                    <div key={`entree-${item.menuID}`} className="menu-item">
+                      <img src={getImageForItem(item.menuName)} alt={item.menuName} className="menu-item-image" />
+                      <div className="menu-item-name">{item.menuName}</div>
+                      {item.priceMod > 0 && (
+                        <img src={getImageForItem("P")} alt="Premium" className="menu-item-image-premium" />
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
+
+              {/* SIDES */}
+              <div className="menu-section">
+                <h3 className="section-title">Sides</h3>
+
+                <div className="section-grid">
+                  {displayed.sides.map(item => (
+                    <div key={`side-${item.menuID}`} className="menu-item">
+                      <img src={getImageForItem(item.menuName)} alt={item.menuName} className="menu-item-image" />
+                      <div className="menu-item-name">{item.menuName}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
             </div>
 
+            {/* COLUMN 3 – SIDES + APPETIZERS */}
+            <div className="column">
+
+              {/* APPETIZERS */}
+              <div className="menu-section">
+                <h3 className="section-title">Appetizers</h3>
+
+                <div className="section-grid">
+                  {displayed.apps.map(item => (
+                    <div key={`app-${item.menuID}`} className="menu-item">
+                      <img src={getImageForItem(item.menuName)} alt={item.menuName} className="menu-item-image" />
+                      <div className="menu-item-name">{item.menuName}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* APPETIZERS */}
+              <div className="menu-section">
+                <h3 className="section-title">Drinks</h3>
+
+                <div className="section-grid">
+                  {displayed.drinks.map(item => (
+                    <div key={`bev-${item.menuID}`} className="menu-item">
+                      <img src={getImageForItem(item.menuName)} alt={item.menuName} className="menu-item-image" />
+                      <div className="menu-item-name">{item.menuName}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+            </div>
           </div>
-
-          {/* COLUMN 3 – SIDES + APPETIZERS */}
-          <div className="column">
-
-            {/* APPETIZERS */}
-            <div className="menu-section">
-              <h3 className="section-title">Appetizers</h3>
-
-              <div className="section-grid">
-                {displayed.apps.map(item => (
-                  <div key={`app-${item.menuID}`} className="menu-item">
-                    <img src={getImageForItem(item.menuName)} alt={item.menuName} className="menu-item-image" />
-                    <div className="menu-item-name">{item.menuName}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* APPETIZERS */}
-            <div className="menu-section">
-              <h3 className="section-title">Drinks</h3>
-
-              <div className="section-grid">
-                {displayed.drinks.map(item => (
-                  <div key={`bev-${item.menuID}`} className="menu-item">
-                    <img src={getImageForItem(item.menuName)} alt={item.menuName} className="menu-item-image" />
-                    <div className="menu-item-name">{item.menuName}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-          </div>
+            <br></br>
+        {HeaderOn && (<button className = "sign-out-button" onClick={() => setShowSignOutModal(true)}>Sign Out</button>)}
         </div>
-          <br></br>
-      {HeaderOn && (<button className = "sign-out-button" onClick={() => setShowSignOutModal(true)}>Sign Out</button>)}
       </div>
     </div>
   );
