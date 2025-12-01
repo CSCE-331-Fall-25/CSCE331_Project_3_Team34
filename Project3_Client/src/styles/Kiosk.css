@@ -141,7 +141,14 @@
   background: #fff;
 }
 
-.kiosk-order-row-child{
+.kiosk-order-row-child-default{
+  margin-left: 16px;
+  border-left: 3px solid #e84b4b;
+  padding-left: 12px;
+  background: #ffffff;
+}
+
+.kiosk-order-row-child-premium {
   margin-left: 16px;
   border-left: 3px solid #f4c27a;
   padding-left: 12px;
