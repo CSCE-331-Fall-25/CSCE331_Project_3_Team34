@@ -313,6 +313,12 @@ app.get('/api/health', (req, res) => {
   res.json({ ok: true });
 });
 
+app.post('/api/void-transaction', async (req, res) => {
+  const { transactionId, userIsManager } = req.body;
+  const mainPage = getMainPageForSession(req);
+  res.json(await mainPage.VoidTransaction(transactionId, userIsManager));
+});
+
 
 // ------------------------------------- Manager API Endpoints Start --------------------------------------
 app.post('/api/x-report-data', async (req, res) => {
@@ -509,6 +515,20 @@ app.post('/api/update-inventory', async (req, res) => {
 
 
 
+app.post('/api/get-menu-ids', async (req, res) => {
+  try {
+   // console.log("request recieved");
+    const {  menuId, rowSelection } = req.body;
+    res.json(await manager.getMenuIds(menuId, rowSelection));
+    // console.log(res.json());
+  } catch (err) {
+    console.error('Error getting data' + err);
+    res.json({ error: -2 });
+  }
+});
+
+
+
 app.get('/api/get-sales-data', async (req, res) => {
   try {
    // console.log("request recieved");
@@ -519,25 +539,19 @@ app.get('/api/get-sales-data', async (req, res) => {
   }
 });
 
-// app.post('/api/update-quantity', async (req, res) => {
-//   try {
-//     console.log("request recieved");
-//     const { inventoryId, inventoryQuantity } = req.body;
-//     res.json(await manager.UpdateQuantity(inventoryId, inventoryQuantity));
-//   } catch (err) {
-//     console.error('Error getting data' + err);
-//     res.json({ error: -2 });
-//   }
-// });
+import { fileURLToPath } from 'url';
+import { handleFileUpload } from './Upload.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+app.use('/assets', express.static(path.join(__dirname, 'assets')));
+
+app.post('/api/upload', handleFileUpload);
 // ------------------------------------- Manager API Endpoints End ------------------------------------
 
 
 import path from "path";
-import { fileURLToPath } from "url";
 
-// Get absolute directory path (needed since we’re in ES modules)
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 // ✅ Serve React build folder (adjust if you used CRA instead of Vite)
 app.use(express.static(path.join(__dirname, "../../Project3_Client/dist")));

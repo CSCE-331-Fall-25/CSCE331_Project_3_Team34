@@ -411,3 +411,121 @@ textarea::placeholder {
   color: #cc0000;
   font-weight: 600;
 }
+
+.modal-overlay {
+position: fixed;
+inset: 0;
+display: flex;
+align-items: center;
+justify-content: center;
+background: rgba(0, 0, 0, 0.5);
+z-index: 50;
+}
+
+
+.modal-box {
+width: 100%;
+max-width: 600px;
+background: white;
+border-radius: 16px;
+padding: 24px;
+box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+}
+
+
+.modal-header {
+display: flex;
+justify-content: space-between;
+align-items: center;
+}
+
+
+.close-btn {
+background: none;
+border: none;
+cursor: pointer;
+font-size: 18px;
+}
+
+
+.modal-grid {
+margin-top: 16px;
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 16px;
+}
+
+
+.dropzone {
+height: 180px;
+border: 2px dashed #ccc;
+border-radius: 8px;
+display: flex;
+align-items: center;
+justify-content: center;
+text-align: center;
+padding: 12px;
+cursor: pointer;
+}
+
+
+.preview-img {
+max-height: 140px;
+object-fit: contain;
+}
+
+.btn {
+  display: inline-block;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: 0.2s ease;
+  text-align: center;
+  user-select: none;
+  margin: 3px;
+}
+
+/* Upload Button (Primary) */
+.btn-upload {
+  background-color: #d0021b;
+  color: white;
+}
+
+.btn-upload:hover {
+  background-color: #b00118;
+}
+
+.btn-upload:active {
+  background-color: #8a0112;
+}
+
+/* Clear Button (Warning style) */
+.btn-clear {
+  background-color: #d0021b;
+  color: white;
+}
+
+.btn-clear:hover {
+  background-color: #b00118;
+}
+
+.btn-clear:active {
+  background-color: #8a0112;
+}
+
+/* Close Button (Danger style) */
+.btn-close {
+  background-color: #d0021b;
+  color: white;
+}
+
+.btn-close:hover {
+  background-color: #b00118;
+}
+
+.btn-close:active {
+  background-color: #8a0112;
+}

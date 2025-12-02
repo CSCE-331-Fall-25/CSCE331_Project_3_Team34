@@ -61,7 +61,7 @@ class Manager {
         }
 
         while (hour >= 10) {
-            hours.push(hour);
+            hours.push(hour + ":00");
             sales.push(0);
             hour--;
         }
@@ -1386,6 +1386,45 @@ class Manager {
             console.log("Error adding inventory: " + err);
             return { error: -1 };
         }
+    }
+
+    async getMenuIds(menuId, rowSelection) {
+        let data = [];
+        let q = "SELECT menuid, name FROM menu ORDER BY menuid ASC;";
+        let result = await this.db.query(q);
+        let isThere = false;
+        if (menuId) {
+            for (const row of result.rows) {
+                if (row.menuid == menuId) {
+                    isThere = true;
+                    data.push(row.name);
+                }
+            }
+            if (!isThere) {
+                return { error: 2 };
+            }
+        }
+        let i = 0;
+        let index = 0;
+        console.log(Object.keys(rowSelection));
+        for (const row of result.rows) {
+            console.log(row);
+            if (Object.keys(rowSelection).length == index) {
+                break;
+            }
+            console.log(Object.keys(rowSelection)[index] + "   " +  i);
+            if (Object.keys(rowSelection)[index] == i) {
+                data.push(row.name);
+                index++;
+            }
+            i++;
+        }
+        console.log(data);
+        console.log(data.length);
+        if (data.length == 0) {
+            return { error: 3 };
+        }
+        return { ids: data, error: 55 };
     }
 }
 
