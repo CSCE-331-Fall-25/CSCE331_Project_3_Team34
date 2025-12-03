@@ -41,8 +41,7 @@ const sessionPrefab = session({
     httpOnly: true,
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
     maxAge: 60 * 60 * 1000 // 1 hour
-  },
-  history: []
+  }
 });
 
 app.use(cors({ origin: clientOrigin, credentials: true }));
@@ -78,6 +77,11 @@ app.post('/api/ask-gen-ai', async (req, res) => {
     console.error("No user in session");
     //return res.status(401).json({ success: false, error: 'Not authenticated' });
   } 
+  
+  // Initialize history if not present
+  if (!req.session.history) {
+    req.session.history = [];
+  }
   
   let prompt = req.body.prompt_text;;
   //console.log(`GenAI request from user: ${currUser.username}, prompt: ${prompt}`);
