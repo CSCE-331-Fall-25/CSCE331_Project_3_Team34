@@ -617,3 +617,60 @@
   box-shadow: 0 0 20px rgba(229, 65, 65, 0.9);
 }
 
+.chat-messages {
+  position: relative;
+  background-color: #e5e7eb;
+}
+
+/* Panda logo watermark when empty */
+.chat-messages.empty::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+
+  background-image: url("../assets/itemImages/pandaLogoTrans.png"); 
+  
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: min(600px, 100%);
+  
+  opacity: 0.08;
+  pointer-events: none; 
+
+  filter: blur(0.5px);
+}
+
+.chat-messages {
+  position: relative;
+}
+
+/* Empty watermark */
+.chat-messages.empty {
+  justify-content: center;
+  align-items: center;
+}
+
+.chat-watermark {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  pointer-events: none;
+  opacity: 0.12;
+}
+
+.chat-watermark img {
+  width: 200px;
+  margin-bottom: 12px;
+}
+
+.chat-watermark p {
+  padding-top: 10px;
+  font-size: 2rem;
+  color: #111;
+}
+
+
+

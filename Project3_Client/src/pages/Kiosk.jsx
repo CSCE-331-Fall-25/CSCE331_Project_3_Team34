@@ -6,6 +6,7 @@ import WeatherScreen from './WeatherScreen';
 import '../styles/Kiosk.css';
 
 import { getImageForItem } from "../assets/utils/imageMapper";
+import ChatModal from '../Components/ChatModal';
 
 export default function Kiosk() {
 
@@ -96,6 +97,8 @@ export default function Kiosk() {
 
   const openChat = () => setIsChatOpen(true);
   const closeChat = () => setIsChatOpen(false);
+
+  const [showChat, setShowChat] = useState(false);
 
 
   const safeNumber = value => {
@@ -572,32 +575,11 @@ export default function Kiosk() {
         </div>
         <button
             className={`ai-chat-btn ${!open ? 'pulse' : 'fadeIn'}`} // change open --> isChatOpen
-            onClick={openChat}
+            onClick={() => setShowChat(true)}
           >
             <img src={getImageForItem('bobrosspanda')} alt="Bob Ross Panda" className='ai-chat-img'/>
         </button>
-        {isChatOpen && (
-          <div className="modal-overlay" onClick={closeChat}>
-            <div
-              className="chat-modal"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="chat-header">
-                Bob Ross Panda - AI Assistance
-                <button className="close-btn" onClick={closeChat}>✕</button>
-              </div>
-
-              <div className="chat-messages">
-                <div className="chat-empty">Ask me anything about the menu.</div>
-              </div>
-
-              <div className="chat-input-area">
-                <input placeholder="Type a message…" />
-                <button>Send</button>
-              </div>
-            </div>
-          </div>
-        )}
+        {showChat && <ChatModal onClose={() => setShowChat(false)} />}
       </div>
       )} 
       {state == "Checkout" && (
