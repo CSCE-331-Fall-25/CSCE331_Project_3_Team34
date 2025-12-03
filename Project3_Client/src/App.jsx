@@ -12,6 +12,8 @@ import MealAttributes  from './pages/MealAttributes.jsx'
 import React from 'react'
 import GoogleLoginButton from './Components/googleLoginButton.jsx'
 import './styles/App.css'
+import './Components/SimpleChat.jsx'
+import SimpleChat from './Components/SimpleChat.jsx'
 //import app from '../../Project3_Server/src/index.js'
 
 import { getImageForItem } from './assets/utils/imageMapper';
@@ -137,7 +139,7 @@ export default function App() {
     }, []);
   return (
     <div>
-      
+      <SimpleChat />
       {showButtons && (
         <div className="login-page-background">
           <div className="login-card">
@@ -173,6 +175,7 @@ export default function App() {
           
           </div>
         </div>
+        
 
       )}
      
