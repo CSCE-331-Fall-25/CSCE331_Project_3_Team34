@@ -188,6 +188,8 @@ app.post('/api/fetch-menus-by-type', async (req, res) => {
       type: menu.type,
       priceMod: menu.pricemod,
       inventoryIDs: menu.inventoryids
+      // Add this line when calories added to DB
+      // calories: menu.calories
     })));
   } catch (err) {
     console.error('Error fetching menus by type:', err);
