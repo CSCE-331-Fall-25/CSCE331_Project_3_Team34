@@ -14,6 +14,8 @@ import GoogleLoginButton from './Components/googleLoginButton.jsx'
 import './styles/App.css'
 //import app from '../../Project3_Server/src/index.js'
 
+import { getImageForItem } from './assets/utils/imageMapper';
+
 
 
 export default function App() {
@@ -137,33 +139,39 @@ export default function App() {
     <div>
       
       {showButtons && (
-        <div className="login-container">
-          <img
-            className="login-logo"
-            src={pandaLogo}
-            alt="Panda Express Logo"
-          />
-          <form onSubmit={handleLogin} className="login-form">
-            <input
-              type="text"
-              placeholder="Employee ID"
-              value={employeeId ?? ''}
-              onChange={handleIdChange}
+        <div className="login-page-background">
+          <div className="login-card">
+            <img
+              className="login-logo"
+              src={pandaLogo}
+              alt="Panda Express Logo"
             />
-            <input
-              type="password"
-              placeholder="Password"
-              value={employeePassword ?? ''}
-              onChange={handlePasswordChange}
-            />
-            <button type="submit">Login</button>
+            <form onSubmit={handleLogin} className="login-form">
+              <input
+                type="text"
+                placeholder="Employee ID"
+                value={employeeId ?? ''}
+                onChange={handleIdChange}
+              />
+              <input
+                type="password"
+                placeholder="Password"
+                value={employeePassword ?? ''}
+                onChange={handlePasswordChange}
+              />
+              <button type="submit">Login</button>
+              
+            </form>
+
+            <GoogleLoginButton />
             
-          </form>
-          <button onClick={() => navigate("/hub")}>
-            Debugging Skip Login
-          </button>
-          <GoogleLoginButton />
-         
+            <button className="debug-button" onClick={() => navigate("/hub")}>
+              <img className='img' src={getImageForItem("debugbutton")} alt="Debug" />
+              Debugging Skip Login
+            </button>
+            
+          
+          </div>
         </div>
 
       )}

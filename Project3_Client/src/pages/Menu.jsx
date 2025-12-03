@@ -12,7 +12,7 @@ import SignOutButton from '../Components/SignOut.jsx';
 export default function Menu() {
 
   const pageSizes = {
-    items: 8,
+    items: 6,
     entrees: 8,
     sides: 4,
     apps: 4,
@@ -179,7 +179,7 @@ export default function Menu() {
                 <div className="section-grid">
                   {displayed.items.map(item => {
                   const imgSrc = getImageForItem(item.itemName);
-                  let boxStyle = imgSrc ? 'menu-item' : 'menu-item no-img';
+                  let boxStyle = imgSrc ? 'menu-item menu-item-menu' : 'menu-item menu-item-menu no-img';
 
                   return (
                     <div key={item.itemID} className={boxStyle}>
