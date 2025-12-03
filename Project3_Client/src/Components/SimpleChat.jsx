@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import './SimpleChat.css';
 
 export default function SimpleChat() {
   const [input, setInput] = useState('');
@@ -11,33 +12,20 @@ export default function SimpleChat() {
   }
 
   return (
-    <div style={{ maxWidth: 320, margin: '24px auto', padding: 16, border: '1px solid #ccc', borderRadius: 8 }}>
-      <div style={{ marginBottom: 12 }}>
-        <div style={{ fontWeight: 'bold', marginBottom: 4 }}>Output:</div>
-        <div
-          style={{
-            minHeight: 32,
-            maxHeight: 120,
-            background: '#f8f8f8',
-            padding: 8,
-            borderRadius: 4,
-            overflowY: 'auto',
-            wordBreak: 'break-word',
-            whiteSpace: 'pre-wrap',
-          }}
-        >
-          {output}
-        </div>
+    <div className="simple-chat-container">
+      <div className="simple-chat-output-wrap">
+        <div className="simple-chat-output-label">Output:</div>
+        <div className="simple-chat-output">{output}</div>
       </div>
-      <form onSubmit={handleSend} style={{ display: 'flex', gap: 8 }}>
+      <form className="simple-chat-form" onSubmit={handleSend}>
         <input
+          className="simple-chat-input"
           type="text"
           value={input}
           onChange={e => setInput(e.target.value)}
           placeholder="Type your message..."
-          style={{ flex: 1, padding: 8, borderRadius: 4, border: '1px solid #ccc' }}
         />
-        <button type="submit" style={{ padding: '8px 16px', borderRadius: 4, border: 'none', background: '#1976d2', color: '#fff' }}>
+        <button type="submit" className="simple-chat-send">
           Send
         </button>
       </form>
