@@ -7,7 +7,21 @@ export default function SimpleChat() {
 
   function handleSend(e) {
     e.preventDefault();
-    setOutput(input); // Replace with chat bot response logic
+    //call chat bot API here
+    console.log("Sending to GenAI:", input);
+    fetch('/api/ask-gen-ai', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt_text: input })
+    })
+    .then(response => response.json())
+    .then(data => {
+        setOutput(data.response_text);
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
+    //setOutput(input); // Replace with chat bot response logic
     setInput('');
   }
 
