@@ -19,7 +19,48 @@ export default function Kiosk() {
     timerRef.current = setTimeout(() => navigate('/weather'), 1000 * 60 * 10); // 10 minutes
   }
 
+  const [tableColumns, setTableColumns] = useState([]);
+  const [tableData, setTableData] = useState([]);
+  const [errorLabel, setErrorLabel] = useState("");
+  const [inventoryData, setInventoryData] = useState([]);
+
+  const getInventoryData = async () => {
+    console.log("inventory data");
+    const response = await fetch("/api/inventory-data");
+    if (!response.ok) {
+      console.log("Error in function call");
+      setErrorLabel("Failed to connect to backend");
+    }
+    else if (response == null) {
+      console.log("Error getting data");
+      setErrorLabel("Failed to connect to backend");
+    }
+    else {
+      const newData = await response.json();
+      console.log(JSON.stringify(newData));
+      setInventoryData(newData);
+      setTableColumns([{ accessorKey: "inventoryid", header: "Inventory ID", cell: info => info.getValue() },
+      { accessorKey: "name", header: "Name", cell: info => info.getValue() },
+      { accessorKey: "quantity", header: "Quantity", cell: info => info.getValue() },
+      { accessorKey: "minstock", header: "Minimum Stock", cell: info => info.getValue() },
+      { accessorKey: "maxstock", header: "Maximum Stock", cell: info => info.getValue() }]);
+      console.log(JSON.stringify(newData));
+      if (newData.error == -2) {
+        setErrorLabel("Failed to connect to backend");
+      }
+      else if (newData.error == -1) {
+        setErrorLabel("Error getting inventory items");
+      }
+      else if (newData.error == 0) {
+        setErrorLabel("No inventory items");
+      }
+      setTableData(Array.isArray(newData) ? newData.slice() : [newData]);
+    }
+  }
+
   useEffect(() => {
+    getInventoryData();
+
     const events = ['click', 'mousemove', 'scroll', 'touchstart'];
     function resetTimer() { startTimer(); }
     events.forEach(event => window.addEventListener(event, resetTimer, { passive: true }));
@@ -209,6 +250,7 @@ export default function Kiosk() {
     }
   }
 
+
   function buildSelectionQueue(item) {
     if (!item) return [];
     const queue = [];
@@ -265,6 +307,16 @@ export default function Kiosk() {
   }
 
   async function handleMenuChoice(option) {
+
+    //DEBUG:
+    // const inventoryIDs = option.inventoryids;
+    // console.log("Selected menu Inventory:", inventoryIDs.join(", "));
+
+    // for (const invID of inventoryIDs) {
+    //   console.log(invID + ": " + inventoryData.find(item => item.inventoryid === invID)?.quantity);
+    // }
+
+
     const pendingSwap = swapTargetRef.current;
     let insertAt = null;
     if (pendingSwap && pendingSwap.groupId === currentGroupId) {
@@ -437,20 +489,31 @@ export default function Kiosk() {
                 {menuItems.length === 0 && <div className="kiosk-empty">No items</div>}
                 {menuItems.map(it => {
                   const { value, hide } = resolveDisplayPrice(it);
+
+                  let isInStock = true;
+                  const inventoryIDs = it.inventoryids;
+
+                  for (const invID of inventoryIDs) {
+                    if(inventoryData.find(item => item.inventoryid === invID)?.quantity < inventoryData.find(item => item.inventoryid === invID)?.minstock) isInStock = false;
+                  }
+
+                  let imageClass = isInStock ? 'kiosk-menu-image' : 'kiosk-menu-image out-of-stock';
                   return (
                     <button
                       key={it.id ?? it.menuid ?? it.name}
                       type="button"
                       className="kiosk-item kiosk-item-button"
-                      onClick={() => handleMenuChoice(it)}
+                      onClick={() => {if (isInStock) handleMenuChoice(it);}}
                     >
                       <img
                         src={getImageForItem(it.name)}
                         alt={it.name || 'item'}
-                        className="kiosk-menu-image"
+                        className={imageClass}
                       />
                       <div className="kiosk-item-name">{it.name}</div>
                       <div className="kiosk-item-price">{hide ? '' : `$${value.toFixed(2)}`}</div>
+                      <div className="kiosk-item-calories">{it.calories ? `${it.calories} calories` : '0 calories'}</div>
+                      <div className="kiosk-item-calories"> [{it.inventoryids.join(", ")}]</div>
                     </button>
                   );
                 })}

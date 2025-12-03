@@ -114,6 +114,11 @@
   font-weight: 600;
 }
 
+.kiosk-item-calories{
+  font-size: 0.9rem;
+  color: #999;
+}
+
 
 .kiosk-right{
   display: flex;
@@ -356,4 +361,9 @@
   border-radius: 6px;
   object-fit: cover;
   align-self: center;
+}
+
+.out-of-stock {
+  filter: grayscale(100%);
+  opacity: 0.5;
 }
