@@ -22,7 +22,7 @@ const model = client.getGenerativeModel({ model: "gemini-2.5-flash",
 // Function to chat with the GenAI model and save history
 // Pass in username of signed-in user
 async function chatWithAI(username, prompt, history) {
-  console.log("Sending prompt to GenAI:", prompt);
+ // console.log("Sending prompt to GenAI:", prompt);
   if(!username) {
     username = "Guest";
   }

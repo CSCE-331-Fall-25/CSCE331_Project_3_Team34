@@ -13,8 +13,23 @@ export default function ChatModal({ onClose }) {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  
-  const sendMessage = () => {
+  async function fetchAIResponse(prompt_text) {
+    try {
+      const response = await fetch('/api/ask-gen-ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt_text })
+      });
+      const data = await response.json();
+      return data.response_text;
+    } catch (error) {
+      console.error('Error:', error);
+      return "Error fetching AI response.";
+    }
+  }
+
+
+  const sendMessage = async () => {
     if (!input.trim()) return;
 
     // Add user message
@@ -23,15 +38,22 @@ export default function ChatModal({ onClose }) {
       { role: "user", text: input }
     ]);
 
+    // Show thinking message
+    setMessages(prev => [
+      ...prev,
+      { role: "ai", text: "Panda AI is thinking..." }
+    ]);
+
     setInput("");
 
-    
-    setTimeout(() => {
-      setMessages(prev => [
-        ...prev,
-        { role: "ai", text: "Panda AI is thinking..." }
-      ]);
-    }, 600);
+    // Fetch AI response
+    let aiReply = await fetchAIResponse(input);
+
+    // Remove thinking message and add AI reply
+    setMessages(prev => [
+      ...prev.filter(msg => msg.text !== "Panda AI is thinking..."),
+      { role: "ai", text: aiReply }
+    ]);
   };
 
   return (

@@ -26,7 +26,7 @@ export default function Kiosk() {
   const [inventoryData, setInventoryData] = useState([]);
 
   const getInventoryData = async () => {
-    console.log("inventory data");
+    // console.log("inventory data");
     const response = await fetch("/api/inventory-data");
     if (!response.ok) {
       console.log("Error in function call");
@@ -38,14 +38,14 @@ export default function Kiosk() {
     }
     else {
       const newData = await response.json();
-      console.log(JSON.stringify(newData));
+      //console.log(JSON.stringify(newData));
       setInventoryData(newData);
       setTableColumns([{ accessorKey: "inventoryid", header: "Inventory ID", cell: info => info.getValue() },
       { accessorKey: "name", header: "Name", cell: info => info.getValue() },
       { accessorKey: "quantity", header: "Quantity", cell: info => info.getValue() },
       { accessorKey: "minstock", header: "Minimum Stock", cell: info => info.getValue() },
       { accessorKey: "maxstock", header: "Maximum Stock", cell: info => info.getValue() }]);
-      console.log(JSON.stringify(newData));
+      // console.log(JSON.stringify(newData));
       if (newData.error == -2) {
         setErrorLabel("Failed to connect to backend");
       }
@@ -209,14 +209,14 @@ export default function Kiosk() {
   async function fetchItems() {
     try {
       const res = await fetch('/api/kiosk/get-items');
-      console.log('status', res.status, 'ok', res.ok);
-      console.log('headers', Object.fromEntries(res.headers.entries()));
+      // console.log('status', res.status, 'ok', res.ok);
+      // console.log('headers', Object.fromEntries(res.headers.entries()));
 
       // parse JSON body
       const data = await res.json();
-      console.log('data', data);                    // inspect
-      console.log(JSON.stringify(data, null, 2));  // nicely formatted
-      if (Array.isArray(data)) console.table(data); // nice table for arrays
+      // console.log('data', data);                    // inspect
+      // console.log(JSON.stringify(data, null, 2));  // nicely formatted
+      // if (Array.isArray(data)) console.table(data); // nice table for arrays
 
       // Keep the item objects so we can use every property (name, price, etc.).
       const normalized = Array.isArray(data)
@@ -414,7 +414,7 @@ export default function Kiosk() {
   }
 
   function handlePayment(method) {
-    console.log("Payment method selected: " + method);
+    // console.log("Payment method selected: " + method);
     // Perform purchase on payment confirmation, wait for server transaction id,
     // then show Finished screen so `transactionNumber` is available.
     (async () => {
