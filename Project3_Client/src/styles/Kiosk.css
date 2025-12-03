@@ -357,3 +357,36 @@
   object-fit: cover;
   align-self: center;
 }
+
+/* Loading overlay - translucent black, centered message, blocks input */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0,0,0,0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  pointer-events: all; /* block interactions with underlying UI */
+}
+
+.loading-overlay .loading-inner {
+  color: white;
+  font-size: 1.25rem;
+  padding: 18px 28px;
+  background: rgba(0,0,0,0.35);
+  border-radius: 8px;
+  backdrop-filter: blur(4px);
+}
+
+/* Invisible blocker used when we want to prevent input but not show loading UI */
+.input-blocker {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  pointer-events: all; /* block interactions */
+  background: transparent;
+}

@@ -47,6 +47,33 @@ export default function Kiosk() {
   
   const timeoutRef = useRef(null);
 
+  // Loading overlay state: set while any long-running async action is in progress
+  const [loading, setLoading] = useState(false);
+
+  // Blocking state used when we want to prevent input without showing the overlay
+  const [blocking, setBlocking] = useState(false);
+
+  // Helper to run async operations while showing the loading overlay.
+  // withLoading accepts an optional options object: { showOverlay: boolean }
+  // If showOverlay is false, we activate a transparent input blocker instead
+  const withLoading = async (fn, { showOverlay = true } = {}) => {
+    if (showOverlay) setLoading(true); else setBlocking(true);
+    try {
+      return await fn();
+    } finally {
+      if (showOverlay) setLoading(false); else setBlocking(false);
+    }
+  };
+
+  // Fetch wrapper with timeout using AbortController to avoid indefinite hangs
+  const fetchWithTimeout = (url, options = {}, timeoutMs = 8000) => {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeoutMs);
+    const opts = { ...options, signal: controller.signal };
+    return fetch(url, opts)
+      .finally(() => clearTimeout(id));
+  };
+
   const changeState = (newState) => {
     setState(newState);
   }
@@ -138,7 +165,7 @@ export default function Kiosk() {
     setCurrentGroupId(target.groupId ?? null);
     currentParentItemIdRef.current = parentItemId;
 
-    await startNextSelection(swapQueue);
+    await withLoading(() => startNextSelection(swapQueue), { showOverlay: false });
   }
 
   function clearUI() {
@@ -158,7 +185,7 @@ export default function Kiosk() {
   
   async function fetchItems() {
     try {
-      const res = await fetch('/api/kiosk/get-items');
+      const res = await fetchWithTimeout('/api/kiosk/get-items');
       console.log('status', res.status, 'ok', res.ok);
       console.log('headers', Object.fromEntries(res.headers.entries()));
 
@@ -184,7 +211,7 @@ export default function Kiosk() {
 
   async function getNextTransactionNum() {
     try {
-      const res = await fetch('/api/kiosk/get-next-transaction-number');
+      const res = await fetchWithTimeout('/api/kiosk/get-next-transaction-number');
     }
     catch (err) {
       console.error('fetch failed', err);
@@ -192,14 +219,17 @@ export default function Kiosk() {
   }
 
   useEffect(() => {
-    fetchItems();
-    getNextTransactionNum();
+    // Initial data fetches should show the loading overlay
+    withLoading(async () => {
+      await fetchItems();
+      await getNextTransactionNum();
+    });
   }, []);
 
   async function getMenuByType(type) {
     try {
       const q = encodeURIComponent(type);
-      const res = await fetch(`/api/kiosk/get-menu?type=${q}`);
+      const res = await fetchWithTimeout(`/api/kiosk/get-menu?type=${q}`);
       if (!res.ok) throw new Error('Failed to load menu');
       const data = await res.json();
       setMenuItems(Array.isArray(data) ? data : []);
@@ -261,7 +291,7 @@ export default function Kiosk() {
     setSelectedItemId(item.itemid);
     const queue = buildSelectionQueue(item);
     setSelectionQueue(queue);
-    await startNextSelection(queue);
+    await withLoading(() => startNextSelection(queue), { showOverlay: false });
   }
 
   async function handleMenuChoice(option) {
@@ -287,9 +317,9 @@ export default function Kiosk() {
     }
 
     if (selectionQueue.length === 0) {
-      // Meal is complete - send to backend
-      await sendCompletedMealToBackend();
-      
+      // Meal is complete - send to backend (silent blocking — don't show overlay mid-order)
+      await withLoading(() => sendCompletedMealToBackend(), { showOverlay: false });
+
       setActiveSelection(null);
       setMenuItems([]);
       setCurrentGroupId(null);
@@ -297,7 +327,7 @@ export default function Kiosk() {
       currentParentItemIdRef.current = null;
       return;
     }
-    await startNextSelection();
+    await withLoading(() => startNextSelection(), { showOverlay: false });
   }
 
   async function sendCompletedMealToBackend() {
@@ -322,7 +352,7 @@ export default function Kiosk() {
       .map(item => item.name);
 
     try {
-      const res = await fetch('/api/buy-item', {
+      const res = await fetchWithTimeout('/api/buy-item', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -333,7 +363,7 @@ export default function Kiosk() {
           size: null
         })
       });
-      
+
       const data = await res.json();
       if (data.success) {
         console.log('Item added to backend transaction:', data);
@@ -341,7 +371,11 @@ export default function Kiosk() {
         console.error('Failed to add item to backend:', data);
       }
     } catch (err) {
-      console.error('Error sending item to backend:', err);
+      if (err.name === 'AbortError') {
+        console.error('Request aborted (timeout) sending item to backend');
+      } else {
+        console.error('Error sending item to backend:', err);
+      }
     }
   }
 
@@ -352,13 +386,13 @@ export default function Kiosk() {
     changeState("Checkout");
   }
 
-  function handlePayment(method) {
+  async function handlePayment(method) {
     console.log("Payment method selected: " + method);
     // Perform purchase on payment confirmation, wait for server transaction id,
     // then show Finished screen so `transactionNumber` is available.
-    (async () => {
+    await withLoading(async () => {
       try {
-        const res = await fetch('/api/purchase', { method: 'POST', credentials: 'include' });
+        const res = await fetchWithTimeout('/api/purchase', { method: 'POST', credentials: 'include' });
         const data = await res.json();
         if (data && data.success) {
           if (data.transactionId) setTransactionNumber(Number(data.transactionId));
@@ -366,7 +400,11 @@ export default function Kiosk() {
           console.error('Purchase failed:', data);
         }
       } catch (err) {
-        console.error('Error during purchase:', err);
+        if (err.name === 'AbortError') {
+          console.error('Purchase request timed out');
+        } else {
+          console.error('Error during purchase:', err);
+        }
       }
 
       changeState("Finished");
@@ -374,7 +412,7 @@ export default function Kiosk() {
       timeoutRef.current = setTimeout(() => {
         goBackToKiosk(); 
       }, 5000);
-    })();
+    });
   }
 
   function goBackToKiosk() {
@@ -392,6 +430,14 @@ export default function Kiosk() {
 
   return (
     <div>
+      {loading && (
+        <div className="loading-overlay" aria-hidden>
+          <div className="loading-inner">Loading…</div>
+        </div>
+      )}
+      {blocking && !loading && (
+        <div className="input-blocker" aria-hidden />
+      )}
       {(state == "Kiosk") && (
       <div className="kiosk-root">
         <div className="kiosk-left">
