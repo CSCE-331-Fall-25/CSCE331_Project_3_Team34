@@ -500,7 +500,8 @@ export default function Kiosk() {
                   let imageClass = isInStock ? 'kiosk-menu-image' : 'kiosk-menu-image out-of-stock';
 
                   let imgSrc = getImageForItem(it.name);
-                  let boxStyle = imgSrc ? 'kiosk-item kisok-item-button' : 'kiosk-item no-img kisok-item-button';
+                  let boxStyle = `kiosk-item kisok-item-button${!isInStock ? ' out-of-stock' : ''}${!imgSrc ? ' no-img' : ''}`;
+
                   return (
                     <button
                       key={it.id ?? it.menuid ?? it.name}
@@ -512,7 +513,7 @@ export default function Kiosk() {
                         <img
                           src={getImageForItem(it.name)}
                           alt={it.name || 'item'}
-                          className={imageClass}
+                          className='kiosk-menu-image'  
                         />
                       )}
                       <div className="kiosk-item-name">{it.name}</div>
