@@ -15,7 +15,7 @@ import * as oAuth from "./oAuth.js";
 import kioskRouter from "./Kiosk.js";
 import kitchenRouter from "./Kitchen.js";
 
-import {chatWithAI, getChatHistory} from "./GenAI.js";
+import {chatWithAI} from "./GenAI.js";
 
 
 
@@ -41,7 +41,8 @@ const sessionPrefab = session({
     httpOnly: true,
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
     maxAge: 60 * 60 * 1000 // 1 hour
-  }
+  },
+  history: []
 });
 
 app.use(cors({ origin: clientOrigin, credentials: true }));
@@ -69,7 +70,7 @@ function getMainPageForSession(req) {
   return sessionMap.get(sessionID);
 }
 app.post('/api/ask-gen-ai', async (req, res) => {
-  console.log("Received GenAI request with prompt:", req.body.prompt_text);
+  //console.log("Received GenAI request with prompt:", req.body.prompt_text);
   let currUser = req.session?.user ?? null;
   if(!currUser){
     currUser = new User("TestUser", "TestPassword", "");
@@ -77,10 +78,11 @@ app.post('/api/ask-gen-ai', async (req, res) => {
     console.error("No user in session");
     //return res.status(401).json({ success: false, error: 'Not authenticated' });
   } 
+  
   let prompt = req.body.prompt_text;;
-  console.log(`GenAI request from user: ${currUser.username}, prompt: ${prompt}`);
+  //console.log(`GenAI request from user: ${currUser.username}, prompt: ${prompt}`);
   try {
-    const response = await chatWithAI(currUser.username, prompt);
+    const response = await chatWithAI(currUser.username, prompt, req.session.history);
     res.json({ success: true, response_text: response });
   } catch (err) {
     console.error('Error communicating with GenAI:', err);
