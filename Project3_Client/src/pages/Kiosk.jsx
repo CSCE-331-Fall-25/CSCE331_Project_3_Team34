@@ -498,18 +498,23 @@ export default function Kiosk() {
                   }
 
                   let imageClass = isInStock ? 'kiosk-menu-image' : 'kiosk-menu-image out-of-stock';
+
+                  let imgSrc = getImageForItem(it.name);
+                  let boxStyle = imgSrc ? 'kiosk-item kisok-item-button' : 'kiosk-item no-img kisok-item-button';
                   return (
                     <button
                       key={it.id ?? it.menuid ?? it.name}
                       type="button"
-                      className="kiosk-item kiosk-item-button"
+                      className= {boxStyle}
                       onClick={() => {if (isInStock) handleMenuChoice(it);}}
                     >
-                      <img
-                        src={getImageForItem(it.name)}
-                        alt={it.name || 'item'}
-                        className={imageClass}
-                      />
+                      {imgSrc && (
+                        <img
+                          src={getImageForItem(it.name)}
+                          alt={it.name || 'item'}
+                          className={imageClass}
+                        />
+                      )}
                       <div className="kiosk-item-name">{it.name}</div>
                       <div className="kiosk-item-price">{hide ? '' : `$${value.toFixed(2)}`}</div>
                       <div className="kiosk-item-calories">{it.calories ? `${it.calories} calories` : '0 calories'}</div>

@@ -83,6 +83,10 @@
   justify-items: center;
 }
 
+.no-img {
+  justify-content: center;
+}
+
 .kiosk-item:hover{
   border-color: #e33;
   box-shadow: 0 6px 16px rgba(43, 124, 255, 0.15);

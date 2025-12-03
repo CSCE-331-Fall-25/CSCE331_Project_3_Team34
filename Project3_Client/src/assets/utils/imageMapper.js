@@ -13,5 +13,6 @@ export function getImageForItem(name) {
   // Remove spaces and convert to lowercase for matching
   const key = name.replace(/\s+/g, "").toLowerCase();
   // Try exact match first, then try as fallback
-  return imageMap[key] || imageMap["theoriginalorangechicken"] || "";
+  //return imageMap[key] || imageMap["pandalogotrans"] || "";
+  return imageMap[key];
 }
