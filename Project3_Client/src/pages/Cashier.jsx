@@ -15,6 +15,7 @@ import ClearTransactionButton from "../Components/ClearTransactionButton.jsx";
 import RemoveItemButton from "../Components/RemoveItemButton.jsx";
 import PurchaseButton from "../Components/PurchaseButton.jsx";
 import BuyItemButton from "../Components/BuyItemButton.jsx";
+import VoidModal from "../Components/VoidModal.jsx";
 import CreateMealModal from "../Components/CreateMealModal.jsx";
 import SizeModal from "../Components/SizeModal.jsx";
 export default function Cashier() {
@@ -48,6 +49,9 @@ export default function Cashier() {
   const [transactionItems, setTransactionItems] = useState([]);
   const [itemType, setItemType] = useState("NULL");
   // modal-specific state moved to CreateMealModal
+
+  //Void modal
+  const [showVoidModal, setShowVoidModal] = useState(false);
 
 
   const handleBuildItem = (e) => {
@@ -89,7 +93,7 @@ export default function Cashier() {
     setShowCreateMealModal(false);
   }
 
-  const handleViewReports = () => navigate('/reports')
+  const handleShowVoid = () => setShowVoidModal(true);
   const handleAddDiscount = () => setShowDiscountModal(true);
   const handleCreateMeal = () => setShowCreateMealModal(true);
 
@@ -228,6 +232,11 @@ export default function Cashier() {
       {showSignOutModal && (
         <SignOutButton onClose={() => setShowSignOutModal(false)} />
       )}
+      <VoidModal
+        show={showVoidModal}
+        onClose={() => setShowVoidModal(false)}
+        userIsManager={isManager}
+      />
       {/* Sidebar */}
       <div className="sidebar-left" />
 
@@ -285,7 +294,7 @@ export default function Cashier() {
       <div className="functions-column">
         {[
           { text: "Discount", handler: handleAddDiscount },
-          { text: "Reports", handler: handleViewReports },
+          { text: "Void", handler: handleShowVoid },
           { text: "Sign Out", handler: () => setShowSignOutModal(true) },
         ].map((btn) => (
           <button key={btn.text} onClick={btn.handler} className="function-button">

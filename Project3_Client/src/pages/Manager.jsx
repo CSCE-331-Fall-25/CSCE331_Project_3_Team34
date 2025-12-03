@@ -1,5 +1,5 @@
 import React from 'react';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import "../styles/Manager/Manager.css";
 import { flexRender, getCoreRowModel, getPaginationRowModel, useReactTable } from '@tanstack/react-table'
@@ -700,6 +700,7 @@ export default function Manager() {
   const [menuType, setMenuType] = useState('');
   const [menuPriceMod, setMenuPriceMod] = useState('');
   const [menuInventoryIds, setMenuInventoryIds] = useState('');
+  const [showImageDownloadModal, setShowImageDownloadModal] = useState(false);
 
   const getMenuData = async () => {
     console.log("menu data");
@@ -752,6 +753,7 @@ export default function Manager() {
       const newData = await response.json();
       console.log(JSON.stringify(newData));
       console.log(newData.error);
+      setReplace(false);
       getMenuData();
       switch (newData.error) {
         case -2:
@@ -792,6 +794,7 @@ export default function Manager() {
           break;
         case 55:
           setErrorLabel("");
+          setShowImageDownloadModal(true);
           break;
       }
     }
@@ -856,6 +859,8 @@ export default function Manager() {
     else {
       const newData = await response.json();
       console.log(newData);
+      setReplace(true);
+      setShowImageDownloadModal(true);
       getMenuData();
       switch (newData.error) {
         case -2:
@@ -1101,53 +1106,111 @@ export default function Manager() {
       }
     }
   }
-
-  // const updateQuantity = async (add) => {
-  //   console.log("updating quantity");
-  //   let response = '';
-  //   if (add) {
-  //     response = await fetch("/api/update-quantity", {
-  //       method: "POST",
-  //       headers: { "Content-Type": "application/json" },
-  //       body: JSON.stringify({ inventoryId, inventoryQuantity }),
-  //     });
-  //   }
-  //   else
-  //   {
-  //     const negativeInventoryQuantity = inventoryQuantity * -1;
-  //     response = await fetch("/api/update-quantity", {
-  //       method: "POST",
-  //       headers: { "Content-Type": "application/json" },
-  //       body: JSON.stringify({ inventoryId, negativeInventoryQuantity }),
-  //     });
-  //   }
-  //   if (!response.ok) {
-  //     console.log("Error in function call");
-  //     setErrorLabel("Failed to connect to backend");
-  //   }
-  //   else if (response == null) {
-  //     console.log("Error getting data");
-  //     setErrorLabel("Failed to connect to backend");
-  //   }
-  //   else {
-  //     const newData = await response.json();
-  //     console.log(newData);
-  //     getInventoryData();
-  //     if (newData.error == -2) {
-  //       setErrorLabel("Failed to connect to backend");
-  //     }
-  //     else if (newData.error == -1) {
-  //       setErrorLabel("Error removing menu item");
-  //     }
-  //     else if (newData.error == 0) {
-  //       setErrorLabel("Menu item not found");
-  //     }
-  //     else {
-  //       setErrorLabel("");
-  //     }
-  //   }
-  // }
   /* ---------------------- Inventory Variables and Funtions End ---------------------- */
+  const [file, setFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState('');
+  const [replace, setReplace] = useState(false);
+  const inputRef = useRef(null);
+
+  function handleSelectFile(e) {
+    const f = e.target.files && e.target.files[0];
+    if (!f) {
+      setMessage('File now found');
+      return;
+    }
+    if (f.type !== 'image/png') {
+      setMessage('Only PNG files are allowed.');
+      return;
+    }
+    setFile(f);
+    setPreviewUrl(URL.createObjectURL(f));
+    setMessage('');
+  }
+
+  function handleDrop(e) {
+    e.preventDefault();
+    const f = e.dataTransfer.files && e.dataTransfer.files[0];
+    if (!f) {
+      return;
+    }
+    if (f.type !== 'image/png') {
+      setMessage('Only PNG files are allowed.');
+      return;
+    }
+    setFile(f);
+    setPreviewUrl(URL.createObjectURL(f));
+    setMessage('');
+  }
+
+  function handleDragOver(e) {
+    e.preventDefault();
+  }
+
+  async function handleUpload() {
+    if (!file) {
+      setMessage('Please select a PNG first.');
+      return;
+    }
+    setLoading(true);
+    setMessage('');
+    try {
+      let ids = [];
+      
+      const response = await fetch("/api/get-menu-ids", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ menuId, rowSelection }),
+      });
+      let resp = await response.json();
+      console.log(resp + "aasfbsdbstenb");
+      switch (resp.error) {
+        case 2:
+          setMessage('Menu Id not found');
+          break;
+        case 3:
+          setMessage('No menu items found to update');
+          break;
+        case 55:
+          setMessage('Upload successful');
+          break;
+      }
+      for (let row of resp.ids) {
+        console.log(row + "aafgafg");
+        ids.push(row);
+      }
+
+      console.log(ids);
+      for (let name of ids) {
+        console.log(name);
+        const form = new FormData();
+        form.append('menuId', name);
+        form.append('file', file);
+        form.append('replace', replace);
+        
+        const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: form,
+        });
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function handleClear() {
+    setFile(null);
+    setPreviewUrl(null);
+    setMessage('');
+    if (inputRef.current) inputRef.current.value = null;
+  }
+
+  function onClose() {
+    setShowImageDownloadModal(false);
+  }
 
 
   return (
@@ -1267,6 +1330,84 @@ export default function Manager() {
       }
       {showMenuModal &&(
           <div className="modal-overlay">
+
+          {showImageDownloadModal && (
+            <div className="modal-overlay">
+              <div className="modal-box">
+                <div className="modal-header">
+                  <h3>Upload Menu Item Image (.png)</h3>
+                  <button
+                    className="close-btn"
+                    onClick={() => { handleClear(); onClose(); }}
+                    aria-label="Close"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <div className="modal-grid">
+                  <div
+                    className="dropzone"
+                    onClick={() => inputRef.current?.click()}
+                    onDrop={handleDrop}
+                    onDragOver={handleDragOver}
+                    role="button"
+                  >
+                    {previewUrl ? (
+                      <img src={previewUrl} alt="preview" className="preview-img" />
+                    ) : (
+                      <div>
+                        <p>Drag & drop a PNG here</p>
+                        <p>or</p>
+
+                        {/* Hidden input triggers on whole-box click */}
+                        <input
+                          ref={inputRef}
+                          onChange={handleSelectFile}
+                          accept="image/png"
+                          type="file"
+                          style={{ display: 'none' }}
+                        />
+
+                        <p className="text-sm text-gray-600">Select File</p>
+                      </div>
+                    )}
+                  </div>
+                  <div className="info-panel">
+                    <div>
+                      <p className="label">Selected file: {file ? `${file.name}` : 'No file selected'}</p>
+                      {message && (
+                        <div className="error-box">{message}</div>
+                      )}
+                    </div>
+
+                    <div className="btn-row">
+                    <button
+                    className="btn btn-upload"
+                    onClick={handleUpload}
+                    disabled={loading}
+                    >
+                    {loading ? 'Uploading...' : 'Upload'}
+                    </button>
+                    <button
+                    className="btn btn-clear"
+                    onClick={handleClear}
+                    disabled={loading}
+                    >
+                    Clear
+                    </button>
+                    <button
+                    className="btn btn-close"
+                    onClick={() => { handleClear(); setShowImageDownloadModal(false); }}
+                    >
+                    Close
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          )}
+
             <div className="modal-content">
               {/* managmentType defines what screen to open and what is going to be updated, use this variable to change funtionality on react */}
               <h2>Menu Management</h2>

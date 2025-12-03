@@ -376,6 +376,27 @@ class CashierMainPage {
         }
         return { success: true, tray: traySummary };
     }
+
+        async VoidTransaction(transactionId, userIsManager) {
+        if (!userIsManager) {
+            return { error: 0 };
+        }
+        let q = "SELECT orderid FROM orders WHERE transactionid = " + transactionId + ";";
+        let orders = await this.db.query(q);
+        if (!orders.rows || orders.rows.length === 0) {
+            console.log("Transaction doesn't exist");
+            return { error: 1 };
+        }
+        for (const order of orders.rows) {
+            q = "DELETE FROM trays WHERE orderid = " + order.orderid + ";";
+            await this.db.query(q);
+        }
+        q = "DELETE FROM orders WHERE transactionid = " + transactionId + ";";
+        await this.db.query(q);
+        q = "DELETE FROM transactions WHERE transactionid = " + transactionId + ";";
+        await this.db.query(q);
+        return { error: 55 };
+    }
 }
 
 export default CashierMainPage;
