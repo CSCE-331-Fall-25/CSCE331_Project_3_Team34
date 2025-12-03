@@ -92,6 +92,12 @@ export default function Kiosk() {
     setState(newState);
   }
 
+  const [isChatOpen, setIsChatOpen] = useState(false);
+
+  const openChat = () => setIsChatOpen(true);
+  const closeChat = () => setIsChatOpen(false);
+
+
   const safeNumber = value => {
     const parsed = Number(value);
     return Number.isFinite(parsed) ? parsed : 0;
@@ -442,6 +448,8 @@ export default function Kiosk() {
     setOrderFinalized(false);
   }
 
+  
+
   return (
     <div>
       {(state == "Kiosk") && (
@@ -562,6 +570,34 @@ export default function Kiosk() {
             </div>
           </div>
         </div>
+        <button
+            className={`ai-chat-btn ${!open ? 'pulse' : 'fadeIn'}`} // change open --> isChatOpen
+            onClick={openChat}
+          >
+            <img src={getImageForItem('bobrosspanda')} alt="Bob Ross Panda" className='ai-chat-img'/>
+        </button>
+        {isChatOpen && (
+          <div className="modal-overlay" onClick={closeChat}>
+            <div
+              className="chat-modal"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="chat-header">
+                Bob Ross Panda - AI Assistance
+                <button className="close-btn" onClick={closeChat}>✕</button>
+              </div>
+
+              <div className="chat-messages">
+                <div className="chat-empty">Ask me anything about the menu.</div>
+              </div>
+
+              <div className="chat-input-area">
+                <input placeholder="Type a message…" />
+                <button>Send</button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
       )} 
       {state == "Checkout" && (
