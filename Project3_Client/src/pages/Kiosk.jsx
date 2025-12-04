@@ -410,6 +410,9 @@ export default function Kiosk() {
 
   async function handlePurchase() {
     // Move to Checkout screen; actual purchase should occur after payment
+    if (orderItems.length === 0 || selectionQueue.length > 0 || activeSelection) {
+      return;
+    }
     changeState("Checkout");
   }
 
