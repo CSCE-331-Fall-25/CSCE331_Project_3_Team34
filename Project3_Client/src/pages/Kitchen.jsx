@@ -22,6 +22,12 @@ export default function Kitchen() {
   // State: stores any error messages to display to the user
   const [error, setError] = useState(null);
 
+  // Location/timezone state: detect user location and timezone to compute GMT offset
+  const [location, setLocation] = useState(null);
+  const [timezone, setTimezone] = useState(null);
+  // Offset in minutes relative to GMT (positive means ahead of GMT)
+  const [gmtOffsetMinutes, setGmtOffsetMinutes] = useState(0);
+
   // Column configuration for rendering the three columns
   const columnDefinitions = COLUMN_CONFIG;
 
@@ -89,6 +95,37 @@ export default function Kitchen() {
       if (intervalId) clearInterval(intervalId);
     };
   }, [columnDefinitions]);
+
+  // Detect user location and timezone, compute GMT offset
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setLocation({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          });
+        },
+        (err) => {
+          // Non-fatal: geolocation may be denied; we'll still attempt to get timezone from Intl
+          console.warn('Geolocation error:', err?.message || err);
+        }
+      );
+    }
+
+    // Determine timezone and offset from the runtime environment (Intl + Date)
+    try {
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      setTimezone(tz);
+    } catch (e) {
+      setTimezone(null);
+    }
+
+    // getTimezoneOffset returns minutes behind UTC (e.g., UTC+2 => -120)
+    // We invert sign so positive means ahead of GMT (UTC+x)
+    const offsetMinutes = -new Date().getTimezoneOffset();
+    setGmtOffsetMinutes(offsetMinutes);
+  }, []);
 
   // Advances an order to the next stage when clicked
   // Uses optimistic UI updates for instant feedback
@@ -243,10 +280,21 @@ export default function Kitchen() {
                       </div>
                       {ticket.time && (
                         <div className="kitchen-ticket-time">
-                          {new Date(ticket.time).toLocaleTimeString([], {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
+                          {(() => {
+                            try {
+                              // Parse ticket time and apply GMT offset (minutes)
+                              const t = new Date(ticket.time);
+                              if (isNaN(t.getTime())) return '—';
+                              // Convert to UTC milliseconds, then add offset minutes
+                              const adjusted = new Date(t.getTime() + gmtOffsetMinutes * 60 * 1000);
+                              return adjusted.toLocaleTimeString([], {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              });
+                            } catch (e) {
+                              return new Date(ticket.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                            }
+                          })()}
                         </div>
                       )}
                     </div>

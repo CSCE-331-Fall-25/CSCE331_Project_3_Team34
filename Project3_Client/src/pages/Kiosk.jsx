@@ -6,6 +6,7 @@ import WeatherScreen from './WeatherScreen';
 import '../styles/Kiosk.css';
 
 import { getImageForItem } from "../assets/utils/imageMapper";
+import ChatModal from '../Components/ChatModal';
 
 export default function Kiosk() {
 
@@ -19,7 +20,48 @@ export default function Kiosk() {
     timerRef.current = setTimeout(() => navigate('/weather'), 1000 * 60 * 10); // 10 minutes
   }
 
+  const [tableColumns, setTableColumns] = useState([]);
+  const [tableData, setTableData] = useState([]);
+  const [errorLabel, setErrorLabel] = useState("");
+  const [inventoryData, setInventoryData] = useState([]);
+
+  const getInventoryData = async () => {
+    // console.log("inventory data");
+    const response = await fetch("/api/inventory-data");
+    if (!response.ok) {
+      console.log("Error in function call");
+      setErrorLabel("Failed to connect to backend");
+    }
+    else if (response == null) {
+      console.log("Error getting data");
+      setErrorLabel("Failed to connect to backend");
+    }
+    else {
+      const newData = await response.json();
+      //console.log(JSON.stringify(newData));
+      setInventoryData(newData);
+      setTableColumns([{ accessorKey: "inventoryid", header: "Inventory ID", cell: info => info.getValue() },
+      { accessorKey: "name", header: "Name", cell: info => info.getValue() },
+      { accessorKey: "quantity", header: "Quantity", cell: info => info.getValue() },
+      { accessorKey: "minstock", header: "Minimum Stock", cell: info => info.getValue() },
+      { accessorKey: "maxstock", header: "Maximum Stock", cell: info => info.getValue() }]);
+      // console.log(JSON.stringify(newData));
+      if (newData.error == -2) {
+        setErrorLabel("Failed to connect to backend");
+      }
+      else if (newData.error == -1) {
+        setErrorLabel("Error getting inventory items");
+      }
+      else if (newData.error == 0) {
+        setErrorLabel("No inventory items");
+      }
+      setTableData(Array.isArray(newData) ? newData.slice() : [newData]);
+    }
+  }
+
   useEffect(() => {
+    getInventoryData();
+
     const events = ['click', 'mousemove', 'scroll', 'touchstart'];
     function resetTimer() { startTimer(); }
     events.forEach(event => window.addEventListener(event, resetTimer, { passive: true }));
@@ -51,9 +93,84 @@ export default function Kiosk() {
     setState(newState);
   }
 
+  // size modifiers fetched from server grouped by type (lowercased)
+  const [sizeModsByType, setSizeModsByType] = useState({});
+  const [pendingSizeSelection, setPendingSizeSelection] = useState(null);
+
+  const getSizeOptionsForType = type => {
+    const normalized = (type || '').toLowerCase();
+    return sizeModsByType[normalized] ?? [];
+  };
+
+  async function fetchSizeMods() {
+    try {
+      const res = await fetch('/api/kiosk/get-sizes');
+      if (!res.ok) throw new Error('Failed to load size modifiers');
+      const data = await res.json();
+      if (!Array.isArray(data)) { setSizeModsByType({}); return; }
+      const grouped = data.reduce((acc, row, idx) => {
+        const typeKey = String(row.type ?? row.name ?? '').toLowerCase();
+        if (!typeKey) return acc;
+        const sizeLabelRaw = row.size ?? row.label ?? row.name ?? `size-${idx}`;
+        const sizeKey = String(sizeLabelRaw).toLowerCase();
+        const displayLabel = typeof sizeLabelRaw === 'string' ? (sizeLabelRaw.charAt(0).toUpperCase() + sizeLabelRaw.slice(1)) : String(sizeLabelRaw);
+        const entry = { key: sizeKey, label: displayLabel, priceDelta: safeNumber(row.pricemod ?? row.price ?? row.cost ?? 0) };
+        if (!acc[typeKey]) acc[typeKey] = [];
+        // avoid duplicate keys
+        if (!acc[typeKey].some(e => e.key === entry.key)) acc[typeKey].push(entry);
+        return acc;
+      }, {});
+      setSizeModsByType(grouped);
+    } catch (err) {
+      console.error('Failed to load size modifiers', err);
+      setSizeModsByType({});
+    }
+  }
+
+  const [isChatOpen, setIsChatOpen] = useState(false);
+
+  const openChat = () => setIsChatOpen(true);
+  const closeChat = () => setIsChatOpen(false);
+
+  const [showChat, setShowChat] = useState(false);
+
+
   const safeNumber = value => {
     const parsed = Number(value);
     return Number.isFinite(parsed) ? parsed : 0;
+  };
+
+  const getSizeContextForChoice = (option) => {
+    if (!activeSelection) return null;
+    const selectionType = (activeSelection.type || '').toLowerCase();
+    const optionType = (option?.type || '').toLowerCase();
+    const priceModValue = safeNumber(option?.pricemod ?? 0);
+
+    const buildContext = (key, labelOverride) => {
+      const options = getSizeOptionsForType(key);
+      if (!options.length) return null;
+      return { sizeGroup: key, label: labelOverride || key, options };
+    };
+
+    if (selectionType === 'drink') {
+      return buildContext('drink', 'Drink');
+    }
+
+    if (selectionType === 'a la carte') {
+      if (priceModValue > 0) {
+        const premium = buildContext('premium', 'Premium');
+        if (premium) return premium;
+      }
+      if (optionType === 'entree') {
+        return buildContext('entree', 'Entree');
+      }
+      if (optionType === 'side') {
+        return buildContext('side', 'Side');
+      }
+      return null;
+    }
+
+    return null;
   };
 
   const resolveDisplayPrice = item => {
@@ -71,7 +188,8 @@ export default function Kiosk() {
   const computeLinePrice = item => {
     const baseValue = safeNumber(item?.price ?? item?.cost ?? 0);
     const priceMod = safeNumber(item?.pricemod ?? 0);
-    return baseValue + priceMod;
+    const sizeMod = safeNumber(item?.sizePriceMod ?? 0);
+    return baseValue + priceMod + sizeMod;
   };
 
   function addToOrder(item, overrides = {}, insertAt = null) {
@@ -151,6 +269,7 @@ export default function Kiosk() {
     setSelectedItemId('');
     currentParentItemIdRef.current = null;
     swapTargetRef.current = null;
+    setPendingSizeSelection(null);
   }
 
   function clearOrder() {
@@ -161,14 +280,14 @@ export default function Kiosk() {
   async function fetchItems() {
     try {
       const res = await fetch('/api/kiosk/get-items');
-      console.log('status', res.status, 'ok', res.ok);
-      console.log('headers', Object.fromEntries(res.headers.entries()));
+      // console.log('status', res.status, 'ok', res.ok);
+      // console.log('headers', Object.fromEntries(res.headers.entries()));
 
       // parse JSON body
       const data = await res.json();
-      console.log('data', data);                    // inspect
-      console.log(JSON.stringify(data, null, 2));  // nicely formatted
-      if (Array.isArray(data)) console.table(data); // nice table for arrays
+      // console.log('data', data);                    // inspect
+      // console.log(JSON.stringify(data, null, 2));  // nicely formatted
+      // if (Array.isArray(data)) console.table(data); // nice table for arrays
 
       // Keep the item objects so we can use every property (name, price, etc.).
       const normalized = Array.isArray(data)
@@ -196,20 +315,53 @@ export default function Kiosk() {
   useEffect(() => {
     fetchItems();
     getNextTransactionNum();
+    fetchSizeMods();
   }, []);
 
+  async function fetchMenuRowsByType(type) {
+    if (!type) return [];
+    const q = encodeURIComponent(type);
+    const res = await fetch(`/api/kiosk/get-menu?type=${q}`);
+    if (!res.ok) throw new Error(`Failed to load menu for ${type}`);
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
+  }
+
   async function getMenuByType(type) {
+    const normalized = (type || '').toLowerCase();
+    if (!normalized) {
+      setMenuItems([]);
+      return;
+    }
     try {
-      const q = encodeURIComponent(type);
-      const res = await fetch(`/api/kiosk/get-menu?type=${q}`);
-      if (!res.ok) throw new Error('Failed to load menu');
-      const data = await res.json();
-      setMenuItems(Array.isArray(data) ? data : []);
+      if (normalized === 'a la carte') {
+        const results = await Promise.allSettled([
+          fetchMenuRowsByType('entree'),
+          fetchMenuRowsByType('side'),
+        ]);
+        const combined = [];
+        const seen = new Set();
+        results.forEach(result => {
+          if (result.status !== 'fulfilled' || !Array.isArray(result.value)) return;
+          result.value.forEach(item => {
+            if (!item) return;
+            const key = item.menuid ?? item.id ?? (item.name ? `name-${item.name}` : `idx-${combined.length}`);
+            if (seen.has(key)) return;
+            seen.add(key);
+            combined.push(item);
+          });
+        });
+        setMenuItems(combined);
+        return;
+      }
+      const data = await fetchMenuRowsByType(type);
+      setMenuItems(data);
     } catch (err) {
       console.error(err);
       setMenuItems([]);
     }
   }
+
 
   function buildSelectionQueue(item) {
     if (!item) return [];
@@ -266,22 +418,66 @@ export default function Kiosk() {
     await startNextSelection(queue);
   }
 
-  async function handleMenuChoice(option) {
+  function handleMenuTileClick(option) {
+    if (!activeSelection) {
+      handleMenuChoice(option);
+      return;
+    }
+    const sizeContext = getSizeContextForChoice(option);
+    if (sizeContext && sizeContext.options.length) {
+      setPendingSizeSelection({
+        option,
+        sizeOptions: sizeContext.options,
+        selectionLabel: activeSelection.label || activeSelection.type,
+        sizeCategory: sizeContext.label,
+      });
+      return;
+    }
+    handleMenuChoice(option);
+  }
+
+  function cancelSizeSelection() {
+    setPendingSizeSelection(null);
+  }
+
+  function confirmSizeSelection(sizeOpt) {
+    if (!pendingSizeSelection) return;
+    handleMenuChoice(pendingSizeSelection.option, sizeOpt);
+    setPendingSizeSelection(null);
+  }
+
+  async function handleMenuChoice(option, explicitSize = null) {
+
+    //DEBUG:
+    // const inventoryIDs = option.inventoryids;
+    // console.log("Selected menu Inventory:", inventoryIDs.join(", "));
+
+    // for (const invID of inventoryIDs) {
+    //   console.log(invID + ": " + inventoryData.find(item => item.inventoryid === invID)?.quantity);
+    // }
+
+
     const pendingSwap = swapTargetRef.current;
     let insertAt = null;
     if (pendingSwap && pendingSwap.groupId === currentGroupId) {
       insertAt = pendingSwap.index;
     }
 
+    const sizeContext = getSizeContextForChoice(option);
+    const sizeOptions = sizeContext?.options ?? [];
+    const selectedSize = explicitSize ?? (sizeOptions.length ? sizeOptions[0] : null);
+    const sizePayload = selectedSize ? { sizeLabel: selectedSize.label, sizeKey: selectedSize.key, sizePriceMod: selectedSize.priceDelta } : {};
+
     if (currentGroupId != null) {
       addToOrder(option, {
         groupId: currentGroupId,
         isParent: false,
         parentItemId: currentParentItemIdRef.current,
-        type: activeSelection?.type
+        type: activeSelection?.type,
+        ...sizePayload
       }, insertAt);
     } else {
-      addToOrder(option, {}, insertAt);
+      addToOrder(option, { ...sizePayload }, insertAt);
     }
 
     if (pendingSwap) {
@@ -351,11 +547,14 @@ export default function Kiosk() {
 
   async function handlePurchase() {
     // Move to Checkout screen; actual purchase should occur after payment
+    if (orderItems.length === 0 || selectionQueue.length > 0 || activeSelection) {
+      return;
+    }
     changeState("Checkout");
   }
 
   function handlePayment(method) {
-    console.log("Payment method selected: " + method);
+    // console.log("Payment method selected: " + method);
     // Perform purchase on payment confirmation, wait for server transaction id,
     // then show Finished screen so `transactionNumber` is available.
     (async () => {
@@ -391,6 +590,8 @@ export default function Kiosk() {
     navigate('/weather');
     setOrderFinalized(false);
   }
+
+  
 
   return (
     <div>
@@ -438,27 +639,78 @@ export default function Kiosk() {
               <div className="kiosk-items-grid">
                 {menuItems.length === 0 && <div className="kiosk-empty">No items</div>}
                 {menuItems.map(it => {
-                  const { value, hide, allergies, hideAllergies } = resolveDisplayPrice(it);
+                  const { value, hide } = resolveDisplayPrice(it);
+
+                  let isInStock = true;
+                  const inventoryIDs = it.inventoryids;
+
+                  for (const invID of inventoryIDs) {
+                    if(inventoryData.find(item => item.inventoryid === invID)?.quantity < inventoryData.find(item => item.inventoryid === invID)?.minstock) isInStock = false;
+                  }
+
+                  let imageClass = isInStock ? 'kiosk-menu-image' : 'kiosk-menu-image out-of-stock';
+
+                  let imgSrc = getImageForItem(it.name);
+                  let boxStyle = `kiosk-item kisok-item-button${!isInStock ? ' out-of-stock' : ''}${!imgSrc ? ' no-img' : ''}`;
+
                   return (
-                    <button
+                    <div
                       key={it.id ?? it.menuid ?? it.name}
-                      type="button"
-                      className="kiosk-item kiosk-item-button"
-                      onClick={() => handleMenuChoice(it)}
+                      role="button"
+                      tabIndex={0}
+                      className={boxStyle}
+                      onClick={() => { if (isInStock) handleMenuTileClick(it); }}
+                      onKeyDown={(e) => { if (e.key === 'Enter' && isInStock) handleMenuTileClick(it); }}
                     >
-                      <img
-                        src={getImageForItem(it.name)}
-                        alt={it.name || 'item'}
-                        className="kiosk-menu-image"
-                      />
+                      {imgSrc && (
+                        <img
+                          src={getImageForItem(it.name)}
+                          alt={it.name || 'item'}
+                          className='kiosk-menu-image'
+                        />
+                      )}
                       <div className="kiosk-item-name">{it.name}</div>
                       <div className="kiosk-item-price">{hide ? '' : `$${value.toFixed(2)}`}</div>
-                      <div className="kiosk-item-price">{`Calories: ${it.calories}`}</div>
-                      <div className="kiosk-item-price">{hideAllergies ? '' : `${allergies}`}</div>
-                    </button>
+                      <div className="kiosk-item-calories">{it.calories ? `${it.calories} calories` : '0 calories'}</div>
+                    </div>
                   );
                 })}
               </div>
+              {pendingSizeSelection && (
+                <div className="kiosk-size-modal-backdrop">
+                  <div className="kiosk-size-modal">
+                    <div className="kiosk-size-modal-title">
+                      Choose a size for {pendingSizeSelection.option?.name}
+                    </div>
+                    <div className="kiosk-size-modal-subtitle">
+                      {pendingSizeSelection.selectionLabel || 'Selection'} requires a size.
+                    </div>
+                    {pendingSizeSelection.sizeCategory && (
+                      <div className="kiosk-size-modal-subtitle secondary">
+                        {pendingSizeSelection.sizeCategory} options
+                      </div>
+                    )}
+                    <div className="kiosk-size-modal-options">
+                      {pendingSizeSelection.sizeOptions.map(opt => (
+                        <button
+                          key={opt.key}
+                          type="button"
+                          className="kiosk-size-btn"
+                          onClick={() => confirmSizeSelection(opt)}
+                        >
+                          <span className="kiosk-size-label">{opt.label}</span>
+                          {opt.priceDelta ? (
+                            <span className="kiosk-size-price">+${opt.priceDelta.toFixed(2)}</span>
+                          ) : (
+                            <span className="kiosk-size-price">Included</span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                    <button type="button" className="kiosk-size-cancel" onClick={cancelSizeSelection}>Cancel</button>
+                  </div>
+                </div>
+              )}
             </>
           )}
         </div>
@@ -470,11 +722,23 @@ export default function Kiosk() {
             {orderItems.map((it, idx) => {
               const { value, hide } = resolveDisplayPrice(it);
               const rowClass = `kiosk-order-row${it.isParent ? ' kiosk-order-row-parent' : (value > 0) ? ' kiosk-order-row-child-premium' : ' kiosk-order-row-child-default'}`;
+              const hasSizeMod = it.sizePriceMod !== undefined && it.sizePriceMod !== null;
+              const sizeModValue = hasSizeMod ? safeNumber(it.sizePriceMod) : 0;
+              const sizeModLabel = hasSizeMod ? `${sizeModValue >= 0 ? '+' : '-'}$${Math.abs(sizeModValue).toFixed(2)}` : '';
+              const priceLabel = hasSizeMod ? sizeModLabel : (hide ? '' : `$${value.toFixed(2)}`);
               return (
                 <div className={rowClass} key={idx}>  
-                  <div className="kiosk-order-name">{it.name}</div>
+                  <div className="kiosk-order-name">
+                    <span>{it.name}</span>
+                    {it.sizeLabel && (
+                      <span className="kiosk-order-size-note">
+                        {it.sizeLabel}
+                        {hasSizeMod && ` (${sizeModLabel})`}
+                      </span>
+                    )}
+                  </div>
                   <div className="kiosk-order-actions">
-                    <div className="kiosk-order-price">{hide ? '' : `$${value.toFixed(2)}`}</div>
+                    <div className="kiosk-order-price">{priceLabel}</div>
                     {it.isParent ? (
                       <button className="kiosk-remove-btn" onClick={() => removeFromOrder(idx)}>
                         <img src={getImageForItem("trashcan")} alt="Remove" className="remove-icon" />
@@ -497,6 +761,13 @@ export default function Kiosk() {
             </div>
           </div>
         </div>
+        <button
+            className={`ai-chat-btn ${!open ? 'pulse' : 'fadeIn'}`} // change open --> isChatOpen
+            onClick={() => setShowChat(true)}
+          >
+            <img src={getImageForItem('bobrosspanda')} alt="Bob Ross Panda" className='ai-chat-img'/>
+        </button>
+        {showChat && <ChatModal onClose={() => setShowChat(false)} />}
       </div>
       )} 
       {state == "Checkout" && (

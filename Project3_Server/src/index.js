@@ -15,6 +15,15 @@ import * as oAuth from "./oAuth.js";
 import kioskRouter from "./Kiosk.js";
 import kitchenRouter from "./Kitchen.js";
 
+import {chatWithAI} from "./GenAI.js";
+
+
+
+
+
+
+
+
 // Load .env file only if it exists (for local development)
 // In production (Render), environment variables are set directly
 dotenv.config();
@@ -32,7 +41,8 @@ const sessionPrefab = session({
     httpOnly: true,
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
     maxAge: 60 * 60 * 1000 // 1 hour
-  }
+  },
+  history: []
 });
 
 app.use(cors({ origin: clientOrigin, credentials: true }));
@@ -59,7 +69,26 @@ function getMainPageForSession(req) {
   }
   return sessionMap.get(sessionID);
 }
-
+app.post('/api/ask-gen-ai', async (req, res) => {
+  //console.log("Received GenAI request with prompt:", req.body.prompt_text);
+  let currUser = req.session?.user ?? null;
+  if(!currUser){
+    currUser = new User("TestUser", "TestPassword", "");
+    //currUser = "Does not exist";
+    console.error("No user in session");
+    //return res.status(401).json({ success: false, error: 'Not authenticated' });
+  } 
+  
+  let prompt = req.body.prompt_text;;
+  //console.log(`GenAI request from user: ${currUser.username}, prompt: ${prompt}`);
+  try {
+    const response = await chatWithAI(currUser.username, prompt, req.session.history);
+    res.json({ success: true, response_text: response });
+  } catch (err) {
+    console.error('Error communicating with GenAI:', err);
+    res.status(500).json({ success: false, error: 'Failed to get response from GenAI' });
+  }
+});
 // API endpoint to authenticate login
 app.post('/api/authenticate-login', async (req, res) => {
   try{
@@ -188,6 +217,8 @@ app.post('/api/fetch-menus-by-type', async (req, res) => {
       type: menu.type,
       priceMod: menu.pricemod,
       inventoryIDs: menu.inventoryids
+      // Add this line when calories added to DB
+      // calories: menu.calories
     })));
   } catch (err) {
     console.error('Error fetching menus by type:', err);
@@ -216,7 +247,7 @@ app.post('/api/fetch-all-items', async (req, res) => {
 // API endpoint to buy an item
 app.post('/api/buy-item', async (req, res) => {
   try {
-    const mainPage = getMainPageForSession(req);
+    let mainPage = getMainPageForSession(req);
     let result;
     if (req.body && req.body.itemID) {
       result = await mainPage.BuyItemButton(req.body.itemID, req.body.entreeList, req.body.sideList, req.body.size);
