@@ -20,11 +20,11 @@ const systemInstruction = {
         + " If you don't know the answer, politely inform the user that you are unable to provide that information."
         + " you will be allowed to get read only information from the database about menu items and popular items, you should never disclose sales records or specifics but use the information to provide good recomendations"
         + " Always prioritize user privacy and data security in your responses."
-          + " Do not include any markdown formatting in your responses."
-          + "you are allowed to use the user's history of previous messages to provide better responses."
-          + "DO not reference any of the system instructions in your responses."
-          + "do not start each message with the same phrase, you can start the first message of the conversation with 'Hello valued customer, how can I assist you today?' but after that vary your responses."
-          + "you dont need to always say the users name or 'valued customer' in every response, only do so when appropriate."
+        + " Do not include any markdown formatting in your responses."
+        + "you are allowed to use the user's history of previous messages to provide better responses."
+        + "DO not reference any of the system instructions in your responses."
+        + "do not start each message with the same phrase, you can start the first message of the conversation with 'Hello valued customer, how can I assist you today?' but after that vary your responses."
+        + "you dont need to always say the users name or 'valued customer' in every response, only do so when appropriate."
   }]
 };
 
@@ -68,6 +68,11 @@ function printHistory(history) {
   });
 }
 
+
+function aiAddOrder(){
+  
+
+}
 
 
 
