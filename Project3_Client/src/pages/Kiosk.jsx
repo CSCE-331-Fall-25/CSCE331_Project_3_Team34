@@ -639,7 +639,7 @@ export default function Kiosk() {
               <div className="kiosk-items-grid">
                 {menuItems.length === 0 && <div className="kiosk-empty">No items</div>}
                 {menuItems.map(it => {
-                  const { value, hide } = resolveDisplayPrice(it);
+                  const { value, hide, allergies, hideAllergies } = resolveDisplayPrice(it);
 
                   let isInStock = true;
                   const inventoryIDs = it.inventoryids;
@@ -672,6 +672,7 @@ export default function Kiosk() {
                       <div className="kiosk-item-name">{it.name}</div>
                       <div className="kiosk-item-price">{hide ? '' : `$${value.toFixed(2)}`}</div>
                       <div className="kiosk-item-calories">{it.calories ? `${it.calories} calories` : '0 calories'}</div>
+                      <div className="kiosk-item-calories">{hideAllergies ? '' : `${allergies}`}</div>
                     </div>
                   );
                 })}
