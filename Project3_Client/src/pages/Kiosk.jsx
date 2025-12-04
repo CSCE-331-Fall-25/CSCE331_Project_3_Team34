@@ -58,12 +58,14 @@ export default function Kiosk() {
 
   const resolveDisplayPrice = item => {
     const hasPriceMod = item?.pricemod !== undefined && item?.pricemod !== null;
+    let allergies = item.allergies;
+    let hideAllergies = item.allergies == "NA";
     if (hasPriceMod) {
       const modValue = safeNumber(item.pricemod);
-      return { value: modValue, hide: modValue === 0 };
+      return { value: modValue, hide: modValue === 0, allergies: allergies, hideAllergies: hideAllergies };
     }
     const baseValue = safeNumber(item?.price ?? item?.cost ?? 0);
-    return { value: baseValue, hide: false };
+    return { value: baseValue, hide: false, allergies: allergies, hideAllergies: hideAllergies };
   };
 
   const computeLinePrice = item => {
@@ -436,7 +438,7 @@ export default function Kiosk() {
               <div className="kiosk-items-grid">
                 {menuItems.length === 0 && <div className="kiosk-empty">No items</div>}
                 {menuItems.map(it => {
-                  const { value, hide } = resolveDisplayPrice(it);
+                  const { value, hide, allergies, hideAllergies } = resolveDisplayPrice(it);
                   return (
                     <button
                       key={it.id ?? it.menuid ?? it.name}
@@ -451,6 +453,8 @@ export default function Kiosk() {
                       />
                       <div className="kiosk-item-name">{it.name}</div>
                       <div className="kiosk-item-price">{hide ? '' : `$${value.toFixed(2)}`}</div>
+                      <div className="kiosk-item-price">{`Calories: ${it.calories}`}</div>
+                      <div className="kiosk-item-price">{hideAllergies ? '' : `${allergies}`}</div>
                     </button>
                   );
                 })}

@@ -439,8 +439,8 @@ app.get('/api/menu-data', async (req, res) => {
 app.post('/api/add-menu', async (req, res) => {
   try {
    // console.log("request recieved");
-    const { menuId, menuName, menuType, menuPriceMod, menuInventoryIds } = req.body;
-    res.json(await manager.AddMenu(menuId, menuName, menuType, menuPriceMod, menuInventoryIds));
+    const { menuId, menuName, menuType, menuCalories, menuAllergies, menuPriceMod, menuInventoryIds } = req.body;
+    res.json(await manager.AddMenu(menuId, menuName, menuType, menuCalories, menuAllergies, menuPriceMod, menuInventoryIds));
   } catch (err) {
     console.error('Error getting data' + err);
     res.json({ error: -2 });
@@ -461,8 +461,8 @@ app.post('/api/remove-menu', async (req, res) => {
 app.post('/api/update-menu', async (req, res) => {
   try {
    // console.log("request recieved");
-    const { menuId, menuName, menuType, menuPriceMod, menuInventoryIds, rowSelection } = req.body;
-    res.json(await manager.UpdateMenu(menuId, menuName, menuType, menuPriceMod, menuInventoryIds, rowSelection));
+    const { menuId, menuName, menuType, menuCalories, menuAllergies, menuPriceMod, menuInventoryIds, rowSelection } = req.body;
+    res.json(await manager.UpdateMenu(menuId, menuName, menuType, menuCalories, menuAllergies, menuPriceMod, menuInventoryIds, rowSelection));
   } catch (err) {
     console.error('Error getting data' + err);
     res.json({ error: -2 });

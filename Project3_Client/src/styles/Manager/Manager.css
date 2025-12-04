@@ -247,7 +247,7 @@ textarea::placeholder {
     flex-direction: row;
     flex-wrap: wrap;
     gap: 10px;
-    width: calc(90% - 80px); /* respect modal padding */
+    width: calc(90% - 50px); /* respect modal padding */
     left: 50%;
     transform: translateX(-50%);
 }

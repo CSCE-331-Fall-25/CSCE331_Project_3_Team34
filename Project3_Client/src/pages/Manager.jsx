@@ -698,6 +698,8 @@ export default function Manager() {
   const [menuId, setMenuId] = useState('');
   const [menuName, setMenuName] = useState('');
   const [menuType, setMenuType] = useState('');
+  const [menuCalories, setMenuCalories] = useState('');
+  const [menuAllergies, setMenuAllergies] = useState('');
   const [menuPriceMod, setMenuPriceMod] = useState('');
   const [menuInventoryIds, setMenuInventoryIds] = useState('');
   const [showImageDownloadModal, setShowImageDownloadModal] = useState(false);
@@ -718,6 +720,8 @@ export default function Manager() {
       setTableColumns([{ accessorKey: "menuid", header: "Menu ID", cell: info => info.getValue() },
       { accessorKey: "name", header: "Name", cell: info => info.getValue() },
       { accessorKey: "type", header: "Type", cell: info => info.getValue() },
+      { accessorKey: "calories", header: "Calories", cell: info => info.getValue() },
+      { accessorKey: "allergies", header: "Allergies", cell: info => info.getValue() },
       { accessorKey: "pricemod", header: "Price Modifier", cell: info => info.getValue() },
       { accessorKey: "inventoryids", header: "Inventory ID's", cell: info => info.getValue() }]);
       console.log(JSON.stringify(newData));
@@ -739,7 +743,7 @@ export default function Manager() {
     const response = await fetch("/api/add-menu", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ menuId, menuName, menuType, menuPriceMod, menuInventoryIds }),
+      body: JSON.stringify({ menuId, menuName, menuType, menuCalories, menuAllergies, menuPriceMod, menuInventoryIds }),
     });
     if (!response.ok) {
       console.log("Error in function call");
@@ -791,6 +795,15 @@ export default function Manager() {
           break;
         case 9:
           setErrorLabel("Illegal character found in inventory IDs");
+          break;
+        case 9:
+          setErrorLabel("Calories not found");
+          break;
+        case 10:
+          setErrorLabel("Non-numeric character found in calories");
+          break;
+        case 11:
+          setErrorLabel("Allergies not found");
           break;
         case 55:
           setErrorLabel("");
@@ -846,7 +859,7 @@ export default function Manager() {
     const response = await fetch("/api/update-menu", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ menuId, menuName, menuType, menuPriceMod, menuInventoryIds, rowSelection }),
+      body: JSON.stringify({ menuId, menuName, menuType, menuCalories, menuAllergies, menuPriceMod, menuInventoryIds, rowSelection }),
     });
     if (!response.ok) {
       console.log("Error in function call");
@@ -887,6 +900,9 @@ export default function Manager() {
         case 5:
           setErrorLabel("Illegal character found in inventory IDs");
           break;
+        case 6:
+          setErrorLabel("Non-numeric character found in calories");
+          break;
         case 15:
           setErrorLabel("Menu id not found");
           break;
@@ -921,6 +937,7 @@ export default function Manager() {
     }
     else {
       const newData = await response.json();
+      console.log(newData.stringify);
       setTableColumns([{ accessorKey: "inventoryid", header: "Inventory ID", cell: info => info.getValue() },
       { accessorKey: "name", header: "Name", cell: info => info.getValue() },
       { accessorKey: "quantity", header: "Quantity", cell: info => info.getValue() },
@@ -1308,6 +1325,7 @@ export default function Manager() {
                     </table>
                   )}
                 </div>
+              <label style={{ textAlign: 'center', color: 'black', display: 'block' }}>Select rows or type ID</label>
               <div className= "management-buttons-container">
                 <button className="button" onClick={() => addEmployee()}>Add </button>
                 <button className="button" onClick={() => removeEmployee()}>Remove </button>
@@ -1440,18 +1458,21 @@ export default function Manager() {
                     </table>
                   )}
                 </div>
+              <label style={{ textAlign: 'center', color: 'black', display: 'block' }}>Select rows or type ID</label>
               <div className= "management-buttons-container">
                 <button className="button" onClick={() => addMenu()}>Add </button>
                 <button className="button" onClick={() => removeMenu()}>Remove </button>
                 <button className="button" onClick={() => updateMenu()}>Update </button>
                 <button className="button" onClick={() => setShowMenuModal(false)}>Close</button>
               </div>
-              <div className= "menu-text-box-container">
+              <div className= "text-box-container">
                 <input className="textbox" type="text" placeholder="ID" value={menuId ?? ''} onChange={(e) => setMenuId(e.target.value)}/>
                 <input className="textbox" type="text" placeholder="Name" value={menuName ?? ''} onChange={(e) => setMenuName(e.target.value)}/>
                 <input className="textbox" type="text" placeholder="Type" value={menuType ?? ''} onChange={(e) => setMenuType(e.target.value)}/>
+                <input className="textbox" type="text" placeholder="Calories" value={menuCalories ?? ''} onChange={(e) => setMenuCalories(e.target.value)}/>
+                <input className="textbox" type="text" placeholder="Allergies: Nuts, Dairy, ect." value={menuAllergies ?? ''} onChange={(e) => setMenuAllergies(e.target.value)}/>
                 <input className="textbox" type="text" placeholder="Price Modifier" value={menuPriceMod ?? ''} onChange={(e) => setMenuPriceMod(e.target.value)}/>
-                <input className="textbox" type="text" placeholder="Inventory IDs (1, 2, ect.)" value={menuInventoryIds ?? ''} onChange={(e) => setMenuInventoryIds(e.target.value)}/>
+                <input className="textbox" type="text" placeholder="Inventory IDs: 1, 2, ect." value={menuInventoryIds ?? ''} onChange={(e) => setMenuInventoryIds(e.target.value)}/>
               </div>
             </div>
           </div>
@@ -1491,6 +1512,7 @@ export default function Manager() {
                     </table>
                   )}
                 </div>
+              <label style={{ textAlign: 'center', color: 'black', display: 'block' }}>Select rows or type ID</label>
               <div className= "management-buttons-container">
                 {/* <button className="button" onClick={() => updateQuantity(true)}>Add Stock</button>
                 <button className="button" onClick={() => updateQuantity(false)}>Remove Stock </button> */}
