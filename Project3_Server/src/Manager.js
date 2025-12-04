@@ -129,61 +129,61 @@ class Manager {
     async ProductUsageReportData(startTime, endTime) {
         const data = [];
         const now = new Date();
-        let realStartTime = this.parseTime(startTime);
-        let realEndTime = this.parseTime(endTime);
+        let realStartTime = this.parseTime(startTime, true);
+        let realEndTime = this.parseTime(endTime, false);
         let code = 0;
         try {
             if (!isNaN(realStartTime)) {
                 if (realStartTime == 0) {
                     startTime = `${startTime}${now.getFullYear()}`;
-                    realStartTime = this.parseTime(startTime);
+                    realStartTime = this.parseTime(startTime, true);
                     code += 512;
                 }
                 if (realStartTime == 1) {
                     startTime = `${startTime}-${now.getMonth() + 1}`;
-                    realStartTime = this.parseTime(startTime);
+                    realStartTime = this.parseTime(startTime, true);
                     code += 256;
                 }
                 if (realStartTime == 3) {
                     startTime = `${startTime}-${now.getDate()}`;
-                    realStartTime = this.parseTime(startTime);
+                    realStartTime = this.parseTime(startTime, true);
                     code += 128;
                 }
                 if (realStartTime == 7) {
                     startTime = `${startTime} 00`;
-                    realStartTime = this.parseTime(startTime);
+                    realStartTime = this.parseTime(startTime, true);
                     code += 64;
                 }
                 if (realStartTime == 15) {
                     startTime = `${startTime}:00`;
-                    realStartTime = this.parseTime(startTime);
+                    realStartTime = this.parseTime(startTime, true);
                     code += 32;
                 }
             }
             if (!isNaN(realEndTime)) {
                 if (realEndTime == 0) {
                     endTime = `${endTime}${now.getFullYear()}`;
-                    realEndTime = this.parseTime(endTime);
+                    realEndTime = this.parseTime(endTime, false);
                     code += 16;
                 }
                 if (realEndTime == 1) {
                     endTime = `${endTime}-${now.getMonth() + 1}`;
-                    realEndTime = this.parseTime(endTime);
+                    realEndTime = this.parseTime(endTime, false);
                     code += 8;
                 }
                 if (realEndTime == 3) {
                     endTime = `${endTime}-${now.getDate()}`;
-                    realEndTime = this.parseTime(endTime);
+                    realEndTime = this.parseTime(endTime, false);
                     code += 4;
                 }
                 if (realEndTime == 7) {
                     endTime = `${endTime} 23`;
-                    realEndTime = this.parseTime(endTime);
+                    realEndTime = this.parseTime(endTime, false);
                     code += 2;
                 }
                 if (realEndTime == 15) {
                     endTime = `${endTime}:59`;
-                    realEndTime = this.parseTime(endTime);
+                    realEndTime = this.parseTime(endTime, false);
                     code++;
                 }
             }
@@ -209,61 +209,61 @@ class Manager {
     async SalesReportData(startTime, endTime) {
         const data = [];
         const now = new Date();
-        let realStartTime = this.parseTime(startTime);
-        let realEndTime = this.parseTime(endTime);
+        let realStartTime = this.parseTime(startTime, true);
+        let realEndTime = this.parseTime(endTime, false);
         let code = 0;
         try {
             if (!isNaN(realStartTime)) {
                 if (realStartTime == 0) {
                     startTime = `${startTime}${now.getFullYear()}`;
-                    realStartTime = this.parseTime(startTime);
+                    realStartTime = this.parseTime(startTime, true);
                     code += 512;
                 }
                 if (realStartTime == 1) {
                     startTime = `${startTime}-${now.getMonth() + 1}`;
-                    realStartTime = this.parseTime(startTime);
+                    realStartTime = this.parseTime(startTime, true);
                     code += 256;
                 }
                 if (realStartTime == 3) {
                     startTime = `${startTime}-${now.getDate()}`;
-                    realStartTime = this.parseTime(startTime);
+                    realStartTime = this.parseTime(startTime, true);
                     code += 128;
                 }
                 if (realStartTime == 7) {
                     startTime = `${startTime} 00`;
-                    realStartTime = this.parseTime(startTime);
+                    realStartTime = this.parseTime(startTime, true);
                     code += 64;
                 }
                 if (realStartTime == 15) {
                     startTime = `${startTime}:00`;
-                    realStartTime = this.parseTime(startTime);
+                    realStartTime = this.parseTime(startTime, true);
                     code += 32;
                 }
             }
             if (!isNaN(realEndTime)) {
                 if (realEndTime == 0) {
                     endTime = `${endTime}${now.getFullYear()}`;
-                    realEndTime = this.parseTime(endTime);
+                    realEndTime = this.parseTime(endTime, false);
                     code += 16;
                 }
                 if (realEndTime == 1) {
                     endTime = `${endTime}-${now.getMonth() + 1}`;
-                    realEndTime = this.parseTime(endTime);
+                    realEndTime = this.parseTime(endTime, false);
                     code += 8;
                 }
                 if (realEndTime == 3) {
                     endTime = `${endTime}-${now.getDate()}`;
-                    realEndTime = this.parseTime(endTime);
+                    realEndTime = this.parseTime(endTime, false);
                     code += 4;
                 }
                 if (realEndTime == 7) {
                     endTime = `${endTime} 23`;
-                    realEndTime = this.parseTime(endTime);
+                    realEndTime = this.parseTime(endTime, false);
                     code += 2;
                 }
                 if (realEndTime == 15) {
                     endTime = `${endTime}:59`;
-                    realEndTime = this.parseTime(endTime);
+                    realEndTime = this.parseTime(endTime, false);
                     code++;
                 }
             }
@@ -298,7 +298,7 @@ class Manager {
         return `${now.getFullYear()}-${now.getMonth()}-${now.getDate()} 00:00:00`;
     }
 
-    parseTime(time) {
+    parseTime(time, start) {
         let stage = 0;
         let year = '';
         let month = '';
@@ -445,6 +445,14 @@ class Manager {
         }
         if (stage != 31) {
             return stage;
+        }
+        if (start) {
+            hour = "00";
+            minute = "00";
+        }
+        else {
+            hour = "23";
+            minute = "59";
         }
         return `${year}-${month}-${day} ${hour}:${minute}:00`;
     }
