@@ -11,7 +11,7 @@ export default function Login(SucessfulLogin) {
   const [searchParams] = useSearchParams();
   
   // Get returnTo from URL params or sessionStorage
-  const urlReturnTo = searchParams.get('returnTo');
+  const urlReturnTo = searchParams.get('returnTo') ;
   const storedReturnTo = sessionStorage.getItem('loginReturnTo');
   const returnTo = urlReturnTo || storedReturnTo || '/';
   
@@ -59,7 +59,10 @@ export default function Login(SucessfulLogin) {
         // if(typeof SucessfulLogin === "function") SucessfulLogin();
         console.log("Navigating to: " + returnTo);
       sessionStorage.removeItem('loginReturnTo');
-      navigate(returnTo, { replace: true });
+      // Add success=true to the URL
+      const url = new URL(returnTo, window.location.origin);
+      url.searchParams.set('success', 'true');
+      navigate(url.pathname + url.search, { replace: true });
     } else {
       alert('Invalid Employee ID or Password.');
     }
@@ -92,7 +95,10 @@ export default function Login(SucessfulLogin) {
             alert('added');
           }
           sessionStorage.removeItem('loginReturnTo');
-          navigate(returnToParam, { replace: true });
+          // Ensure success=true is in the URL
+          const url = new URL(returnToParam, window.location.origin);
+          url.searchParams.set('success', 'true');
+          navigate(url.pathname + url.search, { replace: true });
         } else {
           alert('Google Login Failed: Not an Employee.');
         }

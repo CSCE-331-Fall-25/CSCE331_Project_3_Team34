@@ -2,10 +2,11 @@ import React from "react";
 import "../styles/Cashier/Cashier.css";
 import "../styles/Cashier/DiscountModal.css";
 import { useEffect, useState, useRef } from "react";
+
 // don't import server code into the client bundle
 // replace server-side debugging checks with a local flag
 const debugging = false;
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 //components
 import SignOutButton from "../Components/SignOut.jsx";
@@ -53,6 +54,14 @@ export default function Cashier() {
   //Void modal
   const [showVoidModal, setShowVoidModal] = useState(false);
 
+  //ManagerOverrideLogin
+   const [searchParams] = useSearchParams();
+   const sucessfulOverrideLogin = searchParams.get('success');
+    useEffect(() => {
+      if (sucessfulOverrideLogin === 'true') {
+        alert('Manager Override Login Successful');
+      }
+    }, [sucessfulOverrideLogin]);
 
   const handleBuildItem = (e) => {
     const id = e.target.id;

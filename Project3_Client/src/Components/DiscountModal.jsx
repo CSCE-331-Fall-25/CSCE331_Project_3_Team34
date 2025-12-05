@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
 export default function DiscountModal({ show, onClose, onApplied, userIsManager: initialUserIsManager }) {
   if (!show) return null;
 
+  const navigate = useNavigate();
   const [discountCode, setDiscountCode] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [loading, setLoading] = useState(false);
@@ -61,7 +63,9 @@ export default function DiscountModal({ show, onClose, onApplied, userIsManager:
   };
   
   function OpenLoginPage() {
-    setUserIsManager(true);
+    //sessionStorage.setItem('loginReturnTo', '/cashier');
+    navigate('/login?returnTo=/cashier');
+    // setUserIsManager(true);
   }
 
   return (
