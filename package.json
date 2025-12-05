@@ -4,7 +4,7 @@
   "description": "To run node.js with example, type node server.js and go to localhost link go into CSCE331_Project npm install and npm run dev will run the project",
   "main": "server.js",
   "scripts": {
-    "dev": "concurrently \"cd Project3_Server && npm run dev\" \"cd Project3_Client && npm run dev\""
+    "dev": "concurrently \"cd Project3_Server && cd src && node index.js\" \"cd Project3_Client && npm run dev\""
   },
   "keywords": [],
   "author": "",
