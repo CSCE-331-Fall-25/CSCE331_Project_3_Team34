@@ -559,13 +559,29 @@ export default function Kiosk() {
     // then show Finished screen so `transactionNumber` is available.
     (async () => {
       try {
-        const res = await fetch('/api/purchase', { method: 'POST', credentials: 'include' });
-        const data = await res.json();
-        if (data && data.success) {
-          if (data.transactionId) setTransactionNumber(Number(data.transactionId));
-        } else {
-          console.error('Purchase failed:', data);
+        const response = await fetch("/api/kiosk/submit-order", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: 'include',
+          body: JSON.stringify({ orderItems }),
+        });
+        if (!response.ok) {
+          console.log("Error in function call");
+          setErrorLabel("Failed to connect to backend");
         }
+        else if (response == null) {
+          console.log("Error sending data");
+          setErrorLabel("Failed to connect to backend");
+        }
+        const newData = await response.json();
+        setTransactionNumber(newData.transactionid);
+        // const res = await fetch('/api/purchase', { method: 'POST', credentials: 'include' });
+        // const data = await res.json();
+        // if (data && data.success) {
+        //   if (data.transactionId) setTransactionNumber(Number(data.transactionId));
+        // } else {
+        //   console.error('Purchase failed:', data);
+        // }
       } catch (err) {
         console.error('Error during purchase:', err);
       }

@@ -796,13 +796,13 @@ export default function Manager() {
         case 9:
           setErrorLabel("Illegal character found in inventory IDs");
           break;
-        case 9:
+        case 10:
           setErrorLabel("Calories not found");
           break;
-        case 10:
+        case 11:
           setErrorLabel("Non-numeric character found in calories");
           break;
-        case 11:
+        case 12:
           setErrorLabel("Allergies not found");
           break;
         case 55:

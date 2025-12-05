@@ -869,6 +869,7 @@ class Manager {
     async AddMenu(menuid, name, type, calories, allergies, pricemod, inventoryids) {
         try {
             if (menuid.length == 0 || menuid == '') {
+                console.log(menuid);
                 return { error: 1 };
             }
             for (let i = 0; i < menuid.length; i++) {
