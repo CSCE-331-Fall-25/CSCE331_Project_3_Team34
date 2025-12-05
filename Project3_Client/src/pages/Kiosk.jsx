@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import pandaLogo from '../assets/PandaLogo.svg'
 import WeatherScreen from './WeatherScreen';
 // Transaction is a server-side class; don't import it into the client bundle.
@@ -13,6 +13,7 @@ export default function Kiosk() {
   // --- inactivity timer --- //
 
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const timerRef = useRef(null);
 
   function startTimer() {
@@ -24,6 +25,7 @@ export default function Kiosk() {
   const [tableData, setTableData] = useState([]);
   const [errorLabel, setErrorLabel] = useState("");
   const [inventoryData, setInventoryData] = useState([]);
+  const [customerLoggedIn, setCustomerLoggedIn] = useState(false);
 
   const getInventoryData = async () => {
     // console.log("inventory data");
@@ -316,6 +318,14 @@ export default function Kiosk() {
     fetchItems();
     getNextTransactionNum();
     fetchSizeMods();
+    
+    // Handle login success
+    const success = searchParams.get('success');
+    if (success == '4') {
+      setCustomerLoggedIn(true);
+      alert('Customer logged in successfully');
+      window.history.replaceState({}, '', window.location.pathname);
+    }
   }, []);
 
   async function fetchMenuRowsByType(type) {
@@ -767,6 +777,11 @@ export default function Kiosk() {
             onClick={() => setShowChat(true)}
           >
             <img src={getImageForItem('bobrosspanda')} alt="Bob Ross Panda" className='ai-chat-img'/>
+        </button>
+        <button
+          className="kiosk-signin-btn"
+          onClick={() => customerLoggedIn ? setCustomerLoggedIn(false) : navigate('/login?returnTo=/kiosk&functionality=3')}>
+          {customerLoggedIn ? 'Sign Out' : 'Customer Sign In'}
         </button>
         {showChat && <ChatModal onClose={() => setShowChat(false)} />}
       </div>

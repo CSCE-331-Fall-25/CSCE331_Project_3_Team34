@@ -57,7 +57,7 @@ export default function Login(SucessfulLogin) {
     const trimmedId = employeeId ? employeeId.trim() : '';
     const trimmedPassword = employeePassword ? employeePassword.trim() : '';
     if (!trimmedId || !trimmedPassword) {
-      alert('Please enter both Employee ID and Password.');
+      alert('Please enter both Username and Password.');
       return;
     }
     console.log("Logging in with ID:", employeeId, "and Password:", employeePassword);

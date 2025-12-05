@@ -765,5 +765,34 @@
   color: #111;
 }
 
+.kiosk-logo-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.kiosk-logo {
+  width: 200px;
+  height: auto;
+  margin-bottom: 20px;
+}
+
+.kiosk-signin-btn {
+  padding: 10px 20px;
+  background-color: #d32f2f;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.kiosk-signin-btn:hover {
+  background-color: #b71c1c;
+}
+
 
 
