@@ -1,41 +1,29 @@
-import { Routes, Route, useNavigate, useLocation, parsePath } from 'react-router-dom'
-import { use, useState, useEffect } from 'react'
-import WeatherScreen from './pages/WeatherScreen.jsx'
-import pandaLogo from './assets/PandaLogo.svg'
-import Cashier from './pages/Cashier.jsx'
-import Manager from './pages/Manager.jsx'
-import Menu from './pages/Menu.jsx'
-import Kitchen from './pages/Kitchen.jsx'
-import Kiosk from './pages/Kiosk.jsx'
-import Hub from './pages/Hub.jsx'
-import MealAttributes  from './pages/MealAttributes.jsx' 
-import Login from './pages/Login.jsx'
-import React from 'react'
-import GoogleLoginButton from './Components/googleLoginButton.jsx'
-import './styles/App.css'
-//import app from '../../Project3_Server/src/index.js'
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import pandaLogo from '../assets/PandaLogo.svg';
+import GoogleLoginButton from '../Components/googleLoginButton.jsx';
+import { getImageForItem } from '../assets/utils/imageMapper';
 
-import { getImageForItem } from './assets/utils/imageMapper';
-
-
-
-export default function App() {
-  const location = useLocation();
-  const showButtons = location.pathname === "/";
-  // initialize as empty strings so placeholders render correctly
+export default function Login(SucessfulLogin) {
   const [employeeId, setEmployeeId] = useState('');
   const [employeePassword, setEmployeePassword] = useState('');
   const navigate = useNavigate();
-
-  function handleIdChange(event) {
-    setEmployeeId(event.target.value);
-  }
-
-  function handlePasswordChange(event) {
-    setEmployeePassword(event.target.value);
-  }
+  const [searchParams] = useSearchParams();
+  
+  // Get returnTo from URL params or sessionStorage
+  const urlReturnTo = searchParams.get('returnTo');
+  const storedReturnTo = sessionStorage.getItem('loginReturnTo');
+  const returnTo = urlReturnTo || storedReturnTo || '/';
+  
+  // Save returnTo to sessionStorage if it's in URL params
+  useEffect(() => {
+    if (urlReturnTo) {
+      sessionStorage.setItem('loginReturnTo', urlReturnTo);
+    }
+  }, [urlReturnTo]);
 
   async function isValidLogin(userName, password) {
+    
     try {
       const res = await fetch('/api/authenticate-login', {
         method: 'POST',
@@ -68,7 +56,10 @@ export default function App() {
 
     const ok = await isValidLogin(trimmedId, trimmedPassword);
     if (ok) {
-      navigate('/hub');
+        // if(typeof SucessfulLogin === "function") SucessfulLogin();
+        console.log("Navigating to: " + returnTo);
+      sessionStorage.removeItem('loginReturnTo');
+      navigate(returnTo, { replace: true });
     } else {
       alert('Invalid Employee ID or Password.');
     }
@@ -78,6 +69,7 @@ export default function App() {
   async function handleGoogleLogin(params, googleid = null) {
     //console.log('Handling Google Login callback');
     const isSuccess = params.get('success');
+    const returnToParam = (params.get('returnTo') || '/').replace(/^\/?/, '/');
     const add = params.get('add');
     if (isSuccess === 'true') {
       // Fetch user info from backend
@@ -99,7 +91,8 @@ export default function App() {
             });
             alert('added');
           }
-          navigate('/hub');
+          sessionStorage.removeItem('loginReturnTo');
+          navigate(returnToParam, { replace: true });
         } else {
           alert('Google Login Failed: Not an Employee.');
         }
@@ -120,55 +113,67 @@ export default function App() {
       return;
     }
   }
-  function clearInputs (){
+
+  function clearInputs() {
     setEmployeeId('');
     setEmployeePassword('');
   }
-  
-    // Clear inputs when the login view is shown (runs on mount and whenever route returns to "/")
-    useEffect(() => {
-      if (showButtons) clearInputs();
-    }, [showButtons]);
-    useEffect(() => {
-      console.log('App mounted, checking for Google Login callback');
-      const params = new URLSearchParams(window.location.search);
-      if (params.get('success')) {
-        handleGoogleLogin(params);
-      }
-    }, []);
+
+  // Check for Google login callback
+  useEffect(() => {
+    console.log('Login: checking for Google Login callback');
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('success')) {
+      handleGoogleLogin(params);
+      // Clear the URL parameters from the address bar
+    }
+    window.history.replaceState({}, '', window.location.pathname);
+  }, []);
+
+  // Clear inputs when shown
+  useEffect(() => {
+    clearInputs();
+  }, []);
+
+  function handleIdChange(event) {
+    setEmployeeId(event.target.value);
+  }
+
+  function handlePasswordChange(event) {
+    setEmployeePassword(event.target.value);
+  }
+
   return (
-    <div>
-      {showButtons && (
-        <div style={{ textAlign: 'center', marginTop: '50px' }}>
-          <h1>Welcome to Panda Express</h1>
-          <button onClick={() => {
-            sessionStorage.setItem('loginReturnTo', '/hub');
-            navigate('/login?returnTo=/hub');
-          }} style={{ padding: '10px 20px', fontSize: '16px' }}>
-            Go to Login
-          </button>
-        </div>
-      )}
-      
-        
+    <div className="login-page-background">
+      <div className="login-card">
+        <img
+          className="login-logo"
+          src={pandaLogo}
+          alt="Panda Express Logo"
+        />
+        <form onSubmit={handleLogin} className="login-form">
+          <input
+            type="text"
+            placeholder="Employee ID"
+            value={employeeId ?? ''}
+            onChange={handleIdChange}
+          />
+          <input
+            type="password"
+            placeholder="Password"
+            value={employeePassword ?? ''}
+            onChange={handlePasswordChange}
+          />
+          <button type="submit">Login</button>
+        </form>
 
-     
+        <GoogleLoginButton returnTo={returnTo} />
 
-      {/* Routing logic */}
-      <Routes>
-        <Route path="/weather" element={<WeatherScreen />} />
-        <Route path="/setmeal" element={<MealAttributes />} />
-        <Route path="/cashier" element={<Cashier />} />
-        <Route path="/manager" element={<Manager />} />
-        <Route path="/menu" element={<Menu />} />
-        <Route path="/kitchen" element={<Kitchen />} />
-        <Route path="/kiosk" element={<Kiosk />} />
-        <Route path="/hub" element={<Hub />} />
-        <Route path="/login" element={<Login/>} />
-        <Route path="/" element={<div />} />
-        <Route path="*" element={<div>404 Not Found</div>} />
-        {/* Removed invalid Route that used `this` as element. */}
-      </Routes>
+        <button className="debug-button" onClick={() => navigate("/hub")}>
+          <img className='img' src={getImageForItem("debugbutton")} alt="Debug" />
+          Debugging Skip Login
+        </button>
+      </div>
     </div>
-  )
+  );
 }
