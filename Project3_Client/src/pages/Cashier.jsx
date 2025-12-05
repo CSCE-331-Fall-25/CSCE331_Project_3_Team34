@@ -19,6 +19,7 @@ import BuyItemButton from "../Components/BuyItemButton.jsx";
 import VoidModal from "../Components/VoidModal.jsx";
 import CreateMealModal from "../Components/CreateMealModal.jsx";
 import SizeModal from "../Components/SizeModal.jsx";
+import { saveOrder, loadOrder, clearOrder } from '../utils/orderPersistence';
 export default function Cashier() {
   const navigate = useNavigate();
   //newest Row reference for auto scrolling
@@ -166,6 +167,12 @@ export default function Cashier() {
       // ignore any access errors and continue
     }
 
+    // Load saved order first
+    const savedOrder = loadOrder('cashier');
+    if (savedOrder.length > 0) {
+      setTransactionItems(savedOrder);
+    }
+
     UpdatePage();
   }, []);
   
@@ -194,8 +201,10 @@ export default function Cashier() {
           // console.log("UpdatePage Formatted:", formattedItems);
           //updates the front end to show current items
           setTransactionItems(formattedItems);
+          saveOrder(formattedItems, 'cashier');
         } else {
           setTransactionItems([]);
+          saveOrder([], 'cashier');
         }
         //Calls functions to update their states
         setCurrCost(data.currCost || 0);

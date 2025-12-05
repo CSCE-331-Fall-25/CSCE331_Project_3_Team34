@@ -7,6 +7,7 @@ import '../styles/Kiosk.css';
 
 import { getImageForItem } from "../assets/utils/imageMapper";
 import ChatModal from '../Components/ChatModal';
+import { saveOrder, loadOrder, clearOrder } from '../utils/orderPersistence';
 
 export default function Kiosk() {
 
@@ -198,12 +199,11 @@ export default function Kiosk() {
   function addToOrder(item, overrides = {}, insertAt = null) {
     setOrderItems(prev => {
       const entry = { ...item, ...overrides };
-      if (insertAt == null || insertAt < 0 || insertAt > prev.length) {
-        return [...prev, entry];
-      }
-      const next = [...prev];
-      next.splice(insertAt, 0, entry);
-      return next;
+      const newOrder = insertAt == null || insertAt < 0 || insertAt > prev.length
+        ? [...prev, entry]
+        : [...prev.slice(0, insertAt), entry, ...prev.slice(insertAt)];
+      saveOrder(newOrder, 'kiosk');
+      return newOrder;
     });
   }
 
@@ -220,9 +220,12 @@ export default function Kiosk() {
             swapTargetRef.current = null;
           }
         }
+        saveOrder(nextOrder, 'kiosk');
         return nextOrder;
       }
-      return prev.filter((_, i) => i !== idx);
+      const nextOrder = prev.filter((_, i) => i !== idx);
+      saveOrder(nextOrder, 'kiosk');
+      return nextOrder;
     });
   }
 
@@ -275,9 +278,10 @@ export default function Kiosk() {
     setPendingSizeSelection(null);
   }
 
-  function clearOrder() {
+  function clearOrderAndUI() {
     setOrderItems([]);
     clearUI();
+    clearOrder('kiosk');
   }
   
   async function fetchItems() {
@@ -319,6 +323,12 @@ export default function Kiosk() {
     fetchItems();
     getNextTransactionNum();
     fetchSizeMods();
+    
+    // Load saved order
+    const savedOrder = loadOrder('kiosk');
+    if (savedOrder.length > 0) {
+      setOrderItems(savedOrder);
+    }
     
     // Handle login success
     const success = searchParams.get('success');
@@ -609,7 +619,7 @@ export default function Kiosk() {
       timeoutRef.current = null;
     }
 
-    clearOrder();
+    clearOrderAndUI();
     changeState("Kiosk");
     navigate('/weather');
     setOrderFinalized(false);
@@ -786,7 +796,7 @@ export default function Kiosk() {
           <div className="kiosk-order-summary">
             <div>Total: ${total.toFixed(2)}</div>
             <div className="kiosk-order-controls">
-              <button onClick={clearOrder} className="kiosk-clear-btn">Clear</button>
+              <button onClick={clearOrderAndUI} className="kiosk-clear-btn">Clear</button>
               <button onClick={() => {console.log('Proceed to checkout', orderItems); handlePurchase();}} className="kiosk-checkout-btn">Checkout</button>
             </div>
           </div>
