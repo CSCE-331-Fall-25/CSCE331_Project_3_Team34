@@ -104,11 +104,3 @@ kioskRouter.post('/submit-order', async (req, res) => {
 });
 
 export default kioskRouter;
-
-export class Kiosk {
-    constructor() {
-        this.transaction = new Transaction();
-        this.menu = new Menu();
-        this.user = new User();
-    }
-}

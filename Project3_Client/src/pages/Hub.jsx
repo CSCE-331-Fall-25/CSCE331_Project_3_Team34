@@ -7,6 +7,10 @@ import React, { useEffect, useState } from "react";
 export default function Hub() {
   const [pendingLink, setPendingLink] = useState(false);
 
+  const goFullscreen = () => {
+    document.documentElement.requestFullscreen();
+  };
+
   useEffect(() => {
     // Check if returning from Google OAuth with googleid
     const params = new URLSearchParams(window.location.search);
@@ -129,7 +133,7 @@ export default function Hub() {
 
   return (
     <div className="home-grid">
-        <Link to="/weather"><button>Kiosk</button></Link>
+        <Link to="/weather"><button onClick={goFullscreen}>Kiosk</button></Link>
         <Link to="/cashier"><button>Cashier</button></Link>
         <Link to="/manager"><button>Manager</button></Link>
         <Link to="/menu"><button>Menu</button></Link>
