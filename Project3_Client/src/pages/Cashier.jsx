@@ -57,10 +57,20 @@ export default function Cashier() {
   //ManagerOverrideLogin
    const [searchParams] = useSearchParams();
    const sucessfulOverrideLogin = searchParams.get('success');
+    const [tempManager, setTempManager] = useState(false);
+
+
+
     useEffect(() => {
       if (sucessfulOverrideLogin === 'true') {
-        alert('Manager Override Login Successful');
+        //alert('Manager Override Login Successful');
+        //updat temp manager
+        //open discount modal as manager
+        setTempManager(true);
+        console.log("Manager Override Login Successful");
+        setShowDiscountModal(true);
       }
+      window.history.replaceState({}, '', window.location.pathname);
     }, [sucessfulOverrideLogin]);
 
   const handleBuildItem = (e) => {
@@ -186,6 +196,13 @@ export default function Cashier() {
       });
       fetchUserData();
   }
+  function handlePurchase() {
+    //reset temp manager on purchase
+    setTempManager(false);
+
+    // After purchase, refresh the page state
+    UpdatePage();
+  }
 
 
 
@@ -236,7 +253,7 @@ export default function Cashier() {
           setDiscountPriceOff(off || 0);
           UpdatePage();
         }}
-        userIsManager={isManager}
+        userIsManager={isManager || tempManager}
       />
       {showSignOutModal && (
         <SignOutButton onClose={() => setShowSignOutModal(false)} />
@@ -268,7 +285,7 @@ export default function Cashier() {
           priceTotal={priceTotal}
           discountAmount={discountAmount}
           discountPriceOff={discountPriceOff}
-          onPurchase={UpdatePage}
+          onPurchase={handlePurchase}
         />
       </div>
 
