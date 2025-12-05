@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
-export default function DiscountModal({ show, onClose, onApplied, userIsManager }) {
+export default function DiscountModal({ show, onClose, onApplied, userIsManager: initialUserIsManager }) {
   if (!show) return null;
 
   const [discountCode, setDiscountCode] = useState("");
@@ -9,6 +9,23 @@ export default function DiscountModal({ show, onClose, onApplied, userIsManager 
   // Manager manual inputs
   const [managerPriceOff, setManagerPriceOff] = useState("");
   const [managerDiscountOff, setManagerDiscountOff] = useState("");
+  // Local state for userIsManager, initialized from prop
+  const [userIsManager, setUserIsManager] = useState(initialUserIsManager);
+
+  // Sync local state with prop changes
+  useEffect(() => {
+    setUserIsManager(initialUserIsManager);
+  }, [initialUserIsManager]);
+
+  useEffect(() => {
+      console.log("userIsManager changed: " + userIsManager);
+      // Reset form when userIsManager changes
+      setDiscountCode("");
+      setErrorMessage("");
+      setManagerPriceOff("");
+      setManagerDiscountOff("");
+    }, [userIsManager]);
+
 
   const handleSubmit = async () => {
     setLoading(true);
@@ -42,6 +59,10 @@ export default function DiscountModal({ show, onClose, onApplied, userIsManager 
       setLoading(false);
     }
   };
+  
+  function OpenLoginPage() {
+    setUserIsManager(true);
+  }
 
   return (
     <div className="modal-overlay" onClick={() => typeof onClose === "function" && onClose()}>
@@ -91,8 +112,13 @@ export default function DiscountModal({ show, onClose, onApplied, userIsManager 
           <button onClick={() => typeof onClose === "function" && onClose()} className="modal-back" disabled={loading}>
             Back
           </button>
+          {!userIsManager && (<button onClick={() => OpenLoginPage()} className="modal-back" disabled={loading}>
+            Manager Override
+          </button>)}
         </div>
       </div>
     </div>
   );
 }
+
+DiscountModal.displayName = 'DiscountModal';
