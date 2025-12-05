@@ -588,7 +588,6 @@ export default function Kiosk() {
     clearOrder();
     changeState("Kiosk");
     navigate('/weather');
-    setOrderFinalized(false);
   }
 
   
