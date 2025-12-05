@@ -90,6 +90,7 @@ export default function Kiosk() {
 
   const [state, setState] = useState("Kiosk"); // Possible states: "Kiosk", "Checkout", "Payment", "Receipt"
   const [transactionNumber, setTransactionNumber] = useState(0);
+  const [orderFinalized, setOrderFinalized] = useState(false);
   
   const timeoutRef = useRef(null);
 
@@ -348,6 +349,11 @@ export default function Kiosk() {
         })
         .catch((err) => console.error('Failed to fetch customer data:', err));
       alert('Customer logged in successfully');
+      window.history.replaceState({}, '', window.location.pathname);
+    } else if (success == '2') {
+      navigate('/hub');
+    } else if (success) {
+      // Clear any other success params
       window.history.replaceState({}, '', window.location.pathname);
     }
   }, []);
@@ -811,6 +817,16 @@ export default function Kiosk() {
           className="kiosk-signin-btn"
           onClick={() => customerLoggedIn ? (setCustomerLoggedIn(false), setCustomerName('')) : navigate('/login?returnTo=/kiosk&functionality=3')}>
           {customerLoggedIn ? 'Sign Out' : 'Customer Sign In'}
+        </button>
+        <button
+          className="kiosk-signin-btn"
+          onClick={() => navigate('/login?returnTo=/hub&functionality=1&BackLocation=/kiosk')}>
+          Employee Sign In
+        </button>
+        <button
+          className="kiosk-help-btn"
+          onClick={() => navigate('/weather')}>
+          Back
         </button>
         {showChat && <ChatModal onClose={() => setShowChat(false)} />}
       </div>

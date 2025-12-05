@@ -21,7 +21,12 @@ export default function Login() {
   const storedFunctionality = sessionStorage.getItem('loginFunctionality');
   const functionality = parseInt(urlFunctionality || storedFunctionality || '0');
   
-  // Save returnTo and functionality to sessionStorage if it's in URL params
+  // Get BackLocation parameter
+  const urlBackLocation = searchParams.get('BackLocation');
+  const storedBackLocation = sessionStorage.getItem('loginBackLocation');
+  const backLocation = urlBackLocation || storedBackLocation;
+  
+  // Save returnTo, functionality, and BackLocation to sessionStorage if it's in URL params
   useEffect(() => {
     if (urlReturnTo) {
       sessionStorage.setItem('loginReturnTo', urlReturnTo);
@@ -32,7 +37,10 @@ export default function Login() {
         setCustomer(true);
       }
     }
-  }, [urlReturnTo, searchParams]);
+    if (urlBackLocation) {
+      sessionStorage.setItem('loginBackLocation', urlBackLocation);
+    }
+  }, [urlReturnTo, searchParams, urlBackLocation]);
 
   async function isValidLogin(userName, password) {
     try {
@@ -71,17 +79,35 @@ export default function Login() {
         console.log("Navigating to: " + returnTo);
       sessionStorage.removeItem('loginReturnTo');
       sessionStorage.removeItem('loginFunctionality');
+      sessionStorage.removeItem('loginBackLocation');
       // Add success parameter based on functionality
       const successValue = functionality === 0 ? 1 : functionality + 1;
       const url = new URL(returnTo, window.location.origin);
       url.searchParams.set('success', successValue.toString());
       navigate(url.pathname + url.search, { replace: true });
     } else {
+      //CONNOR here is where we can check functionality and see where we should return to
+      console.log("Login failed, functionality: " + functionality);
+      switch(functionality){
+        case 1:
+          alert('Invalid Login. Cannot access Manager functionality.');
+          break;
+        case 2:
+          alert('Invalid Login.');
+          return;
+        case 3:
+          alert('Invalid Login. Cannot access Customer functionality.');
+          break;
+        default:
+          alert('Invalid Login.');
+          break;
+      }
+      console.log("Navigating to: " + returnTo + " with success=0");
       // On failure, navigate with success=0
       const url = new URL(returnTo, window.location.origin);
       url.searchParams.set('success', '0');
       navigate(url.pathname + url.search, { replace: true });
-      alert('Invalid Login.');
+      
     }
   }
 
@@ -192,6 +218,11 @@ export default function Login() {
           />
           <button type="submit">Login</button>
         </form>
+        {backLocation && (
+          <button className="back-button" onClick={() => navigate(backLocation.startsWith('/') ? backLocation : `/${backLocation.toLowerCase()}`)}>
+            Back 
+          </button>
+        )}
         {!customer && 
         <GoogleLoginButton returnTo={returnTo} functionality={functionality} />
         }

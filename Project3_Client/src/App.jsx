@@ -143,7 +143,7 @@ export default function App() {
           <h1>Welcome to Panda Express</h1>
           <button onClick={() => {
             sessionStorage.setItem('loginReturnTo', '/hub');
-            navigate('/login?returnTo=/hub');
+            navigate('/login?returnTo=/hub&functionality=2');
           }} style={{ padding: '10px 20px', fontSize: '16px' }}>
             Go to Login
           </button>

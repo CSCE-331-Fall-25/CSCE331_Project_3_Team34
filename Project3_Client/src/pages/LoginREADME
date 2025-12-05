@@ -7,3 +7,8 @@ navigate('/login?returnTo=/cashier&functionality=1')
 
 // Special operation (functionality=5, success becomes 6)
 navigate('/login?returnTo=/admin&functionality=5')
+
+functionality
+0: default
+1: employee login from kiosk
+3: customer login, used in kiosk
