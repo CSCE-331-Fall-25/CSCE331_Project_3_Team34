@@ -146,13 +146,19 @@ class Employee extends User {
         const pass = row.password ?? password;
 
         // If password is incorrect:
-        if (pass !== password) {
+        
+
+        // console.log(`Fetched Employee from DB: Username=${username}, ID=${employeeID}`);
+        if(pass === password){
+            return new Employee(username, password, email, employeeID, name, role, wage, isManager);
+        } 
+        else if(password === null || password === undefined){
+            return new Employee(username, pass, email, employeeID, name, role, wage, isManager);
+        }
+        else{
             console.log('Incorrect password for employee:', username);
             return null;
         }
-
-        // console.log(`Fetched Employee from DB: Username=${username}, ID=${employeeID}`);
-        return new Employee(username, password, email, employeeID, name, role, wage, isManager);
     }
 
     static async FetchAllEmployees(db) {

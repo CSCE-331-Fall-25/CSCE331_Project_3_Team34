@@ -2,8 +2,6 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 export default function DiscountModal({ show, onClose, onApplied, userIsManager: initialUserIsManager }) {
-  if (!show) return null;
-
   const navigate = useNavigate();
   const [discountCode, setDiscountCode] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
@@ -27,6 +25,8 @@ export default function DiscountModal({ show, onClose, onApplied, userIsManager:
       setManagerPriceOff("");
       setManagerDiscountOff("");
     }, [userIsManager]);
+
+  if (!show) return null;
 
 
   const handleSubmit = async () => {
@@ -64,7 +64,7 @@ export default function DiscountModal({ show, onClose, onApplied, userIsManager:
   
   function OpenLoginPage() {
     //sessionStorage.setItem('loginReturnTo', '/cashier');
-    navigate('/login?returnTo=/cashier');
+    navigate('/login?returnTo=/cashier&functionality=1');
     // setUserIsManager(true);
   }
 

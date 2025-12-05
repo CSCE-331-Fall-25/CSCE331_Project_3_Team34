@@ -1,0 +1,9 @@
+when calling to the login screen can check what functionality. On a sucess it will ++ the value in sucess so that it represents whatever fucntionality you want. On a failure it will always return 0. If no value provided it assumes its 0 and will then update it to be 1 for true.
+// Basic login (functionality defaults to 0, success becomes 1)
+navigate('/login?returnTo=/dashboard')
+
+// Manager override (functionality=1, success becomes 2)  
+navigate('/login?returnTo=/cashier&functionality=1')
+
+// Special operation (functionality=5, success becomes 6)
+navigate('/login?returnTo=/admin&functionality=5')

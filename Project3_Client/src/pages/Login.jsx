@@ -10,17 +10,25 @@ export default function Login(SucessfulLogin) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   
-  // Get returnTo from URL params or sessionStorage
-  const urlReturnTo = searchParams.get('returnTo') ;
+  // Get returnTo and functionality from URL params or sessionStorage
+  const urlReturnTo = searchParams.get('returnTo');
   const storedReturnTo = sessionStorage.getItem('loginReturnTo');
   const returnTo = urlReturnTo || storedReturnTo || '/';
   
-  // Save returnTo to sessionStorage if it's in URL params
+  // Get functionality parameter (defaults to 0, checks sessionStorage too)
+  const urlFunctionality = searchParams.get('functionality');
+  const storedFunctionality = sessionStorage.getItem('loginFunctionality');
+  const functionality = parseInt(urlFunctionality || storedFunctionality || '0');
+  
+  // Save returnTo and functionality to sessionStorage if it's in URL params
   useEffect(() => {
     if (urlReturnTo) {
       sessionStorage.setItem('loginReturnTo', urlReturnTo);
     }
-  }, [urlReturnTo]);
+    if (searchParams.get('functionality')) {
+      sessionStorage.setItem('loginFunctionality', searchParams.get('functionality'));
+    }
+  }, [urlReturnTo, searchParams]);
 
   async function isValidLogin(userName, password) {
     
@@ -59,11 +67,17 @@ export default function Login(SucessfulLogin) {
         // if(typeof SucessfulLogin === "function") SucessfulLogin();
         console.log("Navigating to: " + returnTo);
       sessionStorage.removeItem('loginReturnTo');
-      // Add success=true to the URL
+      sessionStorage.removeItem('loginFunctionality');
+      // Add success parameter based on functionality
+      const successValue = functionality === 0 ? 1 : functionality + 1;
       const url = new URL(returnTo, window.location.origin);
-      url.searchParams.set('success', 'true');
+      url.searchParams.set('success', successValue.toString());
       navigate(url.pathname + url.search, { replace: true });
     } else {
+      // On failure, navigate with success=0
+      const url = new URL(returnTo, window.location.origin);
+      url.searchParams.set('success', '0');
+      navigate(url.pathname + url.search, { replace: true });
       alert('Invalid Employee ID or Password.');
     }
   }
@@ -73,6 +87,7 @@ export default function Login(SucessfulLogin) {
     //console.log('Handling Google Login callback');
     const isSuccess = params.get('success');
     const returnToParam = (params.get('returnTo') || '/').replace(/^\/?/, '/');
+    const functionality = parseInt(params.get('functionality') || '0');
     const add = params.get('add');
     if (isSuccess === 'true') {
       // Fetch user info from backend
@@ -95,9 +110,11 @@ export default function Login(SucessfulLogin) {
             alert('added');
           }
           sessionStorage.removeItem('loginReturnTo');
-          // Ensure success=true is in the URL
+          sessionStorage.removeItem('loginFunctionality');
+          // Set success parameter based on functionality
+          const successValue = functionality === 0 ? 1 : functionality + 1;
           const url = new URL(returnToParam, window.location.origin);
-          url.searchParams.set('success', 'true');
+          url.searchParams.set('success', successValue.toString());
           navigate(url.pathname + url.search, { replace: true });
         } else {
           alert('Google Login Failed: Not an Employee.');
@@ -108,10 +125,10 @@ export default function Login(SucessfulLogin) {
         alert('Google Login Failed: Server did not return JSON.');
       }
     } else if (isSuccess === 'false') {
-      // Prevent double alert by cleaning up URL and returning immediately
-      if (window.location.search.includes('success=false')) {
-        window.history.replaceState({}, document.title, window.location.pathname);
-      }
+      // On failure, navigate with success=0
+      const url = new URL(returnToParam, window.location.origin);
+      url.searchParams.set('success', '0');
+      navigate(url.pathname + url.search, { replace: true });
       if (!window._googleLoginFailedAlerted) {
         window._googleLoginFailedAlerted = true;
         alert('Google Login Failed. Please try again.');
@@ -173,7 +190,7 @@ export default function Login(SucessfulLogin) {
           <button type="submit">Login</button>
         </form>
 
-        <GoogleLoginButton returnTo={returnTo} />
+        <GoogleLoginButton returnTo={returnTo} functionality={functionality} />
 
         <button className="debug-button" onClick={() => navigate("/hub")}>
           <img className='img' src={getImageForItem("debugbutton")} alt="Debug" />

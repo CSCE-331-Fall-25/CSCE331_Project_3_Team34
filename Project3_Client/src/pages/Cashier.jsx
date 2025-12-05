@@ -62,15 +62,24 @@ export default function Cashier() {
 
 
     useEffect(() => {
-      if (sucessfulOverrideLogin === 'true') {
-        //alert('Manager Override Login Successful');
-        //updat temp manager
-        //open discount modal as manager
-        setTempManager(true);
-        console.log("Manager Override Login Successful");
-        setShowDiscountModal(true);
-      }
       window.history.replaceState({}, '', window.location.pathname);
+      if (sucessfulOverrideLogin == 2) {
+        fetchUserData().then((data) => {
+          if (data && data.success) {
+            console.log("Fetched user data before Manager Override Login");
+            console.log("Attempting Manager Override Login as " + (data.user || null));
+            if(data.isManager){
+              setTempManager(true);
+              console.log("Manager Override Login Successful");
+              setShowDiscountModal(true);
+            }
+            else{
+              alert('Manager Override Login Failed: Not a Manager');
+            }
+          }
+        });
+      }
+      console.log('sucessfulOverrideLogin param:', sucessfulOverrideLogin);
     }, [sucessfulOverrideLogin]);
 
   const handleBuildItem = (e) => {
@@ -88,7 +97,7 @@ export default function Cashier() {
   const [isManager, setisManager] = useState(false);
   function fetchUserData() {
     // console.log("Fetching user data...");
-    fetch('/api/get-user', {
+    return fetch('/api/get-user', {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include'
@@ -98,10 +107,11 @@ export default function Cashier() {
         if (data.success) {
           setUser(data.user || null);
           setisManager(data.isManager || false);
-          // console.log("Fetched user data:", data.user, "Is Manager:", data.isManager);
+          console.log("Fetched user data:", data.user, "Is Manager:", data.isManager);
+          return data;
         }
       });
-    }
+  }
 
   // Note: buy/clear/remove/purchase actions are implemented in their own components
 
@@ -198,10 +208,17 @@ export default function Cashier() {
   }
   function handlePurchase() {
     //reset temp manager on purchase
-    setTempManager(false);
 
     // After purchase, refresh the page state
     UpdatePage();
+    //logout if was temp manager
+    if(tempManager){
+      navigate('/login?returnTo=/cashier');
+    }
+    //move to login page
+
+    setTempManager(false);
+
   }
 
 
