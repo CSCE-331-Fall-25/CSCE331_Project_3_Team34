@@ -6,15 +6,23 @@ class User {
         this.isEmployee = isEmployee;
     }
 
-    static async FetchByUsername(db, username, password) {
-        return Employee.FetchByUsername(db, username, password);
+    static async FetchByUsername(db, username, password, customer = false) {
+        console.log("fetching customer: " + customer);
+        if(!customer){
+            return Employee.FetchByUsername(db, username, password);
+        }
+        else{
+            return Customer.FetchByUsername(db, username, password);
+        }
     }
 
     FetchAllUsers(db) {
         console.log('Deprecated: FetchAllUsers called. Use FetchAllEmployees');
         return null;
     }
-    static async AuthenticateLogin(db, username = "", password = "", googleId = null) {
+    static async AuthenticateLogin(db, username = "", password = "", googleId = null, customer = false) {
+        console.log("at authenticate login customer is: " + customer);
+        
         //googleId auth
         let user = null;
         if (googleId) {
@@ -29,7 +37,7 @@ class User {
 
         //Username /password auth
         console.log(`Authenticating login for user: ${username}`);
-        user = await User.FetchByUsername(db, username, password);
+        user = await User.FetchByUsername(db, username, password, customer);
         if(!user) {
             console.log('Authentication failed for user:', username);
             return null;
@@ -233,6 +241,7 @@ class Customer extends User {
     }
 
     static async FetchByUsername(db, username, password, email) {
+        console.log("called customer fetch");
         if (!db || typeof db.query !== 'function') {
             throw new Error('DB pool not provided or invalid');
         }

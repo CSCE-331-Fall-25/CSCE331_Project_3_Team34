@@ -4,11 +4,12 @@ import pandaLogo from '../assets/PandaLogo.svg';
 import GoogleLoginButton from '../Components/googleLoginButton.jsx';
 import { getImageForItem } from '../assets/utils/imageMapper';
 
-export default function Login(SucessfulLogin) {
+export default function Login() {
   const [employeeId, setEmployeeId] = useState('');
   const [employeePassword, setEmployeePassword] = useState('');
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const [customer, setCustomer] = useState(false);
   
   // Get returnTo and functionality from URL params or sessionStorage
   const urlReturnTo = searchParams.get('returnTo');
@@ -27,17 +28,19 @@ export default function Login(SucessfulLogin) {
     }
     if (searchParams.get('functionality')) {
       sessionStorage.setItem('loginFunctionality', searchParams.get('functionality'));
+      if(searchParams.get('functionality') == 3){
+        setCustomer(true);
+      }
     }
   }, [urlReturnTo, searchParams]);
 
   async function isValidLogin(userName, password) {
-    
     try {
       const res = await fetch('/api/authenticate-login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ username: userName, password })
+        body: JSON.stringify({ username: userName, password: password, customer: customer })
       });
       const data = await res.json().catch(() => null);
       if (res.ok && data && data.success) {
@@ -78,7 +81,7 @@ export default function Login(SucessfulLogin) {
       const url = new URL(returnTo, window.location.origin);
       url.searchParams.set('success', '0');
       navigate(url.pathname + url.search, { replace: true });
-      alert('Invalid Employee ID or Password.');
+      alert('Invalid Login.');
     }
   }
 
@@ -189,9 +192,9 @@ export default function Login(SucessfulLogin) {
           />
           <button type="submit">Login</button>
         </form>
-
+        {!customer && 
         <GoogleLoginButton returnTo={returnTo} functionality={functionality} />
-
+        }
         <button className="debug-button" onClick={() => navigate("/hub")}>
           <img className='img' src={getImageForItem("debugbutton")} alt="Debug" />
           Debugging Skip Login

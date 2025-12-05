@@ -92,8 +92,9 @@ app.post('/api/ask-gen-ai', async (req, res) => {
 // API endpoint to authenticate login
 app.post('/api/authenticate-login', async (req, res) => {
   try{
-    const { username, password } = req.body;
-    const user = await User.AuthenticateLogin(pool, username, password);
+    const { username, password, customer = false } = req.body;
+    console.log("at authenticate customer is: " + customer);
+    const user = await User.AuthenticateLogin(pool, username, password,null, customer);
     if(!user) {
         return res.status(401).json({ success: false, error: 'Invalid username or password' });
     }

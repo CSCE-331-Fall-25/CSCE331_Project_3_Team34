@@ -26,6 +26,7 @@ export default function Kiosk() {
   const [errorLabel, setErrorLabel] = useState("");
   const [inventoryData, setInventoryData] = useState([]);
   const [customerLoggedIn, setCustomerLoggedIn] = useState(false);
+  const [customerName, setCustomerName] = useState('');
 
   const getInventoryData = async () => {
     // console.log("inventory data");
@@ -323,6 +324,19 @@ export default function Kiosk() {
     const success = searchParams.get('success');
     if (success == '4') {
       setCustomerLoggedIn(true);
+      // Fetch customer data
+      fetch('/api/get-user', {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include'
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success && data.user) {
+            setCustomerName(data.user.username);
+          }
+        })
+        .catch((err) => console.error('Failed to fetch customer data:', err));
       alert('Customer logged in successfully');
       window.history.replaceState({}, '', window.location.pathname);
     }
@@ -727,6 +741,11 @@ export default function Kiosk() {
         </div>
 
         <div className="kiosk-right">
+          {customerLoggedIn && customerName && (
+            <div className="kiosk-customer-info">
+              <h3>Welcome, {customerName}!</h3>
+            </div>
+          )}
           <h3 className="kiosk-title">Current Order</h3>
           <div className="kiosk-order-list">
             {orderItems.length === 0 && <div className="kiosk-empty">No items yet</div>}
@@ -780,7 +799,7 @@ export default function Kiosk() {
         </button>
         <button
           className="kiosk-signin-btn"
-          onClick={() => customerLoggedIn ? setCustomerLoggedIn(false) : navigate('/login?returnTo=/kiosk&functionality=3')}>
+          onClick={() => customerLoggedIn ? (setCustomerLoggedIn(false), setCustomerName('')) : navigate('/login?returnTo=/kiosk&functionality=3')}>
           {customerLoggedIn ? 'Sign Out' : 'Customer Sign In'}
         </button>
         {showChat && <ChatModal onClose={() => setShowChat(false)} />}

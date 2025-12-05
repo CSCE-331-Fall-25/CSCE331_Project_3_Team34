@@ -794,5 +794,18 @@
   background-color: #b71c1c;
 }
 
+.kiosk-customer-info {
+  background-color: #e8f5e8;
+  padding: 10px;
+  border-radius: 5px;
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+.kiosk-customer-info h3 {
+  margin: 0;
+  color: #2e7d32;
+}
+
 
 
