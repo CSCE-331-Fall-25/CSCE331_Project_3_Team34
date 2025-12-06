@@ -73,6 +73,7 @@ export default function Cashier() {
               setTempManager(true);
               console.log("Manager Override Login Successful");
               setShowDiscountModal(true);
+              UpdatePage(); // Refresh the order display after override
             }
             else{
               alert('Manager Override Login Failed: Not a Manager');
