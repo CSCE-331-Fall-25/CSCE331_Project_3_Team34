@@ -64,6 +64,12 @@ export default function Cashier() {
 
     useEffect(() => {
       window.history.replaceState({}, '', window.location.pathname);
+
+      // Always update page state when returning from login, regardless of success/failure
+      if (sucessfulOverrideLogin) {
+        UpdatePage();
+      }
+
       if (sucessfulOverrideLogin == 2) {
         fetchUserData().then((data) => {
           if (data && data.success) {
@@ -73,7 +79,6 @@ export default function Cashier() {
               setTempManager(true);
               console.log("Manager Override Login Successful");
               setShowDiscountModal(true);
-              UpdatePage(); // Refresh the order display after override
             }
             else{
               alert('Manager Override Login Failed: Not a Manager');
