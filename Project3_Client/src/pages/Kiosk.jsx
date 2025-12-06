@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import pandaLogo from '../assets/PandaLogo.svg'
 import WeatherScreen from './WeatherScreen';
@@ -8,8 +8,35 @@ import '../styles/Kiosk.css';
 import { getImageForItem } from "../assets/utils/imageMapper";
 import ChatModal from '../Components/ChatModal';
 import { saveOrder, loadOrder, clearOrder } from '../utils/orderPersistence';
+import { useTranslatedObject } from '../hooks/useTranslatedText';
 
 export default function Kiosk() {
+
+  // --- Translation system --- //
+  const translationKeys = useMemo(() => ({
+    'Select': 'Select',
+    'Current Order': 'Current Order',
+    'No items yet': 'No items yet',
+    'Total': 'Total',
+    'Clear': 'Clear',
+    'Checkout': 'Checkout',
+    'Welcome': 'Welcome',
+    'Customer Sign In': 'Customer Sign In',
+    'Sign Out': 'Sign Out',
+    'Employee Sign In': 'Employee Sign In',
+    'Back': 'Back',
+    'No items': 'No items',
+    'Select Payment Method': 'Select Payment Method',
+    'Cash': 'Cash',
+    'Card': 'Card',
+    'Rewards': 'Rewards',
+    'Transaction': 'Transaction',
+    'Complete': 'Complete',
+    'New Order': 'New Order',
+    'Loading': 'Loading'
+  }), []);
+
+  const translatedTexts = useTranslatedObject(translationKeys);
 
   // --- inactivity timer --- //
 
@@ -829,7 +856,7 @@ export default function Kiosk() {
     <div>
       {loading && (
         <div className="loading-overlay" aria-hidden>
-          <div className="loading-inner">Loading…</div>
+          <div className="loading-inner">{translatedTexts['Loading']}…</div>
         </div>
       )}
       {blocking && !loading && (
@@ -870,14 +897,14 @@ export default function Kiosk() {
             <>
               {activeSelection && (
                 <div className="kiosk-selection-banner">
-                  Select {activeSelection.label || activeSelection.type}
+                  {translatedTexts['Select']} {activeSelection.label || activeSelection.type}
                   {typeof activeSelection.remaining === 'number' && activeSelection.remaining > 0 && (
                     <span className="kiosk-selection-remaining"> ({activeSelection.remaining} more after this)</span>
                   )}
                 </div>
               )}
               <div className="kiosk-items-grid">
-                {menuItems.length === 0 && <div className="kiosk-empty">No items</div>}
+                {menuItems.length === 0 && <div className="kiosk-empty">{translatedTexts['No items']}</div>}
                 {menuItems.map(it => {
                   const { value, hide, allergies, hideAllergies } = resolveDisplayPrice(it);
 
@@ -959,12 +986,12 @@ export default function Kiosk() {
         <div className="kiosk-right">
           {customerLoggedIn && customerName && (
             <div className="kiosk-customer-info">
-              <h3>Welcome, {customerName}!</h3>
+              <h3>{translatedTexts['Welcome']}, {customerName}!</h3>
             </div>
           )}
-          <h3 className="kiosk-title">Current Order</h3>
+          <h3 className="kiosk-title">{translatedTexts['Current Order']}</h3>
           <div className="kiosk-order-list">
-            {orderItems.length === 0 && <div className="kiosk-empty">No items yet</div>}
+            {orderItems.length === 0 && <div className="kiosk-empty">{translatedTexts['No items yet']}</div>}
             {orderItems.map((it, idx) => {
               const { value, hide } = resolveDisplayPrice(it);
               const rowClass = `kiosk-order-row${it.isParent ? ' kiosk-order-row-parent' : (value > 0) ? ' kiosk-order-row-child-premium' : ' kiosk-order-row-child-default'}`;
@@ -1000,10 +1027,10 @@ export default function Kiosk() {
             })}
           </div>
           <div className="kiosk-order-summary">
-            <div>Total: ${total.toFixed(2)}</div>
+            <div>{translatedTexts['Total']}: ${total.toFixed(2)}</div>
             <div className="kiosk-order-controls">
-              <button onClick={clearOrderAndUI} className="kiosk-clear-btn">Clear</button>
-              <button onClick={() => {console.log('Proceed to checkout', orderItems); handlePurchase();}} className="kiosk-checkout-btn">Checkout</button>
+              <button onClick={clearOrderAndUI} className="kiosk-clear-btn">{translatedTexts['Clear']}</button>
+              <button onClick={() => {console.log('Proceed to checkout', orderItems); handlePurchase();}} className="kiosk-checkout-btn">{translatedTexts['Checkout']}</button>
             </div>
           </div>
         </div>
@@ -1016,17 +1043,17 @@ export default function Kiosk() {
         <button
           className="kiosk-signin-btn"
           onClick={() => customerLoggedIn ? (setCustomerLoggedIn(false), setCustomerName('')) : navigate('/login?returnTo=/kiosk&functionality=3')}>
-          {customerLoggedIn ? 'Sign Out' : 'Customer Sign In'}
+          {customerLoggedIn ? translatedTexts['Sign Out'] : translatedTexts['Customer Sign In']}
         </button>
         <button
           className="kiosk-signin-btn"
           onClick={() => navigate('/login?returnTo=/hub&functionality=2')}>
-          Employee Sign In
+          {translatedTexts['Employee Sign In']}
         </button>
         <button
           className="kiosk-help-btn"
           onClick={() => navigate('/weather')}>
-          Back
+          {translatedTexts['Back']}
         </button>
         {showChat && <ChatModal onClose={() => setShowChat(false)} onAddOrder={handleAIOrder} />}
       </div>
@@ -1038,25 +1065,25 @@ export default function Kiosk() {
             <img src={pandaLogo} alt="Panda Express" className="purchase-logo" />
 
             {/* Top image */}
-            <h4 className="purchase-screen-title">Select Payment Method</h4>
-            <div className="purchase-screen-price">Total: ${total.toFixed(2)}</div>
+            <h4 className="purchase-screen-title">{translatedTexts['Select Payment Method']}</h4>
+            <div className="purchase-screen-price">{translatedTexts['Total']}: ${total.toFixed(2)}</div>
 
 
             {/* Buttons section */}
             <div className="purchase-buttons">
               <div className="purchase-option" onClick={() => handlePayment("Cash")}>
                 <img src={getImageForItem("cashImg")} alt="Cash" className="option-img" />
-                <span className="option-text">Cash</span>
+                <span className="option-text">{translatedTexts['Cash']}</span>
               </div>
 
               <div className="purchase-option" onClick={() => handlePayment("Card")}>
                 <img src={getImageForItem("cardImg")} alt="Card" className="option-img" />
-                <span className="option-text">Card</span>
+                <span className="option-text">{translatedTexts['Card']}</span>
               </div>
 
               <div className="purchase-option" onClick={() => handlePayment("Rewards")}>
                 <img src={getImageForItem("rewardsImg")} alt="Rewards" className="option-img" />
-                <span className="option-text">Rewards</span>
+                <span className="option-text">{translatedTexts['Rewards']}</span>
               </div>  
             </div>
           </div>
@@ -1069,8 +1096,8 @@ export default function Kiosk() {
             <img src={getImageForItem("orderComplete")} alt="orderComplete" className="finished-img" />
 
             {/* Top image */}
-            <h4 className="purchase-screen-title">Transaction: {transactionNumber} Complete!</h4>
-            <div className="purchase-screen-price">Total: ${total.toFixed(2)}</div>
+            <h4 className="purchase-screen-title">{translatedTexts['Transaction']}: {transactionNumber} {translatedTexts['Complete']}!</h4>
+            <div className="purchase-screen-price">{translatedTexts['Total']}: ${total.toFixed(2)}</div>
 
             <br></br>
 
@@ -1079,7 +1106,7 @@ export default function Kiosk() {
               setTransactionNumber(transactionNumber + 1);  
               goBackToKiosk();
               }}>
-              New Order
+              {translatedTexts['New Order']}
             </div>
             
           </div>

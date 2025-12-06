@@ -16,6 +16,7 @@ import './styles/App.css'
 //import app from '../../Project3_Server/src/index.js'
 
 import { getImageForItem } from './assets/utils/imageMapper';
+import { TranslationProvider } from './contexts/TranslationContext';
 
 
 
@@ -140,38 +141,40 @@ export default function App() {
       }
     }, []);
   return (
-    <div>
-      {showButtons && (
-        <div style={{ textAlign: 'center', marginTop: '50px' }}>
-          <h1>Welcome to Panda Express</h1>
-          <button onClick={() => {
-            sessionStorage.setItem('loginReturnTo', '/hub');
-            navigate('/login?returnTo=/hub&functionality=2');
-          }} style={{ padding: '10px 20px', fontSize: '16px' }}>
-            Go to Login
-          </button>
-        </div>
-      )}
-      
+    <TranslationProvider>
+      <div>
+        {showButtons && (
+          <div style={{ textAlign: 'center', marginTop: '50px' }}>
+            <h1>Welcome to Panda Express</h1>
+            <button onClick={() => {
+              sessionStorage.setItem('loginReturnTo', '/hub');
+              navigate('/login?returnTo=/hub&functionality=2');
+            }} style={{ padding: '10px 20px', fontSize: '16px' }}>
+              Go to Login
+            </button>
+          </div>
+        )}
         
+          
 
-     
+       
 
-      {/* Routing logic */}
-      <Routes>
-        <Route path="/weather" element={<WeatherScreen />} />
-        <Route path="/setmeal" element={<MealAttributes />} />
-        <Route path="/cashier" element={<Cashier />} />
-        <Route path="/manager" element={<Manager />} />
-        <Route path="/menu" element={<Menu />} />
-        <Route path="/kitchen" element={<Kitchen />} />
-        <Route path="/kiosk" element={<Kiosk />} />
-        <Route path="/hub" element={<Hub />} />
-        <Route path="/login" element={<Login/>} />
-        <Route path="/" element={<div />} />
-        <Route path="*" element={<div>404 Not Found</div>} />
-        {/* Removed invalid Route that used `this` as element. */}
-      </Routes>
-    </div>
+        {/* Routing logic */}
+        <Routes>
+          <Route path="/weather" element={<WeatherScreen />} />
+          <Route path="/setmeal" element={<MealAttributes />} />
+          <Route path="/cashier" element={<Cashier />} />
+          <Route path="/manager" element={<Manager />} />
+          <Route path="/menu" element={<Menu />} />
+          <Route path="/kitchen" element={<Kitchen />} />
+          <Route path="/kiosk" element={<Kiosk />} />
+          <Route path="/hub" element={<Hub />} />
+          <Route path="/login" element={<Login/>} />
+          <Route path="/" element={<div />} />
+          <Route path="*" element={<div>404 Not Found</div>} />
+          {/* Removed invalid Route that used `this` as element. */}
+        </Routes>
+      </div>
+    </TranslationProvider>
   )
 }
