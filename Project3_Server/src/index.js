@@ -96,8 +96,9 @@ app.post('/api/ask-gen-ai', async (req, res) => {
 // API endpoint to authenticate login
 app.post('/api/authenticate-login', async (req, res) => {
   try{
-    const { username, password } = req.body;
-    const user = await User.AuthenticateLogin(pool, username, password);
+    const { username, password, customer = false } = req.body;
+    console.log("at authenticate customer is: " + customer);
+    const user = await User.AuthenticateLogin(pool, username, password,null, customer);
     if(!user) {
         return res.status(401).json({ success: false, error: 'Invalid username or password' });
     }
@@ -142,13 +143,14 @@ app.get('/api/get-user', async (req, res) => {
   const currUser = req.session?.user ?? null;
   if(!currUser) return res.status(401).json({ success: false, error: 'Not authenticated' });
   if(currUser.isEmployee){
-    // console.log("Current User is Employee:", currUser);
+    console.log("Current User is Employee:", currUser);
     //fetch full user data from DB
     const userData = await Employee.FetchByUsername(pool, currUser.username, null, null);
     currUser.isManager = userData ? userData.isManager : false;
+    console.log("Current User is Manager:", currUser.isManager);
     return res.json({ success: true, user: currUser, isManager: currUser.isManager  });
   }
-  // console.log("Current User not Employee:", currUser);
+  console.log("Current User not Employee:", currUser);
   res.json({ success: true, user: currUser });
 
 });
@@ -474,8 +476,8 @@ app.get('/api/menu-data', async (req, res) => {
 app.post('/api/add-menu', async (req, res) => {
   try {
    // console.log("request recieved");
-    const { menuId, menuName, menuType, menuPriceMod, menuInventoryIds } = req.body;
-    res.json(await manager.AddMenu(menuId, menuName, menuType, menuPriceMod, menuInventoryIds));
+    const { menuId, menuName, menuType, menuCalories, menuAllergies, menuPriceMod, menuInventoryIds } = req.body;
+    res.json(await manager.AddMenu(menuId, menuName, menuType, menuCalories, menuAllergies, menuPriceMod, menuInventoryIds));
   } catch (err) {
     console.error('Error getting data' + err);
     res.json({ error: -2 });
@@ -496,8 +498,8 @@ app.post('/api/remove-menu', async (req, res) => {
 app.post('/api/update-menu', async (req, res) => {
   try {
    // console.log("request recieved");
-    const { menuId, menuName, menuType, menuPriceMod, menuInventoryIds, rowSelection } = req.body;
-    res.json(await manager.UpdateMenu(menuId, menuName, menuType, menuPriceMod, menuInventoryIds, rowSelection));
+    const { menuId, menuName, menuType, menuCalories, menuAllergies, menuPriceMod, menuInventoryIds, rowSelection } = req.body;
+    res.json(await manager.UpdateMenu(menuId, menuName, menuType, menuCalories, menuAllergies, menuPriceMod, menuInventoryIds, rowSelection));
   } catch (err) {
     console.error('Error getting data' + err);
     res.json({ error: -2 });

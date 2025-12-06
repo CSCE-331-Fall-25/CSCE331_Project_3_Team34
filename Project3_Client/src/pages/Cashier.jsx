@@ -2,10 +2,11 @@ import React from "react";
 import "../styles/Cashier/Cashier.css";
 import "../styles/Cashier/DiscountModal.css";
 import { useEffect, useState, useRef } from "react";
+
 // don't import server code into the client bundle
 // replace server-side debugging checks with a local flag
 const debugging = false;
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 //components
 import SignOutButton from "../Components/SignOut.jsx";
@@ -18,6 +19,7 @@ import BuyItemButton from "../Components/BuyItemButton.jsx";
 import VoidModal from "../Components/VoidModal.jsx";
 import CreateMealModal from "../Components/CreateMealModal.jsx";
 import SizeModal from "../Components/SizeModal.jsx";
+import { saveOrder, loadOrder, clearOrder } from '../utils/orderPersistence';
 export default function Cashier() {
   const navigate = useNavigate();
   //newest Row reference for auto scrolling
@@ -53,6 +55,33 @@ export default function Cashier() {
   //Void modal
   const [showVoidModal, setShowVoidModal] = useState(false);
 
+  //ManagerOverrideLogin
+   const [searchParams] = useSearchParams();
+   const sucessfulOverrideLogin = searchParams.get('success');
+    const [tempManager, setTempManager] = useState(false);
+
+
+
+    useEffect(() => {
+      window.history.replaceState({}, '', window.location.pathname);
+      if (sucessfulOverrideLogin == 2) {
+        fetchUserData().then((data) => {
+          if (data && data.success) {
+            console.log("Fetched user data before Manager Override Login");
+            console.log("Attempting Manager Override Login as " + (data.user || null));
+            if(data.isManager){
+              setTempManager(true);
+              console.log("Manager Override Login Successful");
+              setShowDiscountModal(true);
+            }
+            else{
+              alert('Manager Override Login Failed: Not a Manager');
+            }
+          }
+        });
+      }
+      console.log('sucessfulOverrideLogin param:', sucessfulOverrideLogin);
+    }, [sucessfulOverrideLogin]);
 
   const handleBuildItem = (e) => {
     const id = e.target.id;
@@ -69,7 +98,7 @@ export default function Cashier() {
   const [isManager, setisManager] = useState(false);
   function fetchUserData() {
     // console.log("Fetching user data...");
-    fetch('/api/get-user', {
+    return fetch('/api/get-user', {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include'
@@ -79,10 +108,11 @@ export default function Cashier() {
         if (data.success) {
           setUser(data.user || null);
           setisManager(data.isManager || false);
-          // console.log("Fetched user data:", data.user, "Is Manager:", data.isManager);
+          console.log("Fetched user data:", data.user, "Is Manager:", data.isManager);
+          return data;
         }
       });
-    }
+  }
 
   // Note: buy/clear/remove/purchase actions are implemented in their own components
 
@@ -137,6 +167,12 @@ export default function Cashier() {
       // ignore any access errors and continue
     }
 
+    // Load saved order first
+    const savedOrder = loadOrder('cashier');
+    if (savedOrder.length > 0) {
+      setTransactionItems(savedOrder);
+    }
+
     UpdatePage();
   }, []);
   
@@ -165,8 +201,10 @@ export default function Cashier() {
           // console.log("UpdatePage Formatted:", formattedItems);
           //updates the front end to show current items
           setTransactionItems(formattedItems);
+          saveOrder(formattedItems, 'cashier');
         } else {
           setTransactionItems([]);
+          saveOrder([], 'cashier');
         }
         //Calls functions to update their states
         setCurrCost(data.currCost || 0);
@@ -176,6 +214,20 @@ export default function Cashier() {
         setDiscountPriceOff(data.priceOff || 0);
       });
       fetchUserData();
+  }
+  function handlePurchase() {
+    //reset temp manager on purchase
+
+    // After purchase, refresh the page state
+    UpdatePage();
+    //logout if was temp manager
+    if(tempManager){
+      navigate('/login?returnTo=/cashier');
+    }
+    //move to login page
+
+    setTempManager(false);
+
   }
 
 
@@ -227,7 +279,7 @@ export default function Cashier() {
           setDiscountPriceOff(off || 0);
           UpdatePage();
         }}
-        userIsManager={isManager}
+        userIsManager={isManager || tempManager}
       />
       {showSignOutModal && (
         <SignOutButton onClose={() => setShowSignOutModal(false)} />
@@ -259,7 +311,7 @@ export default function Cashier() {
           priceTotal={priceTotal}
           discountAmount={discountAmount}
           discountPriceOff={discountPriceOff}
-          onPurchase={UpdatePage}
+          onPurchase={handlePurchase}
         />
       </div>
 

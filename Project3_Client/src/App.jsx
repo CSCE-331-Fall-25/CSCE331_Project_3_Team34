@@ -9,6 +9,7 @@ import Kitchen from './pages/Kitchen.jsx'
 import Kiosk from './pages/Kiosk.jsx'
 import Hub from './pages/Hub.jsx'
 import MealAttributes  from './pages/MealAttributes.jsx' 
+import Login from './pages/Login.jsx'
 import React from 'react'
 import GoogleLoginButton from './Components/googleLoginButton.jsx'
 import './styles/App.css'
@@ -130,6 +131,9 @@ export default function App() {
     }, [showButtons]);
     useEffect(() => {
       console.log('App mounted, checking for Google Login callback');
+      // If we are on the login page, let the Login component handle the callback
+      if (window.location.pathname === '/login') return;
+
       const params = new URLSearchParams(window.location.search);
       if (params.get('success')) {
         handleGoogleLogin(params);
@@ -138,43 +142,19 @@ export default function App() {
   return (
     <div>
       {showButtons && (
-        <div className="login-page-background">
-          <div className="login-card">
-            <img
-              className="login-logo"
-              src={pandaLogo}
-              alt="Panda Express Logo"
-            />
-            <form onSubmit={handleLogin} className="login-form">
-              <input
-                type="text"
-                placeholder="Employee ID"
-                value={employeeId ?? ''}
-                onChange={handleIdChange}
-              />
-              <input
-                type="password"
-                placeholder="Password"
-                value={employeePassword ?? ''}
-                onChange={handlePasswordChange}
-              />
-              <button type="submit">Login</button>
-              
-            </form>
-
-            <GoogleLoginButton />
-            
-            <button className="debug-button" onClick={() => navigate("/hub")}>
-              <img className='img' src={getImageForItem("debugbutton")} alt="Debug" />
-              Debugging Skip Login
-            </button>
-            
-          
-          </div>
+        <div style={{ textAlign: 'center', marginTop: '50px' }}>
+          <h1>Welcome to Panda Express</h1>
+          <button onClick={() => {
+            sessionStorage.setItem('loginReturnTo', '/hub');
+            navigate('/login?returnTo=/hub&functionality=2');
+          }} style={{ padding: '10px 20px', fontSize: '16px' }}>
+            Go to Login
+          </button>
         </div>
+      )}
+      
         
 
-      )}
      
 
       {/* Routing logic */}
@@ -187,8 +167,7 @@ export default function App() {
         <Route path="/kitchen" element={<Kitchen />} />
         <Route path="/kiosk" element={<Kiosk />} />
         <Route path="/hub" element={<Hub />} />
-        {/* Root path shows the login UI (App displays the login form when pathname === "/").
-            Keep the route lightweight so the login form isn't duplicated with another page. */}
+        <Route path="/login" element={<Login/>} />
         <Route path="/" element={<div />} />
         <Route path="*" element={<div>404 Not Found</div>} />
         {/* Removed invalid Route that used `this` as element. */}
