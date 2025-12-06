@@ -15,6 +15,15 @@ import * as oAuth from "./oAuth.js";
 import kioskRouter from "./Kiosk.js";
 import kitchenRouter from "./Kitchen.js";
 
+import {chatWithAI} from "./GenAI.js";
+
+
+
+
+
+
+
+
 // Load .env file only if it exists (for local development)
 // In production (Render), environment variables are set directly
 dotenv.config();
@@ -32,7 +41,8 @@ const sessionPrefab = session({
     httpOnly: true,
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
     maxAge: 60 * 60 * 1000 // 1 hour
-  }
+  },
+  history: []
 });
 
 app.use(cors({ origin: clientOrigin, credentials: true }));
@@ -59,12 +69,32 @@ function getMainPageForSession(req) {
   }
   return sessionMap.get(sessionID);
 }
-
+app.post('/api/ask-gen-ai', async (req, res) => {
+  //console.log("Received GenAI request with prompt:", req.body.prompt_text);
+  let currUser = req.session?.user ?? null;
+  if(!currUser){
+    currUser = new User("TestUser", "TestPassword", "");
+    //currUser = "Does not exist";
+    console.error("No user in session");
+    //return res.status(401).json({ success: false, error: 'Not authenticated' });
+  } 
+  
+  let prompt = req.body.prompt_text;;
+  //console.log(`GenAI request from user: ${currUser.username}, prompt: ${prompt}`);
+  try {
+    const response = await chatWithAI(currUser.username, prompt, req.session.history);
+    res.json({ success: true, response_text: response });
+  } catch (err) {
+    console.error('Error communicating with GenAI:', err);
+    res.status(500).json({ success: false, error: 'Failed to get response from GenAI' });
+  }
+});
 // API endpoint to authenticate login
 app.post('/api/authenticate-login', async (req, res) => {
   try{
-    const { username, password } = req.body;
-    const user = await User.AuthenticateLogin(pool, username, password);
+    const { username, password, customer = false } = req.body;
+    console.log("at authenticate customer is: " + customer);
+    const user = await User.AuthenticateLogin(pool, username, password,null, customer);
     if(!user) {
         return res.status(401).json({ success: false, error: 'Invalid username or password' });
     }
@@ -109,13 +139,14 @@ app.get('/api/get-user', async (req, res) => {
   const currUser = req.session?.user ?? null;
   if(!currUser) return res.status(401).json({ success: false, error: 'Not authenticated' });
   if(currUser.isEmployee){
-    // console.log("Current User is Employee:", currUser);
+    console.log("Current User is Employee:", currUser);
     //fetch full user data from DB
     const userData = await Employee.FetchByUsername(pool, currUser.username, null, null);
     currUser.isManager = userData ? userData.isManager : false;
+    console.log("Current User is Manager:", currUser.isManager);
     return res.json({ success: true, user: currUser, isManager: currUser.isManager  });
   }
-  // console.log("Current User not Employee:", currUser);
+  console.log("Current User not Employee:", currUser);
   res.json({ success: true, user: currUser });
 
 });
@@ -188,6 +219,8 @@ app.post('/api/fetch-menus-by-type', async (req, res) => {
       type: menu.type,
       priceMod: menu.pricemod,
       inventoryIDs: menu.inventoryids
+      // Add this line when calories added to DB
+      // calories: menu.calories
     })));
   } catch (err) {
     console.error('Error fetching menus by type:', err);
@@ -216,7 +249,7 @@ app.post('/api/fetch-all-items', async (req, res) => {
 // API endpoint to buy an item
 app.post('/api/buy-item', async (req, res) => {
   try {
-    const mainPage = getMainPageForSession(req);
+    let mainPage = getMainPageForSession(req);
     let result;
     if (req.body && req.body.itemID) {
       result = await mainPage.BuyItemButton(req.body.itemID, req.body.entreeList, req.body.sideList, req.body.size);
@@ -439,8 +472,8 @@ app.get('/api/menu-data', async (req, res) => {
 app.post('/api/add-menu', async (req, res) => {
   try {
    // console.log("request recieved");
-    const { menuId, menuName, menuType, menuPriceMod, menuInventoryIds } = req.body;
-    res.json(await manager.AddMenu(menuId, menuName, menuType, menuPriceMod, menuInventoryIds));
+    const { menuId, menuName, menuType, menuCalories, menuAllergies, menuPriceMod, menuInventoryIds } = req.body;
+    res.json(await manager.AddMenu(menuId, menuName, menuType, menuCalories, menuAllergies, menuPriceMod, menuInventoryIds));
   } catch (err) {
     console.error('Error getting data' + err);
     res.json({ error: -2 });
@@ -461,8 +494,8 @@ app.post('/api/remove-menu', async (req, res) => {
 app.post('/api/update-menu', async (req, res) => {
   try {
    // console.log("request recieved");
-    const { menuId, menuName, menuType, menuPriceMod, menuInventoryIds, rowSelection } = req.body;
-    res.json(await manager.UpdateMenu(menuId, menuName, menuType, menuPriceMod, menuInventoryIds, rowSelection));
+    const { menuId, menuName, menuType, menuCalories, menuAllergies, menuPriceMod, menuInventoryIds, rowSelection } = req.body;
+    res.json(await manager.UpdateMenu(menuId, menuName, menuType, menuCalories, menuAllergies, menuPriceMod, menuInventoryIds, rowSelection));
   } catch (err) {
     console.error('Error getting data' + err);
     res.json({ error: -2 });

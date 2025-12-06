@@ -8,11 +8,7 @@
   width: 100vw;
   display: flex;               /* allow child to stretch */
   justify-content: center;
-  background: linear-gradient(
-    135deg,
-    rgb(53, 51, 51),
-    rgb(90, 15, 15)
-  );
+  background: linear-gradient(135deg, #f43c3c, #741010, #250000); 
 }
 
 .menu-page-container {
@@ -21,6 +17,7 @@
   display: flex;
   flex-direction: column;
   padding: 10px;
+  transform: scale(1.005);
 }
 
 .menu-content {
@@ -81,6 +78,7 @@
   transform-origin: top left;
   transition: transform 120ms ease-out;
   display: inline-block; /* shrinkwrap the scaled content */
+  scale: scale(1.3);
 }
 .menu-list {
   border: 1px solid #ccc;
@@ -107,6 +105,10 @@
   border-radius: 8px;
   box-shadow: 0 1px 4px rgba(0,0,0,0.06);
   text-align: center;
+}
+
+.no-img {
+  justify-content: center;
 }
 
 .menu-item-image {

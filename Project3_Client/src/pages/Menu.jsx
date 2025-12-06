@@ -12,7 +12,7 @@ import SignOutButton from '../Components/SignOut.jsx';
 export default function Menu() {
 
   const pageSizes = {
-    items: 8,
+    items: 6,
     entrees: 8,
     sides: 4,
     apps: 4,
@@ -177,13 +177,29 @@ export default function Menu() {
                 <h3 className="section-title">Menu Items</h3>
 
                 <div className="section-grid">
-                  {displayed.items.map(item => (
-                    <div key={item.itemID} className="menu-item">
-                      <img src={getImageForItem(item.itemName)} alt={item.itemName} className="menu-item-image" />
+                  {displayed.items.map(item => {
+                  const imgSrc = getImageForItem(item.itemName);
+                  let boxStyle = imgSrc ? 'menu-item menu-item-menu' : 'menu-item menu-item-menu no-img';
+
+                  return (
+                    <div key={item.itemID} className={boxStyle}>
+                      {imgSrc && (
+                        <img
+                          src={imgSrc}
+                          alt={item.itemName}
+                          className="menu-item-image"
+                          onError={(e) => {
+                            e.currentTarget.style.display = "none";
+                          }}
+                        />
+                      )}
                       <div className="menu-item-name">{item.itemName}</div>
-                      <div className="menu-item-price">${item.itemPrice?.toFixed(2) || ''}</div>
+                      <div className="menu-item-price">
+                        ${item.itemPrice?.toFixed(2) || ""}
+                      </div>
                     </div>
-                  ))}
+                  );
+                })}
                 </div>
               </div>
             </div>
@@ -196,15 +212,21 @@ export default function Menu() {
                 <h3 className="section-title">Entrees</h3>
 
                 <div className="section-grid">
-                  {displayed.entrees.map(item => (
-                    <div key={`entree-${item.menuID}`} className="menu-item">
-                      <img src={getImageForItem(item.menuName)} alt={item.menuName} className="menu-item-image" />
+                  {displayed.entrees.map(item => {
+                    const imgSrc = getImageForItem(item.menuName);
+                    let boxStyle = imgSrc ? 'menu-item' : 'menu-item no-img';
+
+                    return (
+                    <div key={`entree-${item.menuID}`} className={boxStyle}>
+                      {imgSrc && (<img src={getImageForItem(item.menuName)} alt={item.menuName} className="menu-item-image" />)}
+                      
                       <div className="menu-item-name">{item.menuName}</div>
                       {item.priceMod > 0 && (
                         <img src={getImageForItem("P")} alt="Premium" className="menu-item-image-premium" />
                       )}
                     </div>
-                  ))}
+                  );
+                  })}
                 </div>
               </div>
 
@@ -246,12 +268,19 @@ export default function Menu() {
                 <h3 className="section-title">Drinks</h3>
 
                 <div className="section-grid">
-                  {displayed.drinks.map(item => (
-                    <div key={`bev-${item.menuID}`} className="menu-item">
-                      <img src={getImageForItem(item.menuName)} alt={item.menuName} className="menu-item-image" />
+                  {displayed.drinks.map(item => { 
+                    const imgSrc = getImageForItem(item.menuName);
+                    let boxStyle = imgSrc ? 'menu-item' : 'menu-item no-img';
+
+                    return (
+                    <div key={`bev-${item.menuID}`} className={boxStyle}>
+                      {imgSrc && (
+                        <img src={getImageForItem(item.menuName)} alt={item.menuName} className="menu-item-image" />
+                      )}
                       <div className="menu-item-name">{item.menuName}</div>
                     </div>
-                  ))}
+                  );
+                })}
                 </div>
               </div>
 

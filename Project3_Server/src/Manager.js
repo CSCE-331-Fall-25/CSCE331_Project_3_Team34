@@ -129,61 +129,61 @@ class Manager {
     async ProductUsageReportData(startTime, endTime) {
         const data = [];
         const now = new Date();
-        let realStartTime = this.parseTime(startTime);
-        let realEndTime = this.parseTime(endTime);
+        let realStartTime = this.parseTime(startTime, true);
+        let realEndTime = this.parseTime(endTime, false);
         let code = 0;
         try {
             if (!isNaN(realStartTime)) {
                 if (realStartTime == 0) {
                     startTime = `${startTime}${now.getFullYear()}`;
-                    realStartTime = this.parseTime(startTime);
+                    realStartTime = this.parseTime(startTime, true);
                     code += 512;
                 }
                 if (realStartTime == 1) {
                     startTime = `${startTime}-${now.getMonth() + 1}`;
-                    realStartTime = this.parseTime(startTime);
+                    realStartTime = this.parseTime(startTime, true);
                     code += 256;
                 }
                 if (realStartTime == 3) {
                     startTime = `${startTime}-${now.getDate()}`;
-                    realStartTime = this.parseTime(startTime);
+                    realStartTime = this.parseTime(startTime, true);
                     code += 128;
                 }
                 if (realStartTime == 7) {
                     startTime = `${startTime} 00`;
-                    realStartTime = this.parseTime(startTime);
+                    realStartTime = this.parseTime(startTime, true);
                     code += 64;
                 }
                 if (realStartTime == 15) {
                     startTime = `${startTime}:00`;
-                    realStartTime = this.parseTime(startTime);
+                    realStartTime = this.parseTime(startTime, true);
                     code += 32;
                 }
             }
             if (!isNaN(realEndTime)) {
                 if (realEndTime == 0) {
                     endTime = `${endTime}${now.getFullYear()}`;
-                    realEndTime = this.parseTime(endTime);
+                    realEndTime = this.parseTime(endTime, false);
                     code += 16;
                 }
                 if (realEndTime == 1) {
                     endTime = `${endTime}-${now.getMonth() + 1}`;
-                    realEndTime = this.parseTime(endTime);
+                    realEndTime = this.parseTime(endTime, false);
                     code += 8;
                 }
                 if (realEndTime == 3) {
                     endTime = `${endTime}-${now.getDate()}`;
-                    realEndTime = this.parseTime(endTime);
+                    realEndTime = this.parseTime(endTime, false);
                     code += 4;
                 }
                 if (realEndTime == 7) {
                     endTime = `${endTime} 23`;
-                    realEndTime = this.parseTime(endTime);
+                    realEndTime = this.parseTime(endTime, false);
                     code += 2;
                 }
                 if (realEndTime == 15) {
                     endTime = `${endTime}:59`;
-                    realEndTime = this.parseTime(endTime);
+                    realEndTime = this.parseTime(endTime, false);
                     code++;
                 }
             }
@@ -209,61 +209,61 @@ class Manager {
     async SalesReportData(startTime, endTime) {
         const data = [];
         const now = new Date();
-        let realStartTime = this.parseTime(startTime);
-        let realEndTime = this.parseTime(endTime);
+        let realStartTime = this.parseTime(startTime, true);
+        let realEndTime = this.parseTime(endTime, false);
         let code = 0;
         try {
             if (!isNaN(realStartTime)) {
                 if (realStartTime == 0) {
                     startTime = `${startTime}${now.getFullYear()}`;
-                    realStartTime = this.parseTime(startTime);
+                    realStartTime = this.parseTime(startTime, true);
                     code += 512;
                 }
                 if (realStartTime == 1) {
                     startTime = `${startTime}-${now.getMonth() + 1}`;
-                    realStartTime = this.parseTime(startTime);
+                    realStartTime = this.parseTime(startTime, true);
                     code += 256;
                 }
                 if (realStartTime == 3) {
                     startTime = `${startTime}-${now.getDate()}`;
-                    realStartTime = this.parseTime(startTime);
+                    realStartTime = this.parseTime(startTime, true);
                     code += 128;
                 }
                 if (realStartTime == 7) {
                     startTime = `${startTime} 00`;
-                    realStartTime = this.parseTime(startTime);
+                    realStartTime = this.parseTime(startTime, true);
                     code += 64;
                 }
                 if (realStartTime == 15) {
                     startTime = `${startTime}:00`;
-                    realStartTime = this.parseTime(startTime);
+                    realStartTime = this.parseTime(startTime, true);
                     code += 32;
                 }
             }
             if (!isNaN(realEndTime)) {
                 if (realEndTime == 0) {
                     endTime = `${endTime}${now.getFullYear()}`;
-                    realEndTime = this.parseTime(endTime);
+                    realEndTime = this.parseTime(endTime, false);
                     code += 16;
                 }
                 if (realEndTime == 1) {
                     endTime = `${endTime}-${now.getMonth() + 1}`;
-                    realEndTime = this.parseTime(endTime);
+                    realEndTime = this.parseTime(endTime, false);
                     code += 8;
                 }
                 if (realEndTime == 3) {
                     endTime = `${endTime}-${now.getDate()}`;
-                    realEndTime = this.parseTime(endTime);
+                    realEndTime = this.parseTime(endTime, false);
                     code += 4;
                 }
                 if (realEndTime == 7) {
                     endTime = `${endTime} 23`;
-                    realEndTime = this.parseTime(endTime);
+                    realEndTime = this.parseTime(endTime, false);
                     code += 2;
                 }
                 if (realEndTime == 15) {
                     endTime = `${endTime}:59`;
-                    realEndTime = this.parseTime(endTime);
+                    realEndTime = this.parseTime(endTime, false);
                     code++;
                 }
             }
@@ -298,7 +298,7 @@ class Manager {
         return `${now.getFullYear()}-${now.getMonth()}-${now.getDate()} 00:00:00`;
     }
 
-    parseTime(time) {
+    parseTime(time, start) {
         let stage = 0;
         let year = '';
         let month = '';
@@ -445,6 +445,14 @@ class Manager {
         }
         if (stage != 31) {
             return stage;
+        }
+        if (start) {
+            hour = "00";
+            minute = "00";
+        }
+        else {
+            hour = "23";
+            minute = "59";
         }
         return `${year}-${month}-${day} ${hour}:${minute}:00`;
     }
@@ -848,7 +856,7 @@ class Manager {
                     ids = ids + id + ", ";
                 }
                 ids = ids.substring(0, ids.length - 2);
-                data.push({ menuid: row.menuid, name: row.name, type: row.type, pricemod: row.pricemod, inventoryids: ids });
+                data.push({ menuid: row.menuid, name: row.name, type: row.type, calories: row.calories, allergies: row.allergies, pricemod: row.pricemod, inventoryids: ids });
             }
             return data;
         }
@@ -858,9 +866,10 @@ class Manager {
         }
     }
 
-    async AddMenu(menuid, name, type, pricemod, inventoryids) {
+    async AddMenu(menuid, name, type, calories, allergies, pricemod, inventoryids) {
         try {
             if (menuid.length == 0 || menuid == '') {
+                console.log(menuid);
                 return { error: 1 };
             }
             for (let i = 0; i < menuid.length; i++) {
@@ -881,6 +890,22 @@ class Manager {
             }
             if (type.length == 0 || type == '') {
                 return { error: 4 };
+            }
+
+            if (calories.length == 0 || calories == '') {
+                return { error: 10 };
+            }
+            for (let i = 0; i < calories.length; i++) {
+                if (isNaN(calories.substring(i, i + 1))) {
+                    return { error: 11 };
+                }
+            }
+
+            if (allergies.length == 0 || allergies == '') {
+                return { error: 12 };
+            }
+            if (allergies.toLowerCase() == "none" || allergies == 0 || allergies.toLowerCase() == "n/a") {
+                allergies = "NA";
             }
 
             if (pricemod.length == 0 || pricemod == '') {
@@ -923,7 +948,7 @@ class Manager {
 
             
             // adding to database
-            q = "INSERT INTO menu (menuid, name, type, pricemod, inventoryids) VALUES (\'" + menuid + "\', \'" + name + "\', \'" + type + "\', \'" + pricemod + "\', " + inventoryids + ")";
+            q = "INSERT INTO menu (menuid, name, type, pricemod, inventoryids, calories, allergies) VALUES (\'" + menuid + "\', \'" + name + "\', \'" + type + "\', \'" + pricemod + "\', " + inventoryids + ", " + calories + ", \'" + allergies + "\')";
             result = await this.db.query(q);
             return { error: 55 };
         }
@@ -992,7 +1017,7 @@ class Manager {
         }
     }
 
-    async UpdateMenu(menuid, name, type, pricemod, inventoryids, rowSelection) {
+    async UpdateMenu(menuid, name, type, calories, allergies, pricemod, inventoryids, rowSelection) {
         try {
             if (!menuid && Object.keys(rowSelection).length === 0) {
                 return { error: 1 };
@@ -1019,6 +1044,8 @@ class Manager {
                 let updatedMenuid = menuid;
                 let updatedName = name;
                 let updatedType = type;
+                let updatedCalories = calories;
+                let updatedAllergies = allergies;
                 let updatedPricemod = pricemod;
                 let updatedInventoryids= inventoryids;
 
@@ -1044,6 +1071,22 @@ class Manager {
                 }
                 if (type.length == 0 || type == '') {
                     updatedType = result.rows[i].type;
+                }
+
+                if (calories.length == 0 || calories == '') {
+                    updatedCalories = result.rows[i].calories;
+                }
+                for (let i = 0; i < updatedCalories.length; i++) {
+                    if (isNaN(updatedCalories.substring(i, i + 1))) {
+                        return { error: 6 };
+                    }
+                }
+
+                if (allergies.length == 0 || allergies == '') {
+                    updatedAllergies = result.rows[i].allergies;
+                }
+                if (updatedAllergies.toLowerCase() == "none" || updatedAllergies == 0 || updatedAllergies.toLowerCase() == "n/a") {
+                    updatedAllergies = "NA";
                 }
 
                 if (pricemod.length == 0 || pricemod == '') {
@@ -1086,7 +1129,7 @@ class Manager {
                 
                 // adding to database
                 console.log(inventoryids);
-                q = "UPDATE menu SET name = \'" + updatedName + "\', type = \'" + updatedType + "\', pricemod = \'" + updatedPricemod + "\', inventoryids = " + updatedInventoryids + "WHERE menuid = " + updatedMenuid;
+                q = "UPDATE menu SET name = \'" + updatedName + "\', type = \'" + updatedType + "\', calories = \'" + updatedCalories + "\', allergies = \'" + updatedAllergies + "\', pricemod = \'" + updatedPricemod + "\', inventoryids = " + updatedInventoryids + "WHERE menuid = " + updatedMenuid;
                 let unUsed = await this.db.query(q);
             }
             return { error: 55 };

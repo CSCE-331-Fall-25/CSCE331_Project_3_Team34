@@ -2,10 +2,15 @@ import { data, Link, useNavigate } from "react-router-dom";
 import "../styles/Hub.css";
 import SignOutButton from "../Components/SignOut";
 import React, { useEffect, useState } from "react";
+import bobRoss from "../assets/bob-ross.png";
 
 
 export default function Hub() {
   const [pendingLink, setPendingLink] = useState(false);
+
+  const goFullscreen = () => {
+    document.documentElement.requestFullscreen();
+  };
 
   useEffect(() => {
     // Check if returning from Google OAuth with googleid
@@ -128,17 +133,17 @@ export default function Hub() {
   };
 
   return (
-    <div className="home-grid">
-        <Link to="/weather"><button>Kiosk</button></Link>
+    <div className="hub-wrapper">
+      <img src={bobRoss} alt="Bob Ross Panda" className="hub-hero-image" />
+      <div className="home-grid">
+        <Link to="/weather"><button onClick={goFullscreen}>Kiosk</button></Link>
         <Link to="/cashier"><button>Cashier</button></Link>
         <Link to="/manager"><button>Manager</button></Link>
         <Link to="/menu"><button>Menu</button></Link>
         <Link to="/kitchen"><button>Kitchen</button></Link>
-        <button onClick={handleLinkGoogleId}>Link Google ID</button>
-        <button onClick={handleUnlinkGoogleId}>Unlink Google ID</button>
-         
-        
-        
+        <button className="google-btn" onClick={handleLinkGoogleId}>Link Google ID</button>
+        <button className="google-btn" onClick={handleUnlinkGoogleId}>Unlink Google ID</button>
+      </div>
     </div>
-    );
+  );
 }
