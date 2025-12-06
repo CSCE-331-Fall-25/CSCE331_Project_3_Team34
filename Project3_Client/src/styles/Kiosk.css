@@ -663,8 +663,8 @@
   position: fixed;
   bottom: 20px;
   left: 20px;
-  width: 64px;
-  height: 64px;
+  width: 100px;
+  height: 100px;
   border-radius: 50%;
   border: 3px solid #FFD700;
   background: white;
@@ -783,7 +783,7 @@
 .circle-btn {
   position: fixed;
   bottom: 20px;
-  left: 6.25%;
+  left: 89%;
   width: 64px;
   height: 64px;
   border-radius: 50%;
@@ -802,7 +802,7 @@
 }
 
 .back-btn {
-  left: 11% !important;
+  left: 93.75% !important;
 }
 
 .icon-img {
