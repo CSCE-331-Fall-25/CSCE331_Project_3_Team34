@@ -11,6 +11,14 @@ import { saveOrder, loadOrder, clearOrder } from '../utils/orderPersistence';
 
 export default function Kiosk() {
 
+  // --- Accessibility feature --- //
+  const [showAccessibility, setShowAccessibility] = useState(false);
+  const [baseFontSize, setBaseFontSize] = useState(16);
+
+  const increaseFont = () => setBaseFontSize(prev => Math.min(prev + 2, 30));
+  const decreaseFont = () => setBaseFontSize(prev => Math.max(prev - 2, 10));
+
+
   // --- inactivity timer --- //
 
   const navigate = useNavigate();
@@ -826,266 +834,295 @@ export default function Kiosk() {
   
 
   return (
-    <div>
-      {loading && (
-        <div className="loading-overlay" aria-hidden>
-          <div className="loading-inner">Loading…</div>
-        </div>
-      )}
-      {blocking && !loading && (
-        <div className="input-blocker" aria-hidden />
-      )}
-      {(state == "Kiosk") && (
-      <div className="kiosk-root">
-        <div className="kiosk-left">
-          <div className="kiosk-type-list">
-            {items.map((item, idx) => {
-              const currItemId = item.itemid;
-              const basePrice = safeNumber(item.price ?? item.cost ?? 0);
-              return (
-                <button
-                  key={item.itemid}
-                  className={`kiosk-type-btn ${selectedItemId === currItemId ? 'active' : ''}`}
-                  onClick={() => handleItemSelection(item)}
-                >
-                  <div className="kiosk-type-name">{item.name || currItemId}</div>
-                  <div className="kiosk-item-price">${basePrice.toFixed(2)}</div>
-                </button>
-              );
-            })}
+    <div style={{ fontSize: `${baseFontSize}px` }}>
+      <div>
+        {loading && (
+          <div className="loading-overlay" aria-hidden>
+            <div className="loading-inner">Loading…</div>
           </div>
-        </div>
-
-        <div className="kiosk-middle">
-          {!selectedItemId && (
-            <div className="kiosk-logo-wrapper">
-              <img
-                src={pandaLogo}
-                alt="Panda Express"
-                className="kiosk-logo"
-              />
+        )}
+        {blocking && !loading && (
+          <div className="input-blocker" aria-hidden />
+        )}
+        {(state == "Kiosk") && (
+        <div className="kiosk-root">
+          <div className="kiosk-left">
+            <div className="kiosk-type-list">
+              {items.map((item, idx) => {
+                const currItemId = item.itemid;
+                const basePrice = safeNumber(item.price ?? item.cost ?? 0);
+                return (
+                  <button
+                    key={item.itemid} 
+                    className={`kiosk-type-btn ${selectedItemId === currItemId ? 'active' : ''}`}
+                    onClick={() => handleItemSelection(item)}
+                  >
+                    <div className="kiosk-type-name">{item.name || currItemId}</div>
+                    <div className="kiosk-item-price">${basePrice.toFixed(2)}</div>
+                  </button>
+                );
+              })}
             </div>
-          )}
-          {selectedItemId && (
-            <>
-              {activeSelection && (
-                <div className="kiosk-selection-banner">
-                  Select {activeSelection.label || activeSelection.type}
-                  {typeof activeSelection.remaining === 'number' && activeSelection.remaining > 0 && (
-                    <span className="kiosk-selection-remaining"> ({activeSelection.remaining} more after this)</span>
-                  )}
-                </div>
-              )}
-              <div className="kiosk-items-grid">
-                {menuItems.length === 0 && <div className="kiosk-empty">No items</div>}
-                {menuItems.map(it => {
-                  const { value, hide, allergies, hideAllergies } = resolveDisplayPrice(it);
+          </div>
 
-                  let isInStock = true;
-                  const inventoryIDs = it.inventoryids;
-
-                  for (const invID of inventoryIDs) {
-                    if(inventoryData.find(item => item.inventoryid === invID)?.quantity < inventoryData.find(item => item.inventoryid === invID)?.minstock) isInStock = false;
-                  }
-
-                  let imageClass = isInStock ? 'kiosk-menu-image' : 'kiosk-menu-image out-of-stock';
-
-                  let imgSrc = getImageForItem(it.name);
-                  let boxStyle = `kiosk-item kisok-item-button${!isInStock ? ' out-of-stock' : ''}${!imgSrc ? ' no-img' : ''}`;
-
-                  return (
-                    <div
-                      key={it.id ?? it.menuid ?? it.name}
-                      role="button"
-                      tabIndex={0}
-                      className={boxStyle}
-                      onClick={() => { if (isInStock) handleMenuTileClick(it); }}
-                      onKeyDown={(e) => { if (e.key === 'Enter' && isInStock) handleMenuTileClick(it); }}
-                    >
-                      {imgSrc && (
-                        <img
-                          src={getImageForItem(it.name)}
-                          alt={it.name || 'item'}
-                          className='kiosk-menu-image'
-                        />
-                      )}
-                      <div className="kiosk-item-name">{it.name}</div>
-                      <div className="kiosk-item-price">{hide ? '' : `$${value.toFixed(2)}`}</div>
-                      <div className="kiosk-item-calories">{it.calories ? `${it.calories} calories` : '0 calories'}</div>
-                      <div className="kiosk-item-calories">{hideAllergies ? '' : `${allergies}`}</div>
-                    </div>
-                  );
-                })}
+          <div className="kiosk-middle">
+            {!selectedItemId && (
+              <div className="kiosk-logo-wrapper">
+                <img
+                  src={pandaLogo}
+                  alt="Panda Express"
+                  className="kiosk-logo"
+                />
               </div>
-              {pendingSizeSelection && (
-                <div className="kiosk-size-modal-backdrop">
-                  <div className="kiosk-size-modal">
-                    <div className="kiosk-size-modal-title">
-                      Choose a size for {pendingSizeSelection.option?.name}
-                    </div>
-                    <div className="kiosk-size-modal-subtitle">
-                      {pendingSizeSelection.selectionLabel || 'Selection'} requires a size.
-                    </div>
-                    {pendingSizeSelection.sizeCategory && (
-                      <div className="kiosk-size-modal-subtitle secondary">
-                        {pendingSizeSelection.sizeCategory} options
+            )}
+            {selectedItemId && (
+              <>
+                {activeSelection && (
+                  <div className="kiosk-selection-banner">
+                    Select {activeSelection.label || activeSelection.type}
+                    {typeof activeSelection.remaining === 'number' && activeSelection.remaining > 0 && (
+                      <span className="kiosk-selection-remaining"> ({activeSelection.remaining} more after this)</span>
+                    )}
+                  </div>
+                )}
+                <div className="kiosk-items-grid">
+                  {menuItems.length === 0 && <div className="kiosk-empty">No items</div>}
+                  {menuItems.map(it => {
+                    const { value, hide, allergies, hideAllergies } = resolveDisplayPrice(it);
+
+                    let isInStock = true;
+                    const inventoryIDs = it.inventoryids;
+
+                    for (const invID of inventoryIDs) {
+                      if(inventoryData.find(item => item.inventoryid === invID)?.quantity < inventoryData.find(item => item.inventoryid === invID)?.minstock) isInStock = false;
+                    }
+
+                    let imageClass = isInStock ? 'kiosk-menu-image' : 'kiosk-menu-image out-of-stock';
+
+                    let imgSrc = getImageForItem(it.name);
+                    let boxStyle = `kiosk-item kisok-item-button${!isInStock ? ' out-of-stock' : ''}${!imgSrc ? ' no-img' : ''}`;
+
+                    return (
+                      <div
+                        key={it.id ?? it.menuid ?? it.name}
+                        role="button"
+                        tabIndex={0}
+                        className={boxStyle}
+                        onClick={() => { if (isInStock) handleMenuTileClick(it); }}
+                        onKeyDown={(e) => { if (e.key === 'Enter' && isInStock) handleMenuTileClick(it); }}
+                      >
+                        {imgSrc && (
+                          <img
+                            src={getImageForItem(it.name)}
+                            alt={it.name || 'item'}
+                            className='kiosk-menu-image'
+                          />
+                        )}
+                        <div className="kiosk-item-name">{it.name}</div>
+                        <div className="kiosk-item-price">{hide ? '' : `$${value.toFixed(2)}`}</div>
+                        <div className="kiosk-item-calories">{it.calories ? `${it.calories} calories` : '0 calories'}</div>
+                        <div className="kiosk-item-calories">{hideAllergies ? '' : `${allergies}`}</div>
                       </div>
-                    )}
-                    <div className="kiosk-size-modal-options">
-                      {pendingSizeSelection.sizeOptions.map(opt => (
-                        <button
-                          key={opt.key}
-                          type="button"
-                          className="kiosk-size-btn"
-                          onClick={() => confirmSizeSelection(opt)}
-                        >
-                          <span className="kiosk-size-label">{opt.label}</span>
-                          {opt.priceDelta ? (
-                            <span className="kiosk-size-price">+${opt.priceDelta.toFixed(2)}</span>
-                          ) : (
-                            <span className="kiosk-size-price">Included</span>
-                          )}
-                        </button>
-                      ))}
+                    );
+                  })}
+                </div>
+                {pendingSizeSelection && (
+                  <div className="kiosk-size-modal-backdrop">
+                    <div className="kiosk-size-modal">
+                      <div className="kiosk-size-modal-title">
+                        Choose a size for {pendingSizeSelection.option?.name}
+                      </div>
+                      <div className="kiosk-size-modal-subtitle">
+                        {pendingSizeSelection.selectionLabel || 'Selection'} requires a size.
+                      </div>
+                      {pendingSizeSelection.sizeCategory && (
+                        <div className="kiosk-size-modal-subtitle secondary">
+                          {pendingSizeSelection.sizeCategory} options
+                        </div>
+                      )}
+                      <div className="kiosk-size-modal-options">
+                        {pendingSizeSelection.sizeOptions.map(opt => (
+                          <button
+                            key={opt.key}
+                            type="button"
+                            className="kiosk-size-btn"
+                            onClick={() => confirmSizeSelection(opt)}
+                          >
+                            <span className="kiosk-size-label">{opt.label}</span>
+                            {opt.priceDelta ? (
+                              <span className="kiosk-size-price">+${opt.priceDelta.toFixed(2)}</span>
+                            ) : (
+                              <span className="kiosk-size-price">Included</span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                      <button type="button" className="kiosk-size-cancel" onClick={cancelSizeSelection}>Cancel</button>
                     </div>
-                    <button type="button" className="kiosk-size-cancel" onClick={cancelSizeSelection}>Cancel</button>
                   </div>
-                </div>
-              )}
-            </>
-          )}
-        </div>
+                )}
+              </>
+            )}
+          </div>
 
-        <div className="kiosk-right">
-          {customerLoggedIn && customerName && (
-            <div className="kiosk-customer-info">
-              <h3>Welcome, {customerName}!</h3>
-            </div>
-          )}
-          <h3 className="kiosk-title">Current Order</h3>
-          <div className="kiosk-order-list">
-            {orderItems.length === 0 && <div className="kiosk-empty">No items yet</div>}
-            {orderItems.map((it, idx) => {
-              const { value, hide } = resolveDisplayPrice(it);
-              const rowClass = `kiosk-order-row${it.isParent ? ' kiosk-order-row-parent' : (value > 0) ? ' kiosk-order-row-child-premium' : ' kiosk-order-row-child-default'}`;
-              const hasSizeMod = it.sizePriceMod !== undefined && it.sizePriceMod !== null;
-              const sizeModValue = hasSizeMod ? safeNumber(it.sizePriceMod) : 0;
-              const sizeModLabel = hasSizeMod ? `${sizeModValue >= 0 ? '+' : '-'}$${Math.abs(sizeModValue).toFixed(2)}` : '';
-              const priceLabel = hasSizeMod ? sizeModLabel : (hide ? '' : `$${value.toFixed(2)}`);
-              return (
-                <div className={rowClass} key={idx}>  
-                  <div className="kiosk-order-name">
-                    <span>{it.name}</span>
-                    {it.sizeLabel && (
-                      <span className="kiosk-order-size-note">
-                        {it.sizeLabel}
-                        {hasSizeMod && ` (${sizeModLabel})`}
-                      </span>
-                    )}
+          <div className="kiosk-right">
+            {customerLoggedIn && customerName && (
+              <div className="kiosk-customer-info">
+                <h3>Welcome, {customerName}!</h3>
+              </div>
+            )}
+            <h3 className="kiosk-title">Current Order</h3>
+            <div className="kiosk-order-list">
+              {orderItems.length === 0 && <div className="kiosk-empty">No items yet</div>}
+              {orderItems.map((it, idx) => {
+                const { value, hide } = resolveDisplayPrice(it);
+                const rowClass = `kiosk-order-row${it.isParent ? ' kiosk-order-row-parent' : (value > 0) ? ' kiosk-order-row-child-premium' : ' kiosk-order-row-child-default'}`;
+                const hasSizeMod = it.sizePriceMod !== undefined && it.sizePriceMod !== null;
+                const sizeModValue = hasSizeMod ? safeNumber(it.sizePriceMod) : 0;
+                const sizeModLabel = hasSizeMod ? `${sizeModValue >= 0 ? '+' : '-'}$${Math.abs(sizeModValue).toFixed(2)}` : '';
+                const priceLabel = hasSizeMod ? sizeModLabel : (hide ? '' : `$${value.toFixed(2)}`);
+                return (
+                  <div className={rowClass} key={idx}>  
+                    <div className="kiosk-order-name">
+                      <span>{it.name}</span>
+                      {it.sizeLabel && (
+                        <span className="kiosk-order-size-note">
+                          {it.sizeLabel}
+                          {hasSizeMod && ` (${sizeModLabel})`}
+                        </span>
+                      )}
+                    </div>
+                    <div className="kiosk-order-actions">
+                      <div className="kiosk-order-price">{priceLabel}</div>
+                      {it.isParent ? (
+                        <button className="kiosk-remove-btn" onClick={() => removeFromOrder(idx)}>
+                          <img src={getImageForItem("trashcan")} alt="Remove" className="remove-icon" />
+                        </button>
+                      ) : (
+                        <button className="kiosk-swap-btn" onClick={() => handleSwap(idx)}>
+                          <img src={getImageForItem("swapArrows")} alt="Swap" className="swap-icon" />
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  <div className="kiosk-order-actions">
-                    <div className="kiosk-order-price">{priceLabel}</div>
-                    {it.isParent ? (
-                      <button className="kiosk-remove-btn" onClick={() => removeFromOrder(idx)}>
-                        <img src={getImageForItem("trashcan")} alt="Remove" className="remove-icon" />
-                      </button>
-                    ) : (
-                      <button className="kiosk-swap-btn" onClick={() => handleSwap(idx)}>
-                        <img src={getImageForItem("swapArrows")} alt="Swap" className="swap-icon" />
-                      </button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          <div className="kiosk-order-summary">
-            <div>Total: ${total.toFixed(2)}</div>
-            <div className="kiosk-order-controls">
-              <button onClick={clearOrderAndUI} className="kiosk-clear-btn">Clear</button>
-              <button onClick={() => {console.log('Proceed to checkout', orderItems); handlePurchase();}} className="kiosk-checkout-btn">Checkout</button>
+                );
+              })}
+            </div>
+            <div className="kiosk-order-summary">
+              <div>Total: ${total.toFixed(2)}</div>
+              <div className="kiosk-order-controls">
+                <button onClick={clearOrderAndUI} className="kiosk-clear-btn">Clear</button>
+                <button onClick={() => {console.log('Proceed to checkout', orderItems); handlePurchase();}} className="kiosk-checkout-btn">Checkout</button>
+              </div>
             </div>
           </div>
-        </div>
-        <button
-            className={`ai-chat-btn ${!open ? 'pulse' : 'fadeIn'}`} // change open --> isChatOpen
-            onClick={() => setShowChat(true)}
+          <button
+              className={`ai-chat-btn ${!open ? 'pulse' : 'fadeIn'}`} // change open --> isChatOpen
+              onClick={() => setShowChat(true)}
+            >
+              <img src={getImageForItem('bobrosspanda')} alt="Bob Ross Panda" className='ai-chat-img'/>
+          </button>
+          <button
+            className="circle-btn"
+            onClick={() => customerLoggedIn ? (setCustomerLoggedIn(false), setCustomerName('')) : navigate('/login?returnTo=/kiosk&functionality=3')}>
+            {/* {customerLoggedIn ? 'Sign Out' : 'Customer Sign In'} */}
+            <img src={getImageForItem('userIcon')} alt="User Login / Sign out Button" className='icon-img'/>
+          </button>
+          {/* <button
+            className="kiosk-signin-btn"
+            onClick={() => navigate('/login?returnTo=/hub&functionality=2')}>
+            Employee Sign In
+          </button> */}
+          <button
+            className="circle-btn back-btn"
+            onClick={() => navigate('/weather')}>
+              <img src={getImageForItem('exitIcon')} alt="Back" className='icon-img'/>
+          </button>
+          <button
+            className="accessibility-btn"
+            onClick={() => setShowAccessibility(true)}
           >
-            <img src={getImageForItem('bobrosspanda')} alt="Bob Ross Panda" className='ai-chat-img'/>
-        </button>
-        <button
-          className="circle-btn"
-          onClick={() => customerLoggedIn ? (setCustomerLoggedIn(false), setCustomerName('')) : navigate('/login?returnTo=/kiosk&functionality=3')}>
-          {/* {customerLoggedIn ? 'Sign Out' : 'Customer Sign In'} */}
-          <img src={getImageForItem('userIcon')} alt="User Login / Sign out Button" className='icon-img'/>
-        </button>
-        {/* <button
-          className="kiosk-signin-btn"
-          onClick={() => navigate('/login?returnTo=/hub&functionality=2')}>
-          Employee Sign In
-        </button> */}
-        <button
-          className="circle-btn back-btn"
-          onClick={() => navigate('/weather')}>
-            <img src={getImageForItem('exitIcon')} alt="Back" className='icon-img'/>
-        </button>
-        {showChat && <ChatModal onClose={() => setShowChat(false)} onAddOrder={handleAIOrder} />}
+            <img src={getImageForItem('accessibilityIcon')} alt="Back" className='icon-img'/>
+          </button>
+          {showChat && <ChatModal onClose={() => setShowChat(false)} onAddOrder={handleAIOrder} />}
+          {showAccessibility && (
+            <div className="accessibility-modal-overlay">
+              <div className="accessibility-modal">
+                <h2>Accessibility Options</h2>
+                <p style={{ fontSize: `${baseFontSize}px` }}>
+                  Sample text: “Welcome to Panda Express!”
+                </p>
+
+                <div className="acc-controls">
+                  <button onClick={decreaseFont}>−</button>
+                  <span>{baseFontSize}px</span>
+                  <button onClick={increaseFont}>+</button>
+                </div>
+
+                <button className="acc-close" onClick={() => setShowAccessibility(false)}>
+                  Close
+                </button>
+              </div>
+            </div>
+          )}
+
+        </div>
+        )} 
+        {state == "Checkout" && (
+          <div className="purchase-screen-wrapper">
+            <div className="purchase-screen-card">
+
+              <img src={pandaLogo} alt="Panda Express" className="purchase-logo" />
+
+              {/* Top image */}
+              <h4 className="purchase-screen-title">Select Payment Method</h4>
+              <div className="purchase-screen-price">Total: ${total.toFixed(2)}</div>
+
+
+              {/* Buttons section */}
+              <div className="purchase-buttons">
+                <div className="purchase-option" onClick={() => handlePayment("Cash")}>
+                  <img src={getImageForItem("cashImg")} alt="Cash" className="option-img" />
+                  <span className="option-text">Cash</span>
+                </div>
+
+                <div className="purchase-option" onClick={() => handlePayment("Card")}>
+                  <img src={getImageForItem("cardImg")} alt="Card" className="option-img" />
+                  <span className="option-text">Card</span>
+                </div>
+
+                <div className="purchase-option" onClick={() => handlePayment("Rewards")}>
+                  <img src={getImageForItem("rewardsImg")} alt="Rewards" className="option-img" />
+                  <span className="option-text">Rewards</span>
+                </div>  
+              </div>
+            </div>
+          </div>
+        )}
+        {state == "Finished" && (
+          <div className="purchase-screen-wrapper">
+            <div className="purchase-screen-card">
+
+              <img src={getImageForItem("orderComplete")} alt="orderComplete" className="finished-img" />
+
+              {/* Top image */}
+              <h4 className="purchase-screen-title">Transaction: {transactionNumber} Complete!</h4>
+              <div className="purchase-screen-price">Total: ${total.toFixed(2)}</div>
+
+              <br></br>
+
+              {/* Buttons section */} 
+              <div className="finished-option" onClick={() => {
+                setTransactionNumber(transactionNumber + 1);  
+                goBackToKiosk();
+                }}>
+                New Order
+              </div>
+              
+            </div>
+          </div>
+        )}
       </div>
-      )} 
-      {state == "Checkout" && (
-        <div className="purchase-screen-wrapper">
-          <div className="purchase-screen-card">
-
-            <img src={pandaLogo} alt="Panda Express" className="purchase-logo" />
-
-            {/* Top image */}
-            <h4 className="purchase-screen-title">Select Payment Method</h4>
-            <div className="purchase-screen-price">Total: ${total.toFixed(2)}</div>
-
-
-            {/* Buttons section */}
-            <div className="purchase-buttons">
-              <div className="purchase-option" onClick={() => handlePayment("Cash")}>
-                <img src={getImageForItem("cashImg")} alt="Cash" className="option-img" />
-                <span className="option-text">Cash</span>
-              </div>
-
-              <div className="purchase-option" onClick={() => handlePayment("Card")}>
-                <img src={getImageForItem("cardImg")} alt="Card" className="option-img" />
-                <span className="option-text">Card</span>
-              </div>
-
-              <div className="purchase-option" onClick={() => handlePayment("Rewards")}>
-                <img src={getImageForItem("rewardsImg")} alt="Rewards" className="option-img" />
-                <span className="option-text">Rewards</span>
-              </div>  
-            </div>
-          </div>
-        </div>
-      )}
-      {state == "Finished" && (
-        <div className="purchase-screen-wrapper">
-          <div className="purchase-screen-card">
-
-            <img src={getImageForItem("orderComplete")} alt="orderComplete" className="finished-img" />
-
-            {/* Top image */}
-            <h4 className="purchase-screen-title">Transaction: {transactionNumber} Complete!</h4>
-            <div className="purchase-screen-price">Total: ${total.toFixed(2)}</div>
-
-            <br></br>
-
-            {/* Buttons section */} 
-            <div className="finished-option" onClick={() => {
-              setTransactionNumber(transactionNumber + 1);  
-              goBackToKiosk();
-              }}>
-              New Order
-            </div>
-            
-          </div>
-        </div>
-      )}
     </div>
   );
 }
