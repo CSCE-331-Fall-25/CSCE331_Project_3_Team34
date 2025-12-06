@@ -1,17 +1,10 @@
-import React, { useEffect } from "react";
-import PurchaseButton from "./PurchaseButton.jsx";
+import React from "react";
 
 export default function CashierCostTable({
   transactionItems = [],
   selectedRow,
   setSelectedRow,
   lastRowRef,
-  currCost = 0,
-  tax = 0,
-  discountAmount = 0,
-  discountPriceOff = 0,
-  onPurchase,
-  priceTotal,
 }) {
 
   // Render transaction items as a flat list: each entry is either a main or not
@@ -62,17 +55,6 @@ export default function CashierCostTable({
         </table>
       </div>
 
-      <div className="order-stats">
-        <p>Total Cost: ${(currCost).toFixed(2)}</p>
-        <p>Discount Amount: ${typeof discountAmount === "number" ? discountAmount.toFixed(2) : "0.00"}</p>
-        <p>Tax: ${(tax).toFixed(2)}</p>
-        <p>
-          Price Total: ${(priceTotal).toFixed(2)}
-        </p>
-      </div>
-
-      {/* Purchase button (render PurchaseButton here so it appears in the original location) */}
-      <PurchaseButton onPurchased={onPurchase} />
     </>
   );
 }

@@ -339,45 +339,7 @@ class CashierMainPage {
             currCost:subtotal
         };
     }
-    CustomizeOrder(index) {
-        // Implement customization logic here
-        if(this.debugging) {
-            console.log("Customize order clicked");
-        }
-        let currentOrder = this.currTransaction.orders[index];
-        if(!currentOrder) {
-            if(this.debugging) {
-                console.log("Invalid order index: " + index);
-            }
-            return { success: false, error: "Invalid order index" };
-        }
-        
-        //TODO: add customization logic, Open a customization interface or modify the current order
-
-        // temp: example customization - change first entree to a different name
-        try {
-            if (currentOrder.Tray && Array.isArray(currentOrder.Tray.entrees)) {
-                currentOrder.Tray.entrees[0] = "Beef Teriyaki";
-            } else if (Array.isArray(currentOrder.entrees)) {
-                // fallback if structure differs
-                currentOrder.entrees[0] = "Beef Teriyaki";
-            }
-        } catch (err) {
-            console.error('Error applying temp customization:', err);
-        }
-
-        // Build a safe summary to return (avoid circular structures)
-        const traySummary = {
-            entrees: (currentOrder.entrees || currentOrder.Tray?.entrees || []).map(e => (e?.menu?.name || e?.name || e || null)),
-            sides: (currentOrder.sides || currentOrder.Tray?.sides || []).map(s => (s?.menu?.name || s?.name || s || null))
-        };
-        if (this.debugging) {
-            console.log('Order customized (summary):', traySummary);
-        }
-        return { success: true, tray: traySummary };
-    }
-
-        async VoidTransaction(transactionId, userIsManager) {
+    async VoidTransaction(transactionId, userIsManager) {
         if (!userIsManager) {
             return { error: 0 };
         }

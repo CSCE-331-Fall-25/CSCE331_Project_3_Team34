@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
 import "../styles/Cashier/DiscountModal.css";
 
-export default function CreateMealModal({ show, onClose, initialType, onBought, requestSizeSelection, selectedSize }) {
+export default function CreateMealModal({ show, onClose, initialType, onBought, requestSizeSelection, selectedSize, customizingIndex, initialOrderData }) {
   const [extraMenus, setExtraMenus] = useState([]);
+  const isCustomizeMode = customizingIndex !== null && customizingIndex !== undefined;
 
   const [showMealGUI, setShowMealGUI] = useState(false);
   const [showAppGUI, setShowAppGUI] = useState(false);
@@ -125,11 +126,96 @@ export default function CreateMealModal({ show, onClose, initialType, onBought, 
     }
 
     setNumEntree(newNumEntree); setNumSide(newNumSide); setNumApp(newNumApp); setNumDrink(newNumDrink); setNumALC(newNumALC);
-    setEntreeList(Array(newNumEntree).fill(null)); setSideList(Array(newNumSide).fill(null)); setAppList(Array(newNumApp).fill(null)); setDrinkList(Array(newNumDrink).fill(null)); setAlcList(Array(newNumALC).fill(null));
+    
+    // Initialize lists with nulls
+    let initEntreeList = Array(newNumEntree).fill(null);
+    let initSideList = Array(newNumSide).fill(null);
+    let initAppList = Array(newNumApp).fill(null);
+    let initDrinkList = Array(newNumDrink).fill(null);
+    let initAlcList = Array(newNumALC).fill(null);
+    
+    // If customizing, populate from initialOrderData
+    if (isCustomizeMode && initialOrderData) {
+      const toObj = (item) => (typeof item === 'string' ? { menuName: item } : { menuName: item.name || item.menuName });
+      
+      if (initialOrderData.entrees && Array.isArray(initialOrderData.entrees)) {
+        initialOrderData.entrees.forEach((item, idx) => {
+          if (idx < newNumEntree) initEntreeList[idx] = toObj(item);
+        });
+        // Set index to the next empty slot, or the length if full
+        const filledCount = Math.min(initialOrderData.entrees.length, newNumEntree);
+        setIndexEntree(filledCount);
+      }
+      
+      if (initialOrderData.sides && Array.isArray(initialOrderData.sides)) {
+        initialOrderData.sides.forEach((item, idx) => {
+          if (idx < newNumSide) initSideList[idx] = toObj(item);
+        });
+        const filledCount = Math.min(initialOrderData.sides.length, newNumSide);
+        setIndexSide(filledCount);
+      }
+
+      // Handle A La Carte / Drink / Appetizer if needed
+      // Note: The current backend structure for ALC/Drink might be different (entrees list vs specific fields)
+      // But based on UpdatePage, everything is in entrees/sides or just 'item'
+      
+      // For ALC, the item itself is the entree
+      if (id === "A La Carte" && initialOrderData.entrees && initialOrderData.entrees.length > 0) {
+         initialOrderData.entrees.forEach((item, idx) => {
+            if (idx < newNumALC) {
+              initAlcList[idx] = toObj(item);
+              // If the item has a size property, use it
+              if (item.size) setAlcSizes(prev => { const u = [...prev]; u[idx] = item.size; return u; });
+            }
+         });
+         setIndexALC(Math.min(initialOrderData.entrees.length, newNumALC));
+      }
+      
+      // For Drink, similar logic
+      if (id === "Drink" && initialOrderData.entrees && initialOrderData.entrees.length > 0) {
+         initialOrderData.entrees.forEach((item, idx) => {
+            if (idx < newNumDrink) initDrinkList[idx] = toObj(item);
+         });
+         setIndexDrink(Math.min(initialOrderData.entrees.length, newNumDrink));
+         // If top-level size exists, use it for the drink
+         if (initialOrderData.size) {
+            setDrinkSizes(Array(newNumDrink).fill(initialOrderData.size));
+         }
+      }
+    }
+
+    setEntreeList(initEntreeList); 
+    setSideList(initSideList); 
+    setAppList(initAppList); 
+    setDrinkList(initDrinkList); 
+    setAlcList(initAlcList);
+    
     // default sizes: prefer the selectedSize passed from Cashier, otherwise default to 'Small'
+    // Only overwrite if we didn't set them from initialOrderData (which we did above via setAlcSizes/setDrinkSizes calls, but wait...)
+    // The setAlcSizes calls above are inside the if block.
+    // But here I am overwriting them with defaultSize.
+    // I should initialize them correctly first.
+    
     const defaultSize = selectedSize || 'Small';
-    setDrinkSizes(Array(newNumDrink).fill(defaultSize)); setAlcSizes(Array(newNumALC).fill(defaultSize));
-  }, [show, initialType]);
+    let initDrinkSizes = Array(newNumDrink).fill(defaultSize);
+    let initAlcSizes = Array(newNumALC).fill(defaultSize);
+    
+    if (isCustomizeMode && initialOrderData) {
+        if (id === "Drink" && initialOrderData.size) {
+            initDrinkSizes.fill(initialOrderData.size);
+        }
+        if (id === "A La Carte" && initialOrderData.entrees) {
+            initialOrderData.entrees.forEach((item, idx) => {
+                if (idx < newNumALC && item.size) {
+                    initAlcSizes[idx] = item.size;
+                }
+            });
+        }
+    }
+    
+    setDrinkSizes(initDrinkSizes); 
+    setAlcSizes(initAlcSizes);
+  }, [show, initialType, initialOrderData, isCustomizeMode]);
 
   const selectAttribute = (item) => {
     if (alcMode) {
@@ -230,17 +316,23 @@ export default function CreateMealModal({ show, onClose, initialType, onBought, 
       }
     } catch (e) { /* ignore */ }
 
-    fetch("/api/buy-item", {
+    // Determine the endpoint and payload based on mode
+    const endpoint = isCustomizeMode ? "/api/update-item" : "/api/buy-item";
+    const payload = isCustomizeMode 
+      ? { itemIndex: customizingIndex, itemID: initialType, entreeList: payloadEntreeList, sideList: payloadSideList, size: topLevelSize }
+      : { itemID: initialType, entreeList: payloadEntreeList, sideList: payloadSideList, size: topLevelSize };
+
+    fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ itemID: initialType, entreeList: payloadEntreeList, sideList: payloadSideList, size: topLevelSize })
+      body: JSON.stringify(payload)
     })
       .then(res => res.json())
       .then(data => {
         if (data.success) {
           if (typeof onBought === 'function') onBought();
         } else {
-          console.error("Failed to buy item:", initialType);
+          console.error("Failed to buy/update item:", initialType);
         }
         onClose();
       }).catch(e => {
@@ -419,7 +511,7 @@ export default function CreateMealModal({ show, onClose, initialType, onBought, 
           </>
         )}
 
-        <button className="continue-button" onClick={handleFinishSelection}>Continue</button>
+        <button className="continue-button" onClick={handleFinishSelection}>{isCustomizeMode ? "Update Order" : "Continue"}</button>
       </div>
     </div>
   );

@@ -967,16 +967,28 @@ export default function Kiosk() {
               );
             })}
           </div>
-        </div>
-
-        <div className="kiosk-middle">
-          {!selectedItemId && (
-            <div className="kiosk-logo-wrapper">
-              <img
-                src={pandaLogo}
-                alt="Panda Express"
-                className="kiosk-logo"
-              />
+        )}
+        {blocking && !loading && (
+          <div className="input-blocker" aria-hidden />
+        )}
+        {(state == "Kiosk") && (
+        <div className="kiosk-root">
+          <div className="kiosk-left">
+            <div className="kiosk-type-list">
+              {items.map((item, idx) => {
+                const currItemId = item.itemid;
+                const basePrice = safeNumber(item.price ?? item.cost ?? 0);
+                return (
+                  <button
+                    key={item.itemid} 
+                    className={`kiosk-type-btn ${selectedItemId === currItemId ? 'active' : ''}`}
+                    onClick={() => handleItemSelection(item)}
+                  >
+                    <div className="kiosk-type-name">{item.name || currItemId}</div>
+                    <div className="kiosk-item-price">${basePrice.toFixed(2)}</div>
+                  </button>
+                );
+              })}
             </div>
           )}
           {selectedItemId && (
@@ -1031,8 +1043,16 @@ export default function Kiosk() {
                         {hideAllergies ? '' : (allergies ? `${translatedTexts['Allergens']}: ${getTranslatedAllergens(allergies)}` : '')}
                       </div>
                     </div>
-                  );
-                })}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
+          <div className="kiosk-right">
+            {customerLoggedIn && customerName && (
+              <div className="kiosk-customer-info">
+                <h3>Welcome, {customerName}!</h3>
               </div>
               {pendingSizeSelection && (
                 <div className="kiosk-size-modal-backdrop">
@@ -1043,35 +1063,72 @@ export default function Kiosk() {
                     <div className="kiosk-size-modal-subtitle">
                       {pendingSizeSelection.selectionLabel || 'Selection'} requires a size.
                     </div>
-                    {pendingSizeSelection.sizeCategory && (
-                      <div className="kiosk-size-modal-subtitle secondary">
-                        {pendingSizeSelection.sizeCategory} options
-                      </div>
-                    )}
-                    <div className="kiosk-size-modal-options">
-                      {pendingSizeSelection.sizeOptions.map(opt => (
-                        <button
-                          key={opt.key}
-                          type="button"
-                          className="kiosk-size-btn"
-                          onClick={() => confirmSizeSelection(opt)}
-                        >
-                          <span className="kiosk-size-label">{opt.label}</span>
-                          {opt.priceDelta ? (
-                            <span className="kiosk-size-price">+${opt.priceDelta.toFixed(2)}</span>
-                          ) : (
-                            <span className="kiosk-size-price">Included</span>
-                          )}
+                    <div className="kiosk-order-actions">
+                      <div className="kiosk-order-price">{priceLabel}</div>
+                      {it.isParent ? (
+                        <button className="kiosk-remove-btn" onClick={() => removeFromOrder(idx)}>
+                          <img src={getImageForItem("trashcan")} alt="Remove" className="remove-icon" />
                         </button>
-                      ))}
+                      ) : (
+                        <button className="kiosk-swap-btn" onClick={() => handleSwap(idx)}>
+                          <img src={getImageForItem("swapArrows")} alt="Swap" className="swap-icon" />
+                        </button>
+                      )}
                     </div>
-                    <button type="button" className="kiosk-size-cancel" onClick={cancelSizeSelection}>Cancel</button>
                   </div>
+                );
+              })}
+            </div>
+            <div className="kiosk-order-summary">
+              <div>Total: ${total.toFixed(2)}</div>
+              <div className="kiosk-order-controls">
+                <button onClick={clearOrderAndUI} className="kiosk-clear-btn">Clear</button>
+                <button onClick={() => {console.log('Proceed to checkout', orderItems); handlePurchase();}} className="kiosk-checkout-btn">Checkout</button>
+              </div>
+            </div>
+          </div>
+          <button
+              className={`ai-chat-btn ${!open ? 'pulse' : 'fadeIn'}`} // change open --> isChatOpen
+              onClick={() => setShowChat(true)}
+            >
+              <img src={getImageForItem('bobrosspanda')} alt="Bob Ross Panda" className='ai-chat-img'/>
+          </button>
+          <button
+            className="circle-btn"
+            onClick={() => customerLoggedIn ? (setCustomerLoggedIn(false), setCustomerName('')) : navigate('/login?returnTo=/kiosk&functionality=3')}>
+            {/* {customerLoggedIn ? 'Sign Out' : 'Customer Sign In'} */}
+            <img src={getImageForItem('userIcon')} alt="User Login / Sign out Button" className='icon-img'/>
+          </button>
+          {/* <button
+            className="kiosk-signin-btn"
+            onClick={() => navigate('/login?returnTo=/hub&functionality=2')}>
+            Employee Sign In
+          </button> */}
+          <button
+            className="circle-btn back-btn"
+            onClick={() => navigate('/weather')}>
+              <img src={getImageForItem('exitIcon')} alt="Back" className='icon-img'/>
+          </button>
+          <button
+            className="accessibility-btn"
+            onClick={() => setShowAccessibility(true)}
+          >
+            <img src={getImageForItem('accessibilityIcon')} alt="Back" className='icon-img'/>
+          </button>
+          {showChat && <ChatModal onClose={() => setShowChat(false)} onAddOrder={handleAIOrder} />}
+          {showAccessibility && (
+            <div className="accessibility-modal-overlay">
+              <div className="accessibility-modal">
+                <h2>Accessibility Options</h2>
+                <p style={{ fontSize: `${baseFontSize}px` }}>
+                  Sample text: “Welcome to Panda Express!”
+                </p>
+
+                <div className="acc-controls">
+                  <button onClick={decreaseFont}>−</button>
+                  <span>{baseFontSize}px</span>
+                  <button onClick={increaseFont}>+</button>
                 </div>
-              )}
-            </>
-          )}
-        </div>
 
         <div className="kiosk-right">
           {customerLoggedIn && customerName && (
@@ -1152,7 +1209,7 @@ export default function Kiosk() {
         <div className="purchase-screen-wrapper">
           <div className="purchase-screen-card">
 
-            <img src={pandaLogo} alt="Panda Express" className="purchase-logo" />
+              <img src={pandaLogo} alt="Panda Express" className="purchase-logo" />
 
             {/* Top image */}
             <h4 className="purchase-screen-title">{translatedTexts['Select Payment Method']}</h4>
@@ -1177,19 +1234,18 @@ export default function Kiosk() {
               </div>  
             </div>
           </div>
-        </div>
-      )}
-      {state == "Finished" && (
-        <div className="purchase-screen-wrapper">
-          <div className="purchase-screen-card">
+        )}
+        {state == "Finished" && (
+          <div className="purchase-screen-wrapper">
+            <div className="purchase-screen-card">
 
-            <img src={getImageForItem("orderComplete")} alt="orderComplete" className="finished-img" />
+              <img src={getImageForItem("orderComplete")} alt="orderComplete" className="finished-img" />
 
             {/* Top image */}
             <h4 className="purchase-screen-title">{translatedTexts['Transaction']}: {transactionNumber} {translatedTexts['Complete']}!</h4>
             <div className="purchase-screen-price">{translatedTexts['Total']}: ${total.toFixed(2)}</div>
 
-            <br></br>
+              <br></br>
 
             {/* Buttons section */} 
             <div className="finished-option" onClick={() => {
@@ -1198,10 +1254,9 @@ export default function Kiosk() {
               }}>
               {translatedTexts['New Order']}
             </div>
-            
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
