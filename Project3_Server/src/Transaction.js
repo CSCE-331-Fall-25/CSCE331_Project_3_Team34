@@ -21,11 +21,15 @@ class Transaction {
 
     static async AddToDatabase(db, transaction) {
         // Pull next available transaction ID
-        const transIdRes = await db.query('SELECT NEXTVAL(\'transaction_id_seq\') AS transid');
-        if (!transIdRes || !transIdRes.rows || transIdRes.rows.length === 0) {
-            throw new Error('Failed to retrieve next transaction ID');
+        // Use MAX(id) + 1 to avoid sequence sync issues with Kiosk
+        const transIdRes = await db.query('SELECT MAX(transactionid) as maxid FROM transactions');
+        
+        let transactionID;
+        if (!transIdRes || !transIdRes.rows || transIdRes.rows.length === 0 || transIdRes.rows[0].maxid === null) {
+             transactionID = 1;
+        } else {
+             transactionID = parseInt(transIdRes.rows[0].maxid) + 1;
         }
-        let transactionID = transIdRes.rows[0].transid;
 
         // Insert transaction record
         const insertTransQuery = `
@@ -128,11 +132,15 @@ class Order {
 
     static async AddToDatabase(db, transactionID, order) {
         // Get next available order ID
-        const orderIdRes = await db.query('SELECT NEXTVAL(\'order_id_seq\') AS orderid');
-        if (!orderIdRes || !orderIdRes.rows || orderIdRes.rows.length === 0) {
-            throw new Error('Failed to retrieve next order ID');
+        // Use MAX(id) + 1 to avoid sequence sync issues
+        const orderIdRes = await db.query('SELECT MAX(orderid) as maxid FROM orders');
+        
+        let orderID;
+        if (!orderIdRes || !orderIdRes.rows || orderIdRes.rows.length === 0 || orderIdRes.rows[0].maxid === null) {
+             orderID = 1;
+        } else {
+             orderID = parseInt(orderIdRes.rows[0].maxid) + 1;
         }
-        const orderID = orderIdRes.rows[0].orderid;
 
         // Insert order record
         const insertOrderQuery = `
