@@ -36,11 +36,13 @@ export default function Login() {
 
   async function isValidLogin(userName, password) {
     try {
+      const isOverride = functionality === 1; // Manager override
+
       const res = await fetch('/api/authenticate-login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ username: userName, password: password, customer: customer })
+        body: JSON.stringify({ username: userName, password: password, customer: customer, isOverride: isOverride })
       });
       const data = await res.json().catch(() => null);
       if (res.ok && data && data.success) {
