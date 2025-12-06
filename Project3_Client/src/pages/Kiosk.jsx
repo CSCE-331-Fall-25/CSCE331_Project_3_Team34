@@ -583,6 +583,149 @@ export default function Kiosk() {
     }
   }
 
+  async function handleAIOrder(ordersInput) {
+    // Support both single object and array
+    const orders = Array.isArray(ordersInput) ? ordersInput : [ordersInput];
+    console.log("AI adding orders:", orders);
+    
+    // Fetch menu data once for all orders
+    let allEntrees = [];
+    let allSides = [];
+    let allDrinks = [];
+    let allAppetizers = [];
+    try {
+        const [entrees, sides, drinks, bottles, appetizers] = await Promise.all([
+            fetchMenuRowsByType('entree'),
+            fetchMenuRowsByType('side'),
+            fetchMenuRowsByType('drink'),
+            fetchMenuRowsByType('bottle'),
+            fetchMenuRowsByType('appetizer')
+        ]);
+        allEntrees = entrees;
+        allSides = sides;
+        allDrinks = [...drinks, ...bottles];
+        allAppetizers = appetizers;
+    } catch (e) {
+        console.error("Failed to fetch menu data for pricing", e);
+    }
+
+    const newItemsBatch = [];
+
+    for (const order of orders) {
+        // 1. Send to backend
+        try {
+          const res = await fetch('/api/buy-item', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+              itemID: order.type,
+              entreeList: [...(order.entrees || []), ...(order.drinks || []), ...(order.appetizers || [])],
+              sideList: order.sides,
+              size: null
+            })
+          });
+          const data = await res.json();
+          if (!data.success) {
+            console.error("Failed to add AI order to backend", data);
+            continue; // Skip adding to UI if backend failed
+          }
+          console.log("Backend accepted AI order:", data);
+        } catch (e) {
+          console.error("Error sending AI order", e);
+          continue;
+        }
+
+        // 2. Update local state (UI)
+        const normalize = (s) => (s || '').toLowerCase().trim();
+        const parentItem = items.find(i => normalize(i.name) === normalize(order.type)) || { name: order.type, price: 0, type: 'meal' };
+        const generatedParentId = parentItem.itemid || `ai-${Date.now()}-${Math.random()}`;
+        
+        const newGroupId = groupIdRef.current + 1;
+        groupIdRef.current = newGroupId;
+
+        // Parent
+        newItemsBatch.push({
+            ...parentItem,
+            groupId: newGroupId,
+            isParent: true,
+            parentItemId: generatedParentId
+        });
+
+        // Children - Entrees
+        if (order.entrees && Array.isArray(order.entrees)) {
+          order.entrees.forEach((name) => {
+              const details = allEntrees.find(e => normalize(e.name) === normalize(name));
+              newItemsBatch.push({
+                  name: name,
+                  type: 'entree',
+                  pricemod: details ? details.pricemod : 0,
+                  menuid: details ? details.menuid : null,
+                  groupId: newGroupId,
+                  isParent: false,
+                  parentItemId: generatedParentId
+              });
+          });
+        }
+        
+        // Children - Sides
+        if (order.sides && Array.isArray(order.sides)) {
+          order.sides.forEach((name) => {
+              const details = allSides.find(s => normalize(s.name) === normalize(name));
+              newItemsBatch.push({
+                  name: name,
+                  type: 'side',
+                  pricemod: details ? details.pricemod : 0,
+                  menuid: details ? details.menuid : null,
+                  groupId: newGroupId,
+                  isParent: false,
+                  parentItemId: generatedParentId
+              });
+          });
+        }
+
+        // Children - Drinks
+        if (order.drinks && Array.isArray(order.drinks)) {
+            order.drinks.forEach((name) => {
+                const details = allDrinks.find(d => normalize(d.name) === normalize(name));
+                newItemsBatch.push({
+                    name: name,
+                    type: details ? details.type : 'drink',
+                    pricemod: details ? details.pricemod : 0,
+                    menuid: details ? details.menuid : null,
+                    groupId: newGroupId,
+                    isParent: false,
+                    parentItemId: generatedParentId
+                });
+            });
+        }
+
+        // Children - Appetizers
+        if (order.appetizers && Array.isArray(order.appetizers)) {
+            order.appetizers.forEach((name) => {
+                const details = allAppetizers.find(a => normalize(a.name) === normalize(name));
+                newItemsBatch.push({
+                    name: name,
+                    type: 'appetizer',
+                    pricemod: details ? details.pricemod : 0,
+                    menuid: details ? details.menuid : null,
+                    groupId: newGroupId,
+                    isParent: false,
+                    parentItemId: generatedParentId
+                });
+            });
+        }
+    }
+
+    console.log("Adding new items to UI:", newItemsBatch);
+
+    setOrderItems(prev => {
+        const next = [...prev, ...newItemsBatch];
+        saveOrder(next, 'kiosk');
+        return next;
+    });
+  }
+
   const total = orderItems.reduce((s, it) => s + computeLinePrice(it), 0);
 
   async function handlePurchase() {
@@ -843,7 +986,7 @@ export default function Kiosk() {
           onClick={() => navigate('/weather')}>
           Back
         </button>
-        {showChat && <ChatModal onClose={() => setShowChat(false)} />}
+        {showChat && <ChatModal onClose={() => setShowChat(false)} onAddOrder={handleAIOrder} />}
       </div>
       )} 
       {state == "Checkout" && (

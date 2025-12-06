@@ -30,7 +30,7 @@ const systemInstruction = {
 
 // Function to chat with the GenAI model and save history
 // Pass in username of signed-in user
-async function chatWithAI(username, prompt, history) {
+async function chatWithAI(username, prompt, history, menuContext) {
  // console.log("Sending prompt to GenAI:", prompt);
   if(!username) {
     username = "Guest";
@@ -42,9 +42,26 @@ async function chatWithAI(username, prompt, history) {
 
   history.push({role: "user", parts: [{text: prompt}] });
 
+  const dynamicSystemInstruction = {
+    role: "system",
+    parts: [{
+      text: systemInstruction.parts[0].text + 
+            (menuContext ? " You have access to the following menu items: " + JSON.stringify(menuContext) : "") +
+            ". If the user wants to add an order, collect the details (Meal Type, Entrees, Sides, Drinks, Appetizers). " +
+            "Confirm the order with the user. Once confirmed, output a JSON block at the end of your response. " +
+            "If the user orders multiple distinct items (e.g. a Bowl AND a Drink, or two separate Bowls), you MUST output a list of orders under the 'orders' key. " +
+            "Example format: " +
+            "```json\n{\"action\": \"add_orders\", \"orders\": [{\"type\": \"Bowl\", \"entrees\": [\"Orange Chicken\"], \"sides\": [\"Fried Rice\"]}, {\"type\": \"Bottle\", \"drinks\": [\"Powerade\"]}]}\n```" +
+            "IMPORTANT: Drinks and Appetizers are separate items from Meals (Bowls, Plates). Do not combine them into the same order object unless they are part of a specific combo (which they usually are not). " +
+            "For a Drink, use type 'Drink' or 'Bottle' depending on the item. For an Appetizer, use type 'Appetizer'. " +
+            "Only output the JSON for the *new* items being added in the current request. Do not re-list items that were already confirmed and added in previous turns." +
+            "Do not output the JSON block unless the user has explicitly confirmed."
+    }]
+  };
+
   try {
     const chat = model.startChat({
-      systemInstruction,
+      systemInstruction: dynamicSystemInstruction,
       history: history
     });
 
