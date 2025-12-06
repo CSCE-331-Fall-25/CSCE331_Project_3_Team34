@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import pandaLogo from '../assets/PandaLogo.svg'
 import WeatherScreen from './WeatherScreen';
 // Transaction is a server-side class; don't import it into the client bundle.
@@ -7,12 +7,14 @@ import '../styles/Kiosk.css';
 
 import { getImageForItem } from "../assets/utils/imageMapper";
 import ChatModal from '../Components/ChatModal';
+import { saveOrder, loadOrder, clearOrder } from '../utils/orderPersistence';
 
 export default function Kiosk() {
 
   // --- inactivity timer --- //
 
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const timerRef = useRef(null);
 
   function startTimer() {
@@ -24,6 +26,8 @@ export default function Kiosk() {
   const [tableData, setTableData] = useState([]);
   const [errorLabel, setErrorLabel] = useState("");
   const [inventoryData, setInventoryData] = useState([]);
+  const [customerLoggedIn, setCustomerLoggedIn] = useState(false);
+  const [customerName, setCustomerName] = useState('');
 
   const getInventoryData = async () => {
     // console.log("inventory data");
@@ -86,6 +90,7 @@ export default function Kiosk() {
 
   const [state, setState] = useState("Kiosk"); // Possible states: "Kiosk", "Checkout", "Payment", "Receipt"
   const [transactionNumber, setTransactionNumber] = useState(0);
+  const [orderFinalized, setOrderFinalized] = useState(false);
   
   const timeoutRef = useRef(null);
 
@@ -195,12 +200,11 @@ export default function Kiosk() {
   function addToOrder(item, overrides = {}, insertAt = null) {
     setOrderItems(prev => {
       const entry = { ...item, ...overrides };
-      if (insertAt == null || insertAt < 0 || insertAt > prev.length) {
-        return [...prev, entry];
-      }
-      const next = [...prev];
-      next.splice(insertAt, 0, entry);
-      return next;
+      const newOrder = insertAt == null || insertAt < 0 || insertAt > prev.length
+        ? [...prev, entry]
+        : [...prev.slice(0, insertAt), entry, ...prev.slice(insertAt)];
+      saveOrder(newOrder, 'kiosk');
+      return newOrder;
     });
   }
 
@@ -217,9 +221,12 @@ export default function Kiosk() {
             swapTargetRef.current = null;
           }
         }
+        saveOrder(nextOrder, 'kiosk');
         return nextOrder;
       }
-      return prev.filter((_, i) => i !== idx);
+      const nextOrder = prev.filter((_, i) => i !== idx);
+      saveOrder(nextOrder, 'kiosk');
+      return nextOrder;
     });
   }
 
@@ -272,9 +279,10 @@ export default function Kiosk() {
     setPendingSizeSelection(null);
   }
 
-  function clearOrder() {
+  function clearOrderAndUI() {
     setOrderItems([]);
     clearUI();
+    clearOrder('kiosk');
   }
   
   async function fetchItems() {
@@ -316,6 +324,38 @@ export default function Kiosk() {
     fetchItems();
     getNextTransactionNum();
     fetchSizeMods();
+    
+    // Load saved order
+    const savedOrder = loadOrder('kiosk');
+    if (savedOrder.length > 0) {
+      setOrderItems(savedOrder);
+    }
+    
+    // Handle login success
+    const success = searchParams.get('success');
+    if (success == '4') {
+      setCustomerLoggedIn(true);
+      // Fetch customer data
+      fetch('/api/get-user', {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include'
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success && data.user) {
+            setCustomerName(data.user.username);
+          }
+        })
+        .catch((err) => console.error('Failed to fetch customer data:', err));
+      alert('Customer logged in successfully');
+      window.history.replaceState({}, '', window.location.pathname);
+    } else if (success == '2') {
+      navigate('/hub');
+    } else if (success) {
+      // Clear any other success params
+      window.history.replaceState({}, '', window.location.pathname);
+    }
   }, []);
 
   async function fetchMenuRowsByType(type) {
@@ -601,7 +641,7 @@ export default function Kiosk() {
       timeoutRef.current = null;
     }
 
-    clearOrder();
+    clearOrderAndUI();
     changeState("Kiosk");
     navigate('/weather');
   }
@@ -732,6 +772,11 @@ export default function Kiosk() {
         </div>
 
         <div className="kiosk-right">
+          {customerLoggedIn && customerName && (
+            <div className="kiosk-customer-info">
+              <h3>Welcome, {customerName}!</h3>
+            </div>
+          )}
           <h3 className="kiosk-title">Current Order</h3>
           <div className="kiosk-order-list">
             {orderItems.length === 0 && <div className="kiosk-empty">No items yet</div>}
@@ -772,7 +817,7 @@ export default function Kiosk() {
           <div className="kiosk-order-summary">
             <div>Total: ${total.toFixed(2)}</div>
             <div className="kiosk-order-controls">
-              <button onClick={clearOrder} className="kiosk-clear-btn">Clear</button>
+              <button onClick={clearOrderAndUI} className="kiosk-clear-btn">Clear</button>
               <button onClick={() => {console.log('Proceed to checkout', orderItems); handlePurchase();}} className="kiosk-checkout-btn">Checkout</button>
             </div>
           </div>
@@ -782,6 +827,21 @@ export default function Kiosk() {
             onClick={() => setShowChat(true)}
           >
             <img src={getImageForItem('bobrosspanda')} alt="Bob Ross Panda" className='ai-chat-img'/>
+        </button>
+        <button
+          className="kiosk-signin-btn"
+          onClick={() => customerLoggedIn ? (setCustomerLoggedIn(false), setCustomerName('')) : navigate('/login?returnTo=/kiosk&functionality=3')}>
+          {customerLoggedIn ? 'Sign Out' : 'Customer Sign In'}
+        </button>
+        <button
+          className="kiosk-signin-btn"
+          onClick={() => navigate('/login?returnTo=/hub&functionality=2')}>
+          Employee Sign In
+        </button>
+        <button
+          className="kiosk-help-btn"
+          onClick={() => navigate('/weather')}>
+          Back
         </button>
         {showChat && <ChatModal onClose={() => setShowChat(false)} />}
       </div>

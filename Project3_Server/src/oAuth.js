@@ -21,7 +21,8 @@ const client = new OAuth2Client(
  
 function redirectToAppWithLoginSuccess(req, res) {
   const returnTo = req.query.returnTo || '/';
-  const state = JSON.stringify({ returnTo, add: req.query.add, link: req.query.link });
+  const functionality = req.query.functionality || '0';
+  const state = JSON.stringify({ returnTo, functionality, add: req.query.add, link: req.query.link });
   const url = client.generateAuthUrl({
     access_type: "offline",
     prompt: "consent",
@@ -60,6 +61,7 @@ async function googleAuthCallbackHandler(req, res) {
   const add = state.add === 'true' ? '&add=true' : '';
   const link = state.link === 'true';
   const returnTo = state.returnTo || '/';
+  const functionality = state.functionality || '0';
   const clientOrigin = process.env.CLIENT_ORIGIN || 'http://localhost:5173';
   
   // If in link mode, just return the googleid to frontend
@@ -70,7 +72,7 @@ async function googleAuthCallbackHandler(req, res) {
   const user = await User.FetchByGoogleId(req.app.locals.dbPool, googleId);
   if (!user) {
     // Not found or not an employee
-    return res.redirect(`${clientOrigin}${returnTo}?success=false${add}`);
+    return res.redirect(`${clientOrigin}/login?success=false${add}&functionality=${functionality}&returnTo=${encodeURIComponent(returnTo)}`);
   }
   // const user = {
   //   googleId: payload.sub,
@@ -80,7 +82,7 @@ async function googleAuthCallbackHandler(req, res) {
   // };
   req.session.user = user;            // store user on the server session
   // redirect to your React app - use a safe front-end route
-  res.redirect(`${clientOrigin}${returnTo}?success=true${add}`); //passing login success param
+  res.redirect(`${clientOrigin}/login?success=true${add}&functionality=${functionality}&returnTo=${encodeURIComponent(returnTo)}`); //passing login success param
 }
 
 function authMeHandler(req, res) {

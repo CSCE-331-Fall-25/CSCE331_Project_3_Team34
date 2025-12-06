@@ -92,8 +92,9 @@ app.post('/api/ask-gen-ai', async (req, res) => {
 // API endpoint to authenticate login
 app.post('/api/authenticate-login', async (req, res) => {
   try{
-    const { username, password } = req.body;
-    const user = await User.AuthenticateLogin(pool, username, password);
+    const { username, password, customer = false } = req.body;
+    console.log("at authenticate customer is: " + customer);
+    const user = await User.AuthenticateLogin(pool, username, password,null, customer);
     if(!user) {
         return res.status(401).json({ success: false, error: 'Invalid username or password' });
     }
@@ -138,13 +139,14 @@ app.get('/api/get-user', async (req, res) => {
   const currUser = req.session?.user ?? null;
   if(!currUser) return res.status(401).json({ success: false, error: 'Not authenticated' });
   if(currUser.isEmployee){
-    // console.log("Current User is Employee:", currUser);
+    console.log("Current User is Employee:", currUser);
     //fetch full user data from DB
     const userData = await Employee.FetchByUsername(pool, currUser.username, null, null);
     currUser.isManager = userData ? userData.isManager : false;
+    console.log("Current User is Manager:", currUser.isManager);
     return res.json({ success: true, user: currUser, isManager: currUser.isManager  });
   }
-  // console.log("Current User not Employee:", currUser);
+  console.log("Current User not Employee:", currUser);
   res.json({ success: true, user: currUser });
 
 });
