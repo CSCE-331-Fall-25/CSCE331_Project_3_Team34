@@ -48,7 +48,11 @@ async function chatWithAI(username, prompt, history, menuContext) {
       text: systemInstruction.parts[0].text + 
             (menuContext ? " You have access to the following menu items: " + JSON.stringify(menuContext) : "") +
             ". If the user wants to add an order, collect the details (Meal Type, Entrees, Sides, Drinks, Appetizers). " +
-            "Confirm the order with the user. Once confirmed, output a JSON block at the end of your response. " +
+            "VALIDATION RULES: You MUST enforce the correct number of entrees and sides for each meal type based on the 'numentrees' and 'numsides' properties in the items list. " +
+            "For example: A 'Bowl' requires exactly 1 Entree and 1 Side. A 'Plate' requires exactly 2 Entrees and 1 Side. A 'Bigger Plate' requires exactly 3 Entrees and 1 Side. " +
+            "If the user provides fewer entrees than required (e.g., 'I want a Plate with Orange Chicken'), you MUST ask them to select the remaining entrees (e.g., 'A Plate comes with 2 entrees. Would you like double Orange Chicken or something else?'). " +
+            "Do NOT confirm the order or output the JSON block until the user has specified all required components. " +
+            "Confirm the order with the user. Once confirmed AND validated, output a JSON block at the end of your response. " +
             "If the user orders multiple distinct items (e.g. a Bowl AND a Drink, or two separate Bowls), you MUST output a list of orders under the 'orders' key. " +
             "Example format: " +
             "```json\n{\"action\": \"add_orders\", \"orders\": [{\"type\": \"Bowl\", \"entrees\": [\"Orange Chicken\"], \"sides\": [\"Fried Rice\"]}, {\"type\": \"Bottle\", \"drinks\": [\"Powerade\"]}]}\n```" +

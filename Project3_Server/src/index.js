@@ -89,7 +89,7 @@ app.post('/api/ask-gen-ai', async (req, res) => {
   let menuContext = null;
   try {
       const menuRes = await pool.query("SELECT name, type FROM menu");
-      const itemsRes = await pool.query("SELECT name, type, price FROM items WHERE type IN ('meal', 'entree', 'side', 'drink', 'appetizer')");
+      const itemsRes = await pool.query("SELECT name, type, price, numentrees, numsides FROM items WHERE type IN ('meal', 'entree', 'side', 'drink', 'appetizer')");
       menuContext = {
           menu: menuRes.rows,
           items: itemsRes.rows
