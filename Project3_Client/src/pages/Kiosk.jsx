@@ -1014,19 +1014,20 @@ export default function Kiosk() {
             <img src={getImageForItem('bobrosspanda')} alt="Bob Ross Panda" className='ai-chat-img'/>
         </button>
         <button
-          className="kiosk-signin-btn"
+          className="circle-btn"
           onClick={() => customerLoggedIn ? (setCustomerLoggedIn(false), setCustomerName('')) : navigate('/login?returnTo=/kiosk&functionality=3')}>
-          {customerLoggedIn ? 'Sign Out' : 'Customer Sign In'}
+          {/* {customerLoggedIn ? 'Sign Out' : 'Customer Sign In'} */}
+          <img src={getImageForItem('userIcon')} alt="User Login / Sign out Button" className='icon-img'/>
         </button>
-        <button
+        {/* <button
           className="kiosk-signin-btn"
           onClick={() => navigate('/login?returnTo=/hub&functionality=2')}>
           Employee Sign In
-        </button>
+        </button> */}
         <button
-          className="kiosk-help-btn"
+          className="circle-btn back-btn"
           onClick={() => navigate('/weather')}>
-          Back
+            <img src={getImageForItem('exitIcon')} alt="Back" className='icon-img'/>
         </button>
         {showChat && <ChatModal onClose={() => setShowChat(false)} onAddOrder={handleAIOrder} />}
       </div>
