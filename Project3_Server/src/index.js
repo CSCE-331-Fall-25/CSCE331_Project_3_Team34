@@ -58,6 +58,7 @@ function getMainPageForSession(req) {
   if (!req.session) return mainPage; // fallback to global mainPage if sessions unavailable
   const sessionID = req.session.id;
   if (!sessionMap.has(sessionID)) {
+    console.log(`[DEBUG] Session ${sessionID} not found in map. Creating new page.`);
     const user = new User("tempUser", "tempPass", "temp@gmail.com");
     const mp = new CashierMainPage(user, pool);
     sessionMap.set(sessionID, mp);
@@ -109,14 +110,24 @@ app.post('/api/ask-gen-ai', async (req, res) => {
 // API endpoint to authenticate login
 app.post('/api/authenticate-login', async (req, res) => {
   try{
-    const { username, password, customer = false } = req.body;
+    const { username, password, customer = false, isOverride = false } = req.body;
     console.log("at authenticate customer is: " + customer);
     const user = await User.AuthenticateLogin(pool, username, password,null, customer);
     if(!user) {
         return res.status(401).json({ success: false, error: 'Invalid username or password' });
     }
+
+    const oldSessionId = req.session.id;
+    const existingPage = sessionMap.get(oldSessionId);
+    
+    if (isOverride && existingPage) {
+        console.log(`[DEBUG] Found existing page for session ${oldSessionId}. Orders: ${existingPage.currTransaction?.orders?.length}`);
+    } else {
+        console.log(`[DEBUG] No existing page found for session ${oldSessionId} (isOverride: ${isOverride})`);
+    }
+
     // set user on session and regenerate to prevent fixation
-    req.session.user = { username: user.username, isEmployee: user.isEmployee };
+    //req.session.user = { username: user.username, isEmployee: user.isEmployee };
     req.session.regenerate((err) => {
       if(err) {
         console.error('Session regeneration error:', err);
@@ -124,7 +135,29 @@ app.post('/api/authenticate-login', async (req, res) => {
       }
       req.session.user = { username: user.username, isEmployee: user.isEmployee };
       try {
-        sessionMap.set(req.session.id, new CashierMainPage(user, pool));
+        console.log("overRide is: " + isOverride); 
+        if (isOverride && existingPage) {
+          console.log(`Transferring order from Session ${oldSessionId} to ${req.session.id}`);
+          
+          // A. Update the owner of the page to the new Manager
+          existingPage.user = user; 
+          
+          // Update the transaction's employee reference
+          if (existingPage.currTransaction) {
+              existingPage.currTransaction.employee = user;
+          }
+
+          // B. Link the EXISTING page to the NEW Session ID
+          sessionMap.set(req.session.id, existingPage);
+          
+          // C. Clean up the old reference
+          sessionMap.delete(oldSessionId);
+          
+          console.log(`[DEBUG] Transfer complete. New session ${req.session.id} has ${sessionMap.get(req.session.id).currTransaction?.orders?.length} orders.`);
+        } else {
+            // Normal Login: Create a brand new empty page
+            sessionMap.set(req.session.id, new CashierMainPage(user, pool));
+        }
       } catch (e) {
         console.error('Failed to create session main page:', e);
       }
