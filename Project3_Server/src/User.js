@@ -119,6 +119,26 @@ class User {
         // If you add a Customer.UnlinkGoogleIdFromCustomer, call it here
         return result;
     }
+    static async CreateCustomer(db, username, password, email, name) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                const newCustomer = new Customer(username, password, email, name, 0, '');
+                if (!newCustomer) {
+                    return reject(new Error('Failed to create customer instance'));
+                }
+                // Here you would typically insert the new customer into the database
+                let query = 'INSERT INTO Users (username, password, email, isemployee) VALUES ($1, $2, $3, $4)';
+                await db.query(query, [username, password, email, false]);
+                query = 'INSERT INTO Customers (username, name, rewardspoints, phonenumber) VALUES ($1, $2, $3, $4)';
+                await db.query(query, [username, name, 0, '']);
+                console.log('Created new customer:', username);
+                resolve(newCustomer);
+            } catch (error) {
+                console.error('Error creating customer:', error);
+                reject(error);
+            }
+        });
+    }
 }
 
 class Employee extends User {

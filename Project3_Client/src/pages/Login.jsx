@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import pandaLogo from '../assets/PandaLogo.svg';
 import GoogleLoginButton from '../Components/googleLoginButton.jsx';
+import SignUpModal from '../Components/SignUpModal.jsx';
 import { getImageForItem } from '../assets/utils/imageMapper';
 
 export default function Login() {
@@ -10,6 +11,7 @@ export default function Login() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [customer, setCustomer] = useState(false);
+  const [showSignUpModal, setShowSignUpModal] = useState(false);
   
   // Get returnTo and functionality from URL params or sessionStorage
   const urlReturnTo = searchParams.get('returnTo');
@@ -223,8 +225,21 @@ export default function Login() {
     navigate(url.pathname + url.search, { replace: true });
   }
 
+  function handleSignUpSuccess() {
+    alert('Account created successfully! You can now log in.');
+    setShowSignUpModal(false);
+    setEmployeeId('');
+    setEmployeePassword('');
+  }
+
   return (
-    <div className="login-page-background">
+    <>
+      <SignUpModal 
+        show={showSignUpModal}
+        onClose={() => setShowSignUpModal(false)}
+        onSignUp={handleSignUpSuccess}
+      />
+      <div className="login-page-background">
       <div className="login-card">
         <img
           className="login-logo"
@@ -250,8 +265,13 @@ export default function Login() {
         <GoogleLoginButton returnTo={returnTo} functionality={functionality} />
         }
         {customer && (
-          <button className="submit" onClick={handleCustomerBack} style={{ marginTop: '10px', width: '100%', padding: '10px', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+          <button className="back-button" onClick={handleCustomerBack} style={{ marginTop: '10px', width: '100%', padding: '10px', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
             Back to Kiosk
+          </button>
+        )}
+        {customer && (
+          <button type="button" onClick={() => setShowSignUpModal(true)} style={{ marginTop: '10px', width: '100%', padding: '10px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+            Sign Up
           </button>
         )}
         <button className="debug-button" onClick={() => navigate("/hub")}>
@@ -260,5 +280,6 @@ export default function Login() {
         </button>
       </div>
     </div>
+    </>
   );
 }

@@ -244,7 +244,27 @@ app.post('/api/unlink-googleid', async (req, res) => {
     res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 });
+app.post('/api/signup-customer', async (req, res) => {
+  try {
+    const { name, username, password, email } = req.body;
+    const existingUser = await Customer.FetchByUsername(pool, username);
+    if (existingUser) {
+      return res.status(400).json({ success: false, error: 'Username already exists' });
+    }
+    const newCustomerInstance = await User.CreateCustomer(req.app.locals.dbPool, username, password, email, name);
+    const newCustomer = await Customer.FetchByUsername(pool, username);
+    if (!newCustomer) {
+      return res.status(500).json({ success: false, error: 'Failed to create customer' });
+    }
+    console.log('Customer signed up successfully:', username);
+    return res.json({ success: true });
 
+  }
+  catch (err) {
+    console.error('Error during customer signup:', err);
+    return res.status(500).json({ success: false, error: 'Internal server error when signing up customer' });
+  }
+});
 
 // Example: create a test user and main page instance (pass the pool so it has DB access)
 const user = new User("testUser", "password123", "bob@gmail.com");
