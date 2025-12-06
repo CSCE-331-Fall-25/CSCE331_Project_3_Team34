@@ -31,6 +31,7 @@ export default function Cashier() {
   const [showSignOutModal, setShowSignOutModal] = useState(false);
   const [showCreateMeal, setShowCreateMealModal] = useState(false);
   // modal mode handled in CreateMealModal
+  const [customizingIndex, setCustomizingIndex] = useState(null); // Track which order is being customized
 
   // Discount buttons/state
   const [showDiscountModal, setShowDiscountModal] = useState(false);
@@ -49,6 +50,7 @@ export default function Cashier() {
   const [tax, setTax] = useState(0);
   const [priceTotal, setPriceTotal] = useState(0);
   const [transactionItems, setTransactionItems] = useState([]);
+  const [rawOrders, setRawOrders] = useState([]);
   const [itemType, setItemType] = useState("NULL");
   // modal-specific state moved to CreateMealModal
 
@@ -141,27 +143,32 @@ export default function Cashier() {
   const handleAddDiscount = () => setShowDiscountModal(true);
   const handleCreateMeal = () => setShowCreateMealModal(true);
 
- 
-
-  //TODO: Make update based on INPUT from CUSTOMIZATION MODAL
+  // Handle customize order by opening CreateMealModal in customize mode
   const handleCustomizeOrder = () => {
-  if (debugging) console.log("Customize order clicked");
-    // Implement customization logic here
-    fetch("/api/customize-order", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: 'include', // Include cookies with this request
-      body: JSON.stringify({ index: selectedRow }) // Pass the index in the body
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success) {
-          console.log("Order customized");
-          setSelectedRow(null);
-          fetchUserData();
-          UpdatePage();
-        }
-      });
+    if (selectedRow === null) {
+      alert('Please select an item to customize');
+      return;
+    }
+    if (debugging) console.log("Customize order clicked for index:", selectedRow);
+    
+    // Get the item type from the raw order data
+    const orderToCustomize = rawOrders[selectedRow];
+    if (!orderToCustomize) {
+      console.error("Could not find order data for index:", selectedRow);
+      return;
+    }
+
+    // The item name (e.g., "Bowl", "Plate") is in orderToCustomize.item
+    // If it's an object, get the name property
+    let type = orderToCustomize.item;
+    if (typeof type === 'object' && type !== null) {
+      type = type.name || type.menuName;
+    }
+
+    // Set customize mode and open the modal
+    setCustomizingIndex(selectedRow);
+    setItemType(type);
+    setShowCreateMealModal(true);
   }
   
   
@@ -215,9 +222,11 @@ export default function Cashier() {
           // console.log("UpdatePage Formatted:", formattedItems);
           //updates the front end to show current items
           setTransactionItems(formattedItems);
+          setRawOrders(data.orders);
           saveOrder(formattedItems, 'cashier');
         } else {
           setTransactionItems([]);
+          setRawOrders([]);
           saveOrder([], 'cashier');
         }
         //Calls functions to update their states
@@ -274,7 +283,9 @@ export default function Cashier() {
         show={showCreateMeal}
         onClose={handleReset}
         initialType={itemType}
-        onBought={() => { UpdatePage(); }}
+        onBought={() => { UpdatePage(); setCustomizingIndex(null); }}
+        customizingIndex={customizingIndex}
+        initialOrderData={customizingIndex !== null ? rawOrders[customizingIndex] : null}
         // allow the modal to request a size selection; the modal provides a callback to receive the selected size
         requestSizeSelection={(receiveSizeCallback) => {
           if (typeof receiveSizeCallback === 'function') {

@@ -333,6 +333,36 @@ app.post('/api/buy-item', async (req, res) => {
   }
 });
 
+// API endpoint to update an existing item in the current transaction
+app.post('/api/update-item', async (req, res) => {
+  try {
+    let mainPage = getMainPageForSession(req);
+    const { itemIndex, itemID, entreeList, sideList, size } = req.body;
+    
+    if (itemIndex === null || itemIndex === undefined) {
+      return res.status(400).json({ success: false, error: "itemIndex is required" });
+    }
+    
+    // Remove the old item
+    const removeResult = mainPage.RemoveItemByIndex(itemIndex);
+    if (!removeResult.success) {
+      return res.status(400).json({ success: false, error: removeResult.error });
+    }
+    
+    // Add the new item
+    let result;
+    if (itemID) {
+      result = await mainPage.BuyItemButton(itemID, entreeList, sideList, size);
+    } else {
+      result = await mainPage.BuyItemButton();
+    }
+    res.json({ success: true, ...result });
+  } catch (err) {
+    console.error('Error in /api/update-item:', err);
+    res.status(500).json({ success: false, error: String(err) });
+  }
+});
+
 // API endpoint to add a discount
 app.post('/api/add-discount', async (req, res) => {
   const mainPage = getMainPageForSession(req);
@@ -402,13 +432,6 @@ app.post('/api/remove-item', (req, res) => {
   const { index } = req.body;
   const mainPage = getMainPageForSession(req);
   let result = mainPage.RemoveItemByIndex(index);
-  res.json({ success: true, ...result });
-});
-//API endpoint to customize an order
-app.post('/api/customize-order', (req, res) => {
-  const { index } = req.body;
-  const mainPage = getMainPageForSession(req);
-  let result = mainPage.CustomizeOrder(index);
   res.json({ success: true, ...result });
 });
 // Lightweight health endpoint for tests and readiness checks
