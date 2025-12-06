@@ -8,6 +8,15 @@ export default function ChatModal({ onClose, onAddOrder }) {
 
   const messagesEndRef = useRef(null);
 
+  useEffect(() => {
+    setMessages([
+      {
+        role: "ai",
+        text:  <span>Welcome to Panda Express, I am Bob Ross Panda! Please let me know how can I assist you today!</span>
+      }
+    ]);
+  }, []);
+
   
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

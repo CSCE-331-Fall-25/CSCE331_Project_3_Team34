@@ -24,7 +24,7 @@ export default function RemoveItemButton({ index, onRemoved }) {
       } else {
         console.error("Failed to remove item", data);
       }
-    } catch (err) {
+    } catch (err) {np
       console.error("Error removing item:", err);
     } finally {
       setLoading(false);

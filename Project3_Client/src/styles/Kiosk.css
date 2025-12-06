@@ -121,7 +121,7 @@
 .close-btn { background:transparent; border:none; color:white; font-size:1.5rem; cursor:pointer; }
 .chat-messages { flex:1; padding:15px; background:#e5e7eb; overflow-y:auto; display:flex; flex-direction:column; gap:10px; }
 .chat-empty { text-align:center; color:#6b7280; margin-top:20px; }
-.chat-message { padding:10px 15px; border-radius:20px; max-width:70%; word-wrap:break-word; }
+.chat-message { padding:10px 15px; border-radius:20px; max-width:70%; word-wrap:break-word; font-family: Arial, Helvetica, sans-serif; }
 .chat-message.user { background:#f65850; color:white; align-self:flex-end }
 .chat-message.ai   { background:#f3f4f6; color:#111827; align-self:flex-start }
 .chat-input-area { display:flex; padding:10px 15px; border-top:1px solid #d1d5db; background:#f9fafb; gap:10px; }
@@ -778,6 +778,37 @@
 .kiosk-customer-info h3 {
   margin: 0;
   color: #2e7d32;
+}
+
+.circle-btn {
+  position: fixed;
+  bottom: 20px;
+  left: 6.25%;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 3px solid #000000;
+  background: white;
+  cursor: pointer;
+  z-index: 1000;
+  transition:
+    transform 280ms cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 280ms cubic-bezier(0.4, 0, 0.2, 1);
+} 
+
+.circle-btn:hover {
+  transform: scale(1.08);
+  border: 3px solid rgba(229, 65, 65);
+}
+
+.back-btn {
+  left: 11% !important;
+}
+
+.icon-img {
+  width: 100%;
+  height: auto;
+  
 }
 
 
