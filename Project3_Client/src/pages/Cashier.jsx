@@ -306,7 +306,7 @@ export default function Cashier() {
       />
       <header className="cashier-top">
         <div className="top-meta">
-          <span className="meta-value">{User || "Employee"}</span>
+          <span className="meta-value">{User?.username || "Employee"}</span>
         </div>
         <div className="top-meta">
           <span className="meta-value">{currentTime}</span>
