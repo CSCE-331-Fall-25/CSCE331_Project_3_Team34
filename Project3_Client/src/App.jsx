@@ -1,7 +1,6 @@
-import { Routes, Route, useNavigate, useLocation, parsePath } from 'react-router-dom'
-import { use, useState, useEffect } from 'react'
+import { Routes, Route, useNavigate } from 'react-router-dom'
+import { useEffect } from 'react'
 import WeatherScreen from './pages/WeatherScreen.jsx'
-// import pandaLogo from './assets/PandaLogo.svg'
 import Cashier from './pages/Cashier.jsx'
 import Manager from './pages/Manager.jsx'
 import Menu from './pages/Menu.jsx'
@@ -10,19 +9,12 @@ import Kiosk from './pages/Kiosk.jsx'
 import Hub from './pages/Hub.jsx'
 import MealAttributes  from './pages/MealAttributes.jsx' 
 import Login from './pages/Login.jsx'
-// import React from 'react'
-// import GoogleLoginButton from './Components/googleLoginButton.jsx'
 import './styles/App.css'
-//import app from '../../Project3_Server/src/index.js'
 
 
 
 
 export default function App() {
-  //const location = useLocation();
-  //const showButtons = location.pathname === "/";
-  // initialize as empty strings so placeholders render correctly
- 
   const navigate = useNavigate();
   useEffect(() => {
     sessionStorage.setItem('loginReturnTo', '/hub');
