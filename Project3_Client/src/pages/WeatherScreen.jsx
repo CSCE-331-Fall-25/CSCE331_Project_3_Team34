@@ -1,14 +1,11 @@
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../styles/WeatherScreen.css'
 //import { motion } from "framer-motion";
 
 import { getImageForItem } from '../assets/utils/imageMapper';
-import TranslationClient from '../Components/TranslationClient';
-import { TranslationContext } from '../contexts/TranslationContext';
 
 export default function WeatherScreen() {
-  const translationContext = useContext(TranslationContext);
   const [location, setLocation] = useState(null);
   const [weather, setWeather] = useState(null);
   const [error, setError] = useState(null);
@@ -103,16 +100,9 @@ export default function WeatherScreen() {
       <img src={getImageForItem("bambooforest")} alt="background" className="kiosk-start-background" />
       <div className="kiosk-start-overlay" />
 
-      {/* Language Selector */}
-      {translationContext && (
-        <div className="translation-client-wrapper" onClick={(e) => e.stopPropagation()}>
-          <TranslationClient />
-        </div>
-      )}
-
       {/* Weather bubble */}
       {weather && weatherOn && (
-        <div className="weather-bubble-container" onClick={(e) => e.stopPropagation()}>
+        <div className="weather-bubble-container">
         <div className="weather-bubble">
           {weather.periods?.[0] &&
                 (() => {

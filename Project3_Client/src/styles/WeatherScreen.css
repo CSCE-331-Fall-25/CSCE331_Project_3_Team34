@@ -199,14 +199,6 @@ body, html {
   margin-bottom: 1rem;
 }
 
-/* ========== Translation Client ========== */
-.translation-client-wrapper {
-  position: absolute;
-  top: 20px;
-  left: 20px;
-  z-index: 1000;
-}
-
 /* ========== Animations ========== */
 @keyframes fadeIn {
   from { opacity: 0; transform: scale(1.03); }

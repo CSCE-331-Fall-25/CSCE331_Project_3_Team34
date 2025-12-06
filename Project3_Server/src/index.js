@@ -9,7 +9,6 @@ import Item, { Menu } from "./Item.js";
 import session from "express-session";
 import cookieParser from "cookie-parser";
 import * as oAuth from "./oAuth.js";
-import { translateText } from "./Translation.js";
 
 // Kiosk router file is named `Kiosk.js` (capital K). Use the exact filename so imports work
 // on case-sensitive filesystems (e.g. Linux used by many CI/CD hosts).
@@ -438,28 +437,6 @@ app.post('/api/remove-item', (req, res) => {
 // Lightweight health endpoint for tests and readiness checks
 app.get('/api/health', (req, res) => {
   res.json({ ok: true });
-});
-
-// Translation endpoint for supporting multiple languages in the kiosk
-app.post('/api/translate', async (req, res) => {
-  try {
-    const { text, targetLanguage } = req.body;
-
-    if (!text || !targetLanguage) {
-      return res.status(400).json({ 
-        error: 'Missing required fields: text and targetLanguage' 
-      });
-    }
-
-    const translatedText = await translateText(text, targetLanguage);
-    res.json({ translatedText });
-  } catch (error) {
-    console.error('Translation API error:', error);
-    res.status(500).json({ 
-      error: 'Translation service error',
-      message: error.message 
-    });
-  }
 });
 
 app.post('/api/void-transaction', async (req, res) => {
