@@ -216,6 +216,13 @@ export default function Login() {
     setEmployeePassword(event.target.value);
   }
 
+  function handleCustomerBack() {
+    console.log("Customer cancelling login, navigating to: " + returnTo);
+    const url = new URL(returnTo, window.location.origin);
+    url.searchParams.set('success', '0');
+    navigate(url.pathname + url.search, { replace: true });
+  }
+
   return (
     <div className="login-page-background">
       <div className="login-card">
@@ -242,6 +249,11 @@ export default function Login() {
         {!customer && 
         <GoogleLoginButton returnTo={returnTo} functionality={functionality} />
         }
+        {customer && (
+          <button className="submit" onClick={handleCustomerBack} style={{ marginTop: '10px', width: '100%', padding: '10px', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+            Back to Kiosk
+          </button>
+        )}
         <button className="debug-button" onClick={() => navigate("/hub")}>
           <img className='img' src={getImageForItem("debugbutton")} alt="Debug" />
           Debugging Skip Login
