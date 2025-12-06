@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import pandaLogo from "../assets/PandaLogo.svg"; // translucent logo
 
-export default function ChatModal({ onClose }) {
+export default function ChatModal({ onClose, onAddOrder }) {
   
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
@@ -48,6 +48,40 @@ export default function ChatModal({ onClose }) {
 
     // Fetch AI response
     let aiReply = await fetchAIResponse(input);
+
+    // Check for JSON block (Markdown format)
+    let jsonMatch = aiReply.match(/```json\n([\s\S]*?)\n```/);
+    let jsonString = jsonMatch ? jsonMatch[1] : null;
+    let matchSource = jsonMatch ? jsonMatch[0] : null;
+
+    // Fallback: Check for raw JSON if Markdown is missing
+    if (!jsonString) {
+        // Match either "add_order" or "add_orders"
+        const rawMatch = aiReply.match(/(\{[\s\S]*"action":\s*"add_orders?"[\s\S]*\})/);
+        if (rawMatch) {
+            jsonString = rawMatch[1];
+            matchSource = rawMatch[0];
+        }
+    }
+
+    if (jsonString) {
+        try {
+            const command = JSON.parse(jsonString);
+            if (command.action === "add_order" && onAddOrder) {
+                // Legacy support or single item
+                onAddOrder([command.order]);
+                aiReply = aiReply.replace(matchSource, "").trim();
+                aiReply += "\n\n(Order added to cart)";
+            } else if (command.action === "add_orders" && onAddOrder) {
+                // New support for multiple items
+                onAddOrder(command.orders);
+                aiReply = aiReply.replace(matchSource, "").trim();
+                aiReply += "\n\n(Orders added to cart)";
+            }
+        } catch (e) {
+            console.error("Failed to parse AI command", e);
+        }
+    }
 
     // Remove thinking message and add AI reply
     setMessages(prev => [

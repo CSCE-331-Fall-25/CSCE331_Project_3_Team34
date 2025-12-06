@@ -41,8 +41,7 @@ const sessionPrefab = session({
     httpOnly: true,
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
     maxAge: 60 * 60 * 1000 // 1 hour
-  },
-  history: []
+  }
 });
 
 app.use(cors({ origin: clientOrigin, credentials: true }));
@@ -79,10 +78,28 @@ app.post('/api/ask-gen-ai', async (req, res) => {
     //return res.status(401).json({ success: false, error: 'Not authenticated' });
   } 
   
-  let prompt = req.body.prompt_text;;
+  // Initialize history if not present
+  if (!req.session.history) {
+    req.session.history = [];
+  }
+  
+  let prompt = req.body.prompt_text;
   //console.log(`GenAI request from user: ${currUser.username}, prompt: ${prompt}`);
+
+  let menuContext = null;
   try {
-    const response = await chatWithAI(currUser.username, prompt, req.session.history);
+      const menuRes = await pool.query("SELECT name, type FROM menu");
+      const itemsRes = await pool.query("SELECT name, type, price, numentrees, numsides FROM items WHERE type IN ('meal', 'entree', 'side', 'drink', 'appetizer')");
+      menuContext = {
+          menu: menuRes.rows,
+          items: itemsRes.rows
+      };
+  } catch (e) {
+      console.error("Failed to fetch menu context", e);
+  }
+
+  try {
+    const response = await chatWithAI(currUser.username, prompt, req.session.history, menuContext);
     res.json({ success: true, response_text: response });
   } catch (err) {
     console.error('Error communicating with GenAI:', err);

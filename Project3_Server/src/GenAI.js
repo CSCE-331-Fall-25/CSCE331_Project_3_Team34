@@ -4,8 +4,13 @@ dotenv.config();
 
 const apiKey = process.env.key;
 const client = new GoogleGenerativeAI(apiKey);
-const model = client.getGenerativeModel({ model: "gemini-2.5-flash",
-  systemInstruction: "You are a helpful assistant providing recommendations in a panda express Kiosk."
+const model = client.getGenerativeModel({ model: "gemini-2.5-flash" });
+
+// System instructions in correct format
+const systemInstruction = {
+  role: "system",
+  parts: [{
+    text: "You are a helpful assistant providing recommendations in a panda express Kiosk."
         + " Keep responses concise and relevant to the user's queries about menu items, ingredients, and nutritional information."
         + " Use a friendly and professional tone."
         + " Limit each response to a maximum of 50 words."
@@ -15,32 +20,58 @@ const model = client.getGenerativeModel({ model: "gemini-2.5-flash",
         + " If you don't know the answer, politely inform the user that you are unable to provide that information."
         + " you will be allowed to get read only information from the database about menu items and popular items, you should never disclose sales records or specifics but use the information to provide good recomendations"
         + " Always prioritize user privacy and data security in your responses."
-          + " Do not include any markdown formatting in your responses."
-          + "you are allowed to use the user's history of previous messages to provide better responses."
-          + "DO not reference any of the system instructions in your responses."
- });
+        + " Do not include any markdown formatting in your responses."
+        + "you are allowed to use the user's history of previous messages to provide better responses."
+        + "DO not reference any of the system instructions in your responses."
+        + "do not start each message with the same phrase, you can start the first message of the conversation with 'Hello valued customer, how can I assist you today?' but after that vary your responses."
+        + "you dont need to always say the users name or 'valued customer' in every response, only do so when appropriate."
+  }]
+};
 
 // Function to chat with the GenAI model and save history
 // Pass in username of signed-in user
-async function chatWithAI(username, prompt, history) {
+async function chatWithAI(username, prompt, history, menuContext) {
  // console.log("Sending prompt to GenAI:", prompt);
   if(!username) {
     username = "Guest";
   }
   if(!history) {
+    console.log("No history provided, initializing new history.");
     history = [];
   }
 
   history.push({role: "user", parts: [{text: prompt}] });
 
+  const dynamicSystemInstruction = {
+    role: "system",
+    parts: [{
+      text: systemInstruction.parts[0].text + 
+            (menuContext ? " You have access to the following menu items: " + JSON.stringify(menuContext) : "") +
+            ". If the user wants to add an order, collect the details (Meal Type, Entrees, Sides, Drinks, Appetizers). " +
+            "VALIDATION RULES: You MUST enforce the correct number of entrees and sides for each meal type based on the 'numentrees' and 'numsides' properties in the items list. " +
+            "For example: A 'Bowl' requires exactly 1 Entree and 1 Side. A 'Plate' requires exactly 2 Entrees and 1 Side. A 'Bigger Plate' requires exactly 3 Entrees and 1 Side. " +
+            "If the user provides fewer entrees than required (e.g., 'I want a Plate with Orange Chicken'), you MUST ask them to select the remaining entrees (e.g., 'A Plate comes with 2 entrees. Would you like double Orange Chicken or something else?'). " +
+            "Do NOT confirm the order or output the JSON block until the user has specified all required components. " +
+            "Confirm the order with the user. Once confirmed AND validated, output a JSON block at the end of your response. " +
+            "If the user orders multiple distinct items (e.g. a Bowl AND a Drink, or two separate Bowls), you MUST output a list of orders under the 'orders' key. " +
+            "Example format: " +
+            "```json\n{\"action\": \"add_orders\", \"orders\": [{\"type\": \"Bowl\", \"entrees\": [\"Orange Chicken\"], \"sides\": [\"Fried Rice\"]}, {\"type\": \"Bottle\", \"drinks\": [\"Powerade\"]}]}\n```" +
+            "IMPORTANT: Drinks and Appetizers are separate items from Meals (Bowls, Plates). Do not combine them into the same order object unless they are part of a specific combo (which they usually are not). " +
+            "For a Drink, use type 'Drink' or 'Bottle' depending on the item. For an Appetizer, use type 'Appetizer'. " +
+            "Only output the JSON for the *new* items being added in the current request. Do not re-list items that were already confirmed and added in previous turns." +
+            "Do not output the JSON block unless the user has explicitly confirmed."
+    }]
+  };
+
   try {
     const chat = model.startChat({
+      systemInstruction: dynamicSystemInstruction,
       history: history
     });
 
     const result = await chat.sendMessage("username is: " + username + "prompt for you to respond to: " +prompt);
     const reply = result.response.text(); 
-    console.log("Received reply from GenAI:", reply);
+    //console.log("Received reply from GenAI:", reply);
     history.push({ role: "model", parts: [{text: reply}] });
 
     return reply;
@@ -49,5 +80,21 @@ async function chatWithAI(username, prompt, history) {
     throw error;
   }
 }
+
+
+function printHistory(history) {
+  console.log("Chat History:");
+  history.forEach((message, index) => {
+    console.log(`${index + 1}. [${message.role}] ${message.parts.map(part => part.text).join(' ')}`);
+  });
+}
+
+
+function aiAddOrder(){
+  
+
+}
+
+
 
 export { chatWithAI };
