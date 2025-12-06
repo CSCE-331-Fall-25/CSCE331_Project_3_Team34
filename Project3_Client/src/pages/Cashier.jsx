@@ -369,23 +369,25 @@ export default function Cashier() {
               lastRowRef={lastRowRef}
             />
           </div>
-          <div className="order-descriptors">
-            {[
-              { label: "Subtotal", value: currCost },
-              { label: "Discount", value: -(discountAmount || 0) - (discountPriceOff || 0) },
-              { label: "Tax", value: tax },
-              { label: "Total", value: priceTotal }
-            ].map((row) => (
-              <div key={row.label} className="descriptor-row">
-                <span className="descriptor-label">{row.label}</span>
-                <span className="descriptor-value">
-                  {row.label === "Discount" ? "-" : ""}${Math.abs(row.value || 0).toFixed(2)}
-                </span>
-              </div>
-            ))}
-          </div>
-          <div className="order-footer">
-            <PurchaseButton onPurchased={handlePurchase} />
+          <div className="order-bottom">
+            <div className="order-descriptors">
+              {[
+                { label: "Subtotal", value: currCost },
+                { label: "Discount", value: -(discountAmount || 0) - (discountPriceOff || 0) },
+                { label: "Tax", value: tax },
+                { label: "Total", value: priceTotal }
+              ].map((row) => (
+                <div key={row.label} className="descriptor-row">
+                  <span className="descriptor-label">{row.label}</span>
+                  <span className="descriptor-value">
+                    {row.label === "Discount" ? "-" : ""}${Math.abs(row.value || 0).toFixed(2)}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <div className="order-footer">
+              <PurchaseButton onPurchased={handlePurchase} />
+            </div>
           </div>
         </section>
       </main>

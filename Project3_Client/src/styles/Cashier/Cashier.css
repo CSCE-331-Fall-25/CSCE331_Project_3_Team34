@@ -76,6 +76,9 @@
 
 .order-column {
 	gap: 16px;
+	height: calc(100vh - 220px);
+	position: sticky;
+	top: 160px;
 }
 
 .column-heading {
@@ -103,10 +106,12 @@
 	display: flex;
 	margin-top: 16px;
 	min-height: 0;
+	overflow: hidden;
 }
 
 .order-table-wrapper > * {
 	flex: 1;
+	overflow-y: auto;
 }
 
 .order-descriptors {
@@ -137,6 +142,17 @@
 .descriptor-value {
 	font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
 	font-size: 0.95rem;
+}
+
+.order-bottom {
+	margin-top: 16px;
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+	position: sticky;
+	bottom: 0;
+	background: linear-gradient(180deg, rgba(246,247,251,0) 0%, #f6f7fb 35%, #f6f7fb 100%);
+	padding-bottom: 8px;
 }
 
 .order-footer {
