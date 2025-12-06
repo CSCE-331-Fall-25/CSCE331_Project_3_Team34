@@ -131,6 +131,9 @@ export default function App() {
     }, [showButtons]);
     useEffect(() => {
       console.log('App mounted, checking for Google Login callback');
+      // If we are on the login page, let the Login component handle the callback
+      if (window.location.pathname === '/login') return;
+
       const params = new URLSearchParams(window.location.search);
       if (params.get('success')) {
         handleGoogleLogin(params);

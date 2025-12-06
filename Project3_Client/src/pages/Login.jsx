@@ -21,12 +21,7 @@ export default function Login() {
   const storedFunctionality = sessionStorage.getItem('loginFunctionality');
   const functionality = parseInt(urlFunctionality || storedFunctionality || '0');
   
-  // Get BackLocation parameter
-  const urlBackLocation = searchParams.get('BackLocation');
-  const storedBackLocation = sessionStorage.getItem('loginBackLocation');
-  const backLocation = urlBackLocation || storedBackLocation;
-  
-  // Save returnTo, functionality, and BackLocation to sessionStorage if it's in URL params
+  // Save returnTo and functionality to sessionStorage if it's in URL params
   useEffect(() => {
     if (urlReturnTo) {
       sessionStorage.setItem('loginReturnTo', urlReturnTo);
@@ -37,10 +32,7 @@ export default function Login() {
         setCustomer(true);
       }
     }
-    if (urlBackLocation) {
-      sessionStorage.setItem('loginBackLocation', urlBackLocation);
-    }
-  }, [urlReturnTo, searchParams, urlBackLocation]);
+  }, [urlReturnTo, searchParams]);
 
   async function isValidLogin(userName, password) {
     try {
@@ -79,7 +71,6 @@ export default function Login() {
         console.log("Navigating to: " + returnTo);
       sessionStorage.removeItem('loginReturnTo');
       sessionStorage.removeItem('loginFunctionality');
-      sessionStorage.removeItem('loginBackLocation');
       // Add success parameter based on functionality
       const successValue = functionality === 0 ? 1 : functionality + 1;
       const url = new URL(returnTo, window.location.origin);
@@ -128,7 +119,31 @@ export default function Login() {
           alert('Google Login Failed: No user data returned.');
           return;
         }
-        if (data.user && data.user.isEmployee) {
+
+        let authorized = false;
+        let redirectOverride = null;
+        // Check roles based on functionality
+        if (functionality === 1) { // Manager
+            if (data.user.isEmployee && data.user.isManager) {
+                authorized = true;
+            } else if (data.user.isEmployee) {
+                authorized = true;
+                redirectOverride = '/cashier';
+            } else {
+                alert('Google Login Failed: User is not a Manager.');
+            }
+        } else if (functionality === 3) { // Customer
+             // Assuming any logged in user can be a customer, or check specific logic
+             authorized = true;
+        } else { // Default to Employee (functionality 0 or others)
+             if (data.user.isEmployee) {
+                 authorized = true;
+             } else {
+                 alert('Google Login Failed: User is not an Employee.');
+             }
+        }
+
+        if (authorized) {
           // Proceed with your logic
           if(add === 'true'){ 
             await fetch('/api/add-googleid', {
@@ -140,13 +155,19 @@ export default function Login() {
           }
           sessionStorage.removeItem('loginReturnTo');
           sessionStorage.removeItem('loginFunctionality');
-          // Set success parameter based on functionality
-          const successValue = functionality === 0 ? 1 : functionality + 1;
-          const url = new URL(returnToParam, window.location.origin);
-          url.searchParams.set('success', successValue.toString());
-          navigate(url.pathname + url.search, { replace: true });
+          
+          if (redirectOverride) {
+            navigate(redirectOverride, { replace: true });
+          } else {
+            // Set success parameter based on functionality
+            const successValue = functionality === 0 ? 1 : functionality + 1;
+            const url = new URL(returnToParam, window.location.origin);
+            url.searchParams.set('success', successValue.toString());
+            navigate(url.pathname + url.search, { replace: true });
+          }
         } else {
-          alert('Google Login Failed: Not an Employee.');
+            // Not authorized, stay on login page
+            navigate('/login', { replace: true });
         }
       } else {
         const text = await res.text();
@@ -154,14 +175,12 @@ export default function Login() {
         alert('Google Login Failed: Server did not return JSON.');
       }
     } else if (isSuccess === 'false') {
-      // On failure, navigate with success=0
-      const url = new URL(returnToParam, window.location.origin);
-      url.searchParams.set('success', '0');
-      navigate(url.pathname + url.search, { replace: true });
+      // On failure, stay on login page
       if (!window._googleLoginFailedAlerted) {
         window._googleLoginFailedAlerted = true;
         alert('Google Login Failed. Please try again.');
       }
+      navigate('/login', { replace: true });
       return;
     }
   }
@@ -218,11 +237,6 @@ export default function Login() {
           />
           <button type="submit">Login</button>
         </form>
-        {backLocation && (
-          <button className="back-button" onClick={() => navigate(backLocation.startsWith('/') ? backLocation : `/${backLocation.toLowerCase()}`)}>
-            Back 
-          </button>
-        )}
         {!customer && 
         <GoogleLoginButton returnTo={returnTo} functionality={functionality} />
         }

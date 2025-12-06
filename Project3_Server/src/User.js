@@ -84,7 +84,7 @@ class User {
         }
         else {
             console.log('Linking Google ID to Customer not implemented yet.');
-            // await Customer.LinkGoogleIdToCustomer(db, username, googleId);
+            //await Customer.LinkGoogleIdToCustomer(db, username, googleId);
         }
         return true;
     }

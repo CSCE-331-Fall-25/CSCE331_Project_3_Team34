@@ -10,5 +10,6 @@ navigate('/login?returnTo=/admin&functionality=5')
 
 functionality
 0: default
-1: employee login from kiosk
+1: employee login from cashier
+2: employee login from kiosk
 3: customer login, used in kiosk

@@ -820,7 +820,7 @@ export default function Kiosk() {
         </button>
         <button
           className="kiosk-signin-btn"
-          onClick={() => navigate('/login?returnTo=/hub&functionality=1&BackLocation=/kiosk')}>
+          onClick={() => navigate('/login?returnTo=/hub&functionality=2')}>
           Employee Sign In
         </button>
         <button
