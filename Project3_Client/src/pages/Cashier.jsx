@@ -306,18 +306,15 @@ export default function Cashier() {
       />
       <header className="cashier-top">
         <div className="top-meta">
-          <span className="meta-label">Employee</span>
           <span className="meta-value">{User || "Employee"}</span>
         </div>
         <div className="top-meta">
-          <span className="meta-label">Time</span>
           <span className="meta-value">{currentTime}</span>
         </div>
       </header>
 
       <main className="cashier-grid">
         <section className="card actions-column">
-          <h2>Quick Actions</h2>
           <div className="action-stack">
             {[
               { text: "Discount", handler: handleAddDiscount },
@@ -332,7 +329,6 @@ export default function Cashier() {
         </section>
 
         <section className="card menu-column">
-          <h2>Build Meal</h2>
           <div className="cashier-menu-groups">
             <div className="cashier-menu-row">
               {["Bowl", "Plate", "Bigger", "Family"].map((item) => (
@@ -371,12 +367,22 @@ export default function Cashier() {
               selectedRow={selectedRow}
               setSelectedRow={setSelectedRow}
               lastRowRef={lastRowRef}
-              currCost={currCost}
-              tax={tax}
-              priceTotal={priceTotal}
-              discountAmount={discountAmount}
-              discountPriceOff={discountPriceOff}
             />
+          </div>
+          <div className="order-descriptors">
+            {[
+              { label: "Subtotal", value: currCost },
+              { label: "Discount", value: -(discountAmount || 0) - (discountPriceOff || 0) },
+              { label: "Tax", value: tax },
+              { label: "Total", value: priceTotal }
+            ].map((row) => (
+              <div key={row.label} className="descriptor-row">
+                <span className="descriptor-label">{row.label}</span>
+                <span className="descriptor-value">
+                  {row.label === "Discount" ? "-" : ""}${Math.abs(row.value || 0).toFixed(2)}
+                </span>
+              </div>
+            ))}
           </div>
           <div className="order-footer">
             <PurchaseButton onPurchased={handlePurchase} />
