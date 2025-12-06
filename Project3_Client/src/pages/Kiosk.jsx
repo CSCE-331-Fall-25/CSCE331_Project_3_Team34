@@ -35,7 +35,9 @@ export default function Kiosk() {
     'Transaction': 'Transaction',
     'Complete': 'Complete',
     'New Order': 'New Order',
-    'Loading': 'Loading'
+    'Loading': 'Loading',
+    'calories': 'calories',
+    'Allergens': 'Allergens'
   }), []);
 
   const translatedTexts = useTranslatedObject(translationKeys);
@@ -164,7 +166,17 @@ export default function Kiosk() {
     return translatedItemNames[name] || name;
   };
 
-  // Translate item names when items/menuItems change OR language changes
+  // Helper to translate allergen string (comma-separated list)
+  const getTranslatedAllergens = (allergenString) => {
+    if (!allergenString || allergenString === 'NA') return allergenString;
+    
+    // Split by comma, translate each allergen, then join back
+    const allergens = allergenString.split(',').map(a => a.trim());
+    const translated = allergens.map(allergen => translatedItemNames[allergen] || allergen);
+    return translated.join(', ');
+  };
+
+  // Translate item names and allergens when items/menuItems change OR language changes
   useEffect(() => {
     if (!translationContext) return;
 
@@ -173,7 +185,16 @@ export default function Kiosk() {
       if (selectedLanguage === 'en') {
         const englishNames = {};
         items.forEach(item => item.name && (englishNames[item.name] = item.name));
-        menuItems.forEach(item => item.name && (englishNames[item.name] = item.name));
+        menuItems.forEach(item => {
+          if (item.name) englishNames[item.name] = item.name;
+          // Also collect allergens
+          if (item.allergies && item.allergies !== 'NA') {
+            item.allergies.split(',').forEach(allergen => {
+              const trimmed = allergen.trim();
+              if (trimmed) englishNames[trimmed] = trimmed;
+            });
+          }
+        });
         orderItems.forEach(item => item.name && (englishNames[item.name] = item.name));
         setTranslatedItemNames(englishNames);
         return;
@@ -181,9 +202,18 @@ export default function Kiosk() {
 
       const allNames = new Set();
       
-      // Collect all unique item names
+      // Collect all unique item names and allergens
       items.forEach(item => item.name && allNames.add(item.name));
-      menuItems.forEach(item => item.name && allNames.add(item.name));
+      menuItems.forEach(item => {
+        if (item.name) allNames.add(item.name);
+        // Also collect individual allergens
+        if (item.allergies && item.allergies !== 'NA') {
+          item.allergies.split(',').forEach(allergen => {
+            const trimmed = allergen.trim();
+            if (trimmed) allNames.add(trimmed);
+          });
+        }
+      });
       orderItems.forEach(item => item.name && allNames.add(item.name));
       
       if (allNames.size === 0) return;
@@ -994,8 +1024,12 @@ export default function Kiosk() {
                       )}
                       <div className="kiosk-item-name">{getTranslatedItemName(it.name)}</div>
                       <div className="kiosk-item-price">{hide ? '' : `$${value.toFixed(2)}`}</div>
-                      <div className="kiosk-item-calories">{it.calories ? `${it.calories} calories` : '0 calories'}</div>
-                      <div className="kiosk-item-calories">{hideAllergies ? '' : `${allergies}`}</div>
+                      <div className="kiosk-item-calories">
+                        {it.calories ? `${it.calories} ${translatedTexts['calories']}` : `0 ${translatedTexts['calories']}`}
+                      </div>
+                      <div className="kiosk-item-calories">
+                        {hideAllergies ? '' : (allergies ? `${translatedTexts['Allergens']}: ${getTranslatedAllergens(allergies)}` : '')}
+                      </div>
                     </div>
                   );
                 })}
