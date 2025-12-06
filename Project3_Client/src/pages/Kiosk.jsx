@@ -9,6 +9,8 @@ import { getImageForItem } from "../assets/utils/imageMapper";
 import ChatModal from '../Components/ChatModal';
 import { saveOrder, loadOrder, clearOrder } from '../utils/orderPersistence';
 import { useTranslatedObject } from '../hooks/useTranslatedText';
+import { useContext } from 'react';
+import { TranslationContext } from '../contexts/TranslationContext';
 
 export default function Kiosk() {
 
@@ -37,6 +39,10 @@ export default function Kiosk() {
   }), []);
 
   const translatedTexts = useTranslatedObject(translationKeys);
+
+  // Get translation context for dynamic content like menu item names
+  const translationContext = useContext(TranslationContext);
+  const selectedLanguage = translationContext?.selectedLanguage || 'en';
 
   // --- inactivity timer --- //
 
@@ -108,6 +114,7 @@ export default function Kiosk() {
   const [menuItems, setMenuItems] = useState([]);
   const [orderItems, setOrderItems] = useState([]);
   const [items, setItems] = useState([]);
+  const [translatedItemNames, setTranslatedItemNames] = useState({});
   const [selectionQueue, setSelectionQueue] = useState([]);
   const [currentGroupId, setCurrentGroupId] = useState(null);
   const [activeSelection, setActiveSelection] = useState(null); // { type, label, remaining }
@@ -151,6 +158,55 @@ export default function Kiosk() {
   const changeState = (newState) => {
     setState(newState);
   }
+
+  // Helper to get translated item name (from cache or original)
+  const getTranslatedItemName = (name) => {
+    return translatedItemNames[name] || name;
+  };
+
+  // Translate item names when items/menuItems change OR language changes
+  useEffect(() => {
+    if (!translationContext) return;
+
+    const translateItemNames = async () => {
+      // If English, just use original names
+      if (selectedLanguage === 'en') {
+        const englishNames = {};
+        items.forEach(item => item.name && (englishNames[item.name] = item.name));
+        menuItems.forEach(item => item.name && (englishNames[item.name] = item.name));
+        orderItems.forEach(item => item.name && (englishNames[item.name] = item.name));
+        setTranslatedItemNames(englishNames);
+        return;
+      }
+
+      const allNames = new Set();
+      
+      // Collect all unique item names
+      items.forEach(item => item.name && allNames.add(item.name));
+      menuItems.forEach(item => item.name && allNames.add(item.name));
+      orderItems.forEach(item => item.name && allNames.add(item.name));
+      
+      if (allNames.size === 0) return;
+      
+      // Translate all names in parallel using context's translate function
+      const translations = await Promise.all(
+        Array.from(allNames).map(async (name) => {
+          const translated = await translationContext.translate(name, selectedLanguage);
+          return { name, translated };
+        })
+      );
+      
+      // Update cache
+      const newTranslations = {};
+      translations.forEach(({ name, translated }) => {
+        newTranslations[name] = translated;
+      });
+      
+      setTranslatedItemNames(newTranslations);
+    };
+    
+    translateItemNames();
+  }, [items, menuItems, orderItems, selectedLanguage, translationContext]);
 
   // size modifiers fetched from server grouped by type (lowercased)
   const [sizeModsByType, setSizeModsByType] = useState({});
@@ -875,7 +931,7 @@ export default function Kiosk() {
                   className={`kiosk-type-btn ${selectedItemId === currItemId ? 'active' : ''}`}
                   onClick={() => handleItemSelection(item)}
                 >
-                  <div className="kiosk-type-name">{item.name || currItemId}</div>
+                  <div className="kiosk-type-name">{getTranslatedItemName(item.name) || currItemId}</div>
                   <div className="kiosk-item-price">${basePrice.toFixed(2)}</div>
                 </button>
               );
@@ -936,7 +992,7 @@ export default function Kiosk() {
                           className='kiosk-menu-image'
                         />
                       )}
-                      <div className="kiosk-item-name">{it.name}</div>
+                      <div className="kiosk-item-name">{getTranslatedItemName(it.name)}</div>
                       <div className="kiosk-item-price">{hide ? '' : `$${value.toFixed(2)}`}</div>
                       <div className="kiosk-item-calories">{it.calories ? `${it.calories} calories` : '0 calories'}</div>
                       <div className="kiosk-item-calories">{hideAllergies ? '' : `${allergies}`}</div>
@@ -948,7 +1004,7 @@ export default function Kiosk() {
                 <div className="kiosk-size-modal-backdrop">
                   <div className="kiosk-size-modal">
                     <div className="kiosk-size-modal-title">
-                      Choose a size for {pendingSizeSelection.option?.name}
+                      Choose a size for {getTranslatedItemName(pendingSizeSelection.option?.name)}
                     </div>
                     <div className="kiosk-size-modal-subtitle">
                       {pendingSizeSelection.selectionLabel || 'Selection'} requires a size.
@@ -1002,7 +1058,7 @@ export default function Kiosk() {
               return (
                 <div className={rowClass} key={idx}>  
                   <div className="kiosk-order-name">
-                    <span>{it.name}</span>
+                    <span>{getTranslatedItemName(it.name)}</span>
                     {it.sizeLabel && (
                       <span className="kiosk-order-size-note">
                         {it.sizeLabel}
