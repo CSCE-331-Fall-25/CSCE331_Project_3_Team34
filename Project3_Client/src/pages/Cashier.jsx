@@ -54,6 +54,7 @@ export default function Cashier() {
 
   //Void modal
   const [showVoidModal, setShowVoidModal] = useState(false);
+  const [currentTime, setCurrentTime] = useState(() => new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
 
   //ManagerOverrideLogin
    const [searchParams] = useSearchParams();
@@ -88,6 +89,13 @@ export default function Cashier() {
       }
       console.log('sucessfulOverrideLogin param:', sucessfulOverrideLogin);
     }, [sucessfulOverrideLogin]);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
+    }, 30000);
+    return () => clearInterval(timer);
+  }, []);
 
   const handleBuildItem = (e) => {
     const id = e.target.id;
@@ -239,8 +247,9 @@ export default function Cashier() {
 
 
 
+  const orderCountLabel = transactionItems.length === 1 ? "1 item" : `${transactionItems.length} items`;
   return (
-    <div className="main-page bkgColor cashier-container">
+    <div className="main-page bkgColor cashier-screen">
       {/* //to use the size modal, set sizes based on options, then collect setSelectedSize for output */}
       {showSizeModal && (
         <SizeModal
@@ -295,71 +304,85 @@ export default function Cashier() {
         onClose={() => setShowVoidModal(false)}
         userIsManager={isManager}
       />
-      {/* Sidebar */}
-      <div className="sidebar-left" />
-
-      {/* Header bar */}
-      <div className="header-bar" style={{zIndex:-1}} />
-
-      {/* Labels */}
-      <div className="label-employee">Employee:</div>
-      <div className="label-time">Time:</div>
-
-      {/* Order summary area (moved to CashierCostTable for clarity) */}
-      <div className="order-area">
-        <CashierCostTable
-          transactionItems={transactionItems}
-          selectedRow={selectedRow}
-          setSelectedRow={setSelectedRow}
-          lastRowRef={lastRowRef}
-          currCost={currCost}
-          tax={tax}
-          priceTotal={priceTotal}
-          discountAmount={discountAmount}
-          discountPriceOff={discountPriceOff}
-          onPurchase={handlePurchase}
-        />
-      </div>
-
-      {/* Menu buttons */}
-      <div className="menu-area">
-        <div className="menu-row">
-          {["Bowl", "Plate", "Bigger", "Family"].map((item) => (
-            <button key={item} id={item} className="buy-button" onClick={handleBuildItem}>
-              {item}
-            </button>
-          ))}
+      <header className="cashier-top">
+        <div className="top-meta">
+          <span className="meta-label">Employee</span>
+          <span className="meta-value">{User || "Employee"}</span>
         </div>
-        <div className="menu-row spaced">
-          {["A La Carte", "Appetizer", "Drink", "Bottle"  ].map((item) => (
-            <button key={item} id={item} className="buy-button" onClick={handleBuildItem}>
-              {item}
-            </button>
-          ))}
+        <div className="top-meta">
+          <span className="meta-label">Time</span>
+          <span className="meta-value">{currentTime}</span>
         </div>
-      </div>
+      </header>
 
-      {/* update order buttons (extracted components) */}
-      <div className="updateOrder-button-row">
-        <RemoveItemButton index={selectedRow} onRemoved={() => { setSelectedRow(null); UpdatePage(); }} />
-        <ClearTransactionButton onCleared={() => { UpdatePage(); }} />
-        <button onClick={handleCustomizeOrder} className="UpdateOrderButton">CUSTOMIZE</button>
-      </div>
+      <main className="cashier-grid">
+        <section className="card actions-column">
+          <h2>Quick Actions</h2>
+          <div className="action-stack">
+            {[
+              { text: "Discount", handler: handleAddDiscount },
+              { text: "Void", handler: handleShowVoid },
+              { text: "Sign Out", handler: () => setShowSignOutModal(true) },
+            ].map((btn) => (
+              <button key={btn.text} onClick={btn.handler} className="function-button">
+                {btn.text}
+              </button>
+            ))}
+          </div>
+        </section>
 
-      {/* Purchase handled inside CashierCostTable to preserve original layout */}
+        <section className="card menu-column">
+          <h2>Build Meal</h2>
+          <div className="cashier-menu-groups">
+            <div className="cashier-menu-row">
+              {["Bowl", "Plate", "Bigger", "Family"].map((item) => (
+                <button key={item} id={item} className="cashier-menu-button" onClick={handleBuildItem}>
+                  {item}
+                </button>
+              ))}
+            </div>
+            <div className="cashier-menu-row">
+              {["A La Carte", "Appetizer", "Drink", "Bottle"].map((item) => (
+                <button key={item} id={item} className="cashier-menu-button" onClick={handleBuildItem}>
+                  {item}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="update-row">
+            <div className="update-btn">
+              <RemoveItemButton index={selectedRow} onRemoved={() => { setSelectedRow(null); UpdatePage(); }} />
+            </div>
+            <div className="update-btn">
+              <ClearTransactionButton onCleared={() => { UpdatePage(); }} />
+            </div>
+            <button onClick={handleCustomizeOrder} className="UpdateOrderButton">CUSTOMIZE</button>
+          </div>
+        </section>
 
-      {/* Function buttons (left sidebar) */}
-      <div className="functions-column">
-        {[
-          { text: "Discount", handler: handleAddDiscount },
-          { text: "Void", handler: handleShowVoid },
-          { text: "Sign Out", handler: () => setShowSignOutModal(true) },
-        ].map((btn) => (
-          <button key={btn.text} onClick={btn.handler} className="function-button">
-            {btn.text}
-          </button>
-        ))}
-      </div>
+        <section className="card order-column">
+          <div className="column-heading">
+            <h2>Current Order</h2>
+            <span className="order-count">{orderCountLabel}</span>
+          </div>
+          <div className="order-table-wrapper">
+            <CashierCostTable
+              transactionItems={transactionItems}
+              selectedRow={selectedRow}
+              setSelectedRow={setSelectedRow}
+              lastRowRef={lastRowRef}
+              currCost={currCost}
+              tax={tax}
+              priceTotal={priceTotal}
+              discountAmount={discountAmount}
+              discountPriceOff={discountPriceOff}
+            />
+          </div>
+          <div className="order-footer">
+            <PurchaseButton onPurchased={handlePurchase} />
+          </div>
+        </section>
+      </main>
     </div>
   );
 }
