@@ -30,7 +30,11 @@ export default function ChatModal({ onClose, onAddOrder }) {
         body: JSON.stringify({ prompt_text })
       });
       const data = await response.json();
-      return data.response_text;
+      if (data.success) {
+        return data.response_text;
+      } else {
+        return "I apologize, but I am unable to process your request at the moment. " + (data.error || "Please try again later.");
+      }
     } catch (error) {
       console.error('Error:', error);
       return "Error fetching AI response.";
