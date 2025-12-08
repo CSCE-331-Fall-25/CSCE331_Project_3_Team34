@@ -27,6 +27,7 @@ ChartJS.register(
 
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import SignOutButton from "../Components/SignOut.jsx";
 
 export default function Manager() {
 
@@ -1564,23 +1565,7 @@ export default function Manager() {
         )
       }
       {showSignOutModal && (
-        <div
-          className="modal-overlay"
-          onClick={() => setShowSignOutModal(false)}
-            >
-          <div className="modal-window" onClick={e => e.stopPropagation()}>
-            <div className="modal-title">
-              <h2>Confirm Sign Out</h2>
-            <div>
-              Are you sure you want to sign out?
-            </div>
-            </div>
-            <div className= "modal-actions">
-              <button className="button" onClick={handleSignOut}>Yes</button>
-              <button className="button" onClick={() => setShowSignOutModal(false)}>No</button>
-            </div>
-          </div>
-        </div>
+        <SignOutButton onClose={() => setShowSignOutModal(false)} />
       )}
       <div className = "manager-subheader"><h1>Welcome, {employeeName === null ? "missing" : employeeName}!</h1></div>
 
@@ -1613,8 +1598,6 @@ export default function Manager() {
         >
           Manage Menu
         </button>
-        {/* Can be used for accessability settings in the future */}
-        <button className = "button manager-button">Settings</button>
         <button className = "button manager-button" onClick={() => setShowSignOutModal(true)}>Sign Out</button>
       </div>
       <div className="line-chart">

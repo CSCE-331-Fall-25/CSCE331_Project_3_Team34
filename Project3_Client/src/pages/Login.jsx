@@ -115,8 +115,9 @@ export default function Login() {
     const add = params.get('add');
     if (isSuccess === 'true') {
       // Fetch user info from backend
+      let res;
       try {
-        const res = await fetch('/api/auth/me', { credentials: 'include' });
+        res = await fetch('/api/auth/me', { credentials: 'include' });
       } catch (error) {
         console.error('Error fetching user data:', error);
         alert('Failed to verify login. Please try again.');
