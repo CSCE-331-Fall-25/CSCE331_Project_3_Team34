@@ -44,7 +44,15 @@ export default function Kiosk() {
     'New Order': 'New Order',
     'Loading': 'Loading',
     'calories': 'calories',
-    'Allergens': 'Allergens'
+    'Allergens': 'Allergens',
+    'Choose a size for': 'Choose a size for',
+    'requires a size.': 'requires a size.',
+    'options': 'options',
+    'Included': 'Included',
+    'Cancel': 'Cancel',
+    'Small': 'Small',
+    'Medium': 'Medium',
+    'Large': 'Large',
   }), []);
 
   const translatedTexts = useTranslatedObject(translationKeys);
@@ -1083,14 +1091,14 @@ export default function Kiosk() {
                   <div className="kiosk-size-modal-backdrop">
                     <div className="kiosk-size-modal">
                       <div className="kiosk-size-modal-title">
-                        Choose a size for {getTranslatedItemName(pendingSizeSelection.option?.name)}
+                        {translatedTexts['Choose a size for']} {getTranslatedItemName(pendingSizeSelection.option?.name)}
                       </div>
                       <div className="kiosk-size-modal-subtitle">
-                        {pendingSizeSelection.selectionLabel || 'Selection'} requires a size.
+                        {pendingSizeSelection.selectionLabel || 'Selection'} {translatedTexts['requires a size.'] || 'requires a size.'}
                       </div>
                       {pendingSizeSelection.sizeCategory && (
                         <div className="kiosk-size-modal-subtitle secondary">
-                          {pendingSizeSelection.sizeCategory} options
+                          {pendingSizeSelection.sizeCategory} {translatedTexts['options'] || 'options'}
                         </div>
                       )}
                       <div className="kiosk-size-modal-options">
@@ -1101,16 +1109,16 @@ export default function Kiosk() {
                             className="kiosk-size-btn"
                             onClick={() => confirmSizeSelection(opt)}
                           >
-                            <span className="kiosk-size-label">{opt.label}</span>
+                            <span className="kiosk-size-label">{translatedTexts[opt.label] || opt.label}</span>
                             {opt.priceDelta ? (
                               <span className="kiosk-size-price">+${opt.priceDelta.toFixed(2)}</span>
                             ) : (
-                              <span className="kiosk-size-price">Included</span>
+                              <span className="kiosk-size-price">{translatedTexts['Included'] || 'Included'}</span>
                             )}
                           </button>
                         ))}
                       </div>
-                      <button type="button" className="kiosk-size-cancel" onClick={cancelSizeSelection}>Cancel</button>
+                      <button type="button" className="kiosk-size-cancel" onClick={cancelSizeSelection}>{translatedTexts['Cancel'] || 'Cancel'}</button>
                     </div>
                   </div>
                 )}

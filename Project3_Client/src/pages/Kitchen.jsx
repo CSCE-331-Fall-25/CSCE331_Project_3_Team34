@@ -3,6 +3,31 @@ import { TranslationContext } from '../contexts/TranslationContext';
 import { useTranslatedObject, useTranslatedText } from '../hooks/useTranslatedText';
 import '../styles/Kitchen.css';
 
+// Utility function to decode HTML entities
+function decodeHTMLEntities(text) {
+  if (!text) return text;
+  // Handle both string and non-string inputs
+  const str = typeof text === 'string' ? text : String(text);
+  
+  // Create a temporary element to leverage browser's HTML parser
+  const textarea = document.createElement('textarea');
+  textarea.innerHTML = str;
+  const decoded = textarea.value;
+  
+  // Also handle numeric entities manually as backup
+  let result = decoded;
+  // Handle decimal numeric entities: &#39; &#160; etc
+  result = result.replace(/&#(\d+);/g, (match, dec) => {
+    return String.fromCharCode(parseInt(dec, 10));
+  });
+  // Handle hex numeric entities: &#x27; &#x3A; etc
+  result = result.replace(/&#x([0-9a-f]+);/gi, (match, hex) => {
+    return String.fromCharCode(parseInt(hex, 16));
+  });
+  
+  return result;
+}
+
 // Configuration for the three kitchen display columns (labels will be translated)
 const COLUMN_CONFIG = [
   { key: 'waiting', label: 'Waiting', endpoint: '/api/kitchen/get-not-started', leftButton: '', rightButton: 'Start'},
@@ -38,6 +63,12 @@ export default function Kitchen() {
     'Customer Name': 'Customer Name',
     'Tray': 'Tray',
     'Tray:': 'Tray:',
+    'Entree': 'Entree',
+    'Drink': 'Drink',
+    'Side': 'Side',
+    'small': 'small',
+    'medium': 'medium',
+    'large': 'large',
   }), []);
   const translatedTexts = useTranslatedObject(translationKeys);
   const [translatedItemText, setTranslatedItemText] = useState({});
@@ -68,21 +99,37 @@ export default function Kitchen() {
   useEffect(() => {
     if (!translationContext) return;
 
-    // Clear when returning to English
-    if (selectedLanguage === 'en') {
-      setTranslatedItemText({});
-      return;
-    }
-
     const stringsToTranslate = new Set();
+    const stringMap = {}; // Map to preserve original strings with normalized keys
 
     Object.values(tickets || {}).forEach(colTickets => {
       (colTickets || []).forEach(ticket => {
         (ticket.items || []).forEach(item => {
-          const nameText = (item?.name ?? item)?.toString();
-          if (nameText) stringsToTranslate.add(nameText);
+          // Items are already decoded from server, so use directly
+          const nameText = (typeof item === 'string' ? item : (item?.name ?? item))?.toString();
+          if (nameText) {
+            stringsToTranslate.add(nameText);
+            stringMap[nameText] = nameText;
+          }
           const trayText = (item?.tray)?.toString();
-          if (trayText) stringsToTranslate.add(trayText);
+          if (trayText) {
+            stringsToTranslate.add(trayText);
+            stringMap[trayText] = trayText;
+            // Extract category from tray (e.g., "Entree (small):" -> "Entree")
+            const categoryMatch = trayText.match(/^(Entree|Drink|Side)/i);
+            if (categoryMatch) {
+              const cat = categoryMatch[1];
+              stringsToTranslate.add(cat);
+              stringMap[cat] = cat;
+            }
+            // Extract size from tray (e.g., "Entree (small):" -> "small")
+            const sizeMatch = trayText.match(/\((small|medium|large)\)/i);
+            if (sizeMatch) {
+              const size = sizeMatch[1].toLowerCase();
+              stringsToTranslate.add(size);
+              stringMap[size] = size;
+            }
+          }
         });
       });
     });
@@ -90,6 +137,16 @@ export default function Kitchen() {
     const payload = Array.from(stringsToTranslate);
     if (payload.length === 0) {
       setTranslatedItemText({});
+      return;
+    }
+
+    // Clear when returning to English
+    if (selectedLanguage === 'en') {
+      const nextMap = {};
+      payload.forEach(text => {
+        nextMap[text] = text;
+      });
+      setTranslatedItemText(nextMap);
       return;
     }
 
@@ -101,7 +158,10 @@ export default function Kitchen() {
 
         const nextMap = {};
         payload.forEach((text, idx) => {
-          nextMap[text] = results[idx] || text;
+          const translated = results[idx] || text;
+          // Store both the original and translated version
+          // Use the original string as key to lookup translations
+          nextMap[stringMap[text]] = translated;
         });
         setTranslatedItemText(nextMap);
       } catch (e) {
@@ -137,7 +197,18 @@ export default function Kitchen() {
         const results = await Promise.all(
           columnDefinitions.map(async column => {
             const data = await fetchColumnData(column);
-            return [column.key, data];
+            // Decode HTML entities in all text fields immediately upon receiving
+            const decodedData = data.map(ticket => ({
+              ...ticket,
+              items: (ticket.items || []).map(item => {
+                if (typeof item === 'string') {
+                  return decodeHTMLEntities(item);
+                }
+                return item?.name ? { ...item, name: decodeHTMLEntities(item.name) } : item;
+              }),
+              customername: ticket.customername ? decodeHTMLEntities(ticket.customername) : ticket.customername,
+            }));
+            return [column.key, decodedData];
           })
         );
         // Only update state if component is still mounted
@@ -397,19 +468,62 @@ export default function Kitchen() {
                       {/* List of items in the order */}
                       {Array.isArray(ticket.items) && ticket.items.length > 0 && (
                         <div className="kitchen-ticket-items">
-                          {(ticket.items ?? []).map((item, idx) => (
-                            <div key={idx} className="kitchen-ticket-item">
-                              {translatedItemText[(item?.name ?? item)?.toString()] || (item?.name ?? item)}
-                              {/* If item has a tray property, show translated tray */}
-                              {item.tray && (
-                                <span className="kitchen-ticket-tray" style={{ marginLeft: 8, color: '#888', fontSize: '0.95em' }}>
-                                  {' '}
-                                  {translatedTexts['Tray:'] || 'Tray:'}{' '}
-                                  {translatedItemText[(item?.tray)?.toString()] || (item?.tray)}
-                                </span>
-                              )}
-                            </div>
-                          ))}
+                          {(ticket.items ?? []).map((item, idx) => {
+                            // Items are already decoded from server
+                            const itemName = typeof item === 'string' ? item : (item?.name ?? item);
+                            const itemTray = item?.tray || null;
+                            
+                            // Get translation or fallback to original
+                            const displayName = translatedItemText[itemName] !== undefined ? translatedItemText[itemName] : itemName;
+                            
+                            // Replace category names and sizes in tray with translated versions
+                            let translatedTray = itemTray;
+                            if (itemTray && selectedLanguage !== 'en') {
+                              // First check if full tray is translated
+                              if (translatedItemText[itemTray] !== undefined) {
+                                translatedTray = translatedItemText[itemTray];
+                              } else {
+                                // Try to replace category and size
+                                let tempTray = itemTray;
+                                
+                                // Replace category
+                                const categoryMatch = itemTray.match(/^(Entree|Drink|Side)/);
+                                if (categoryMatch) {
+                                  const originalCategory = categoryMatch[1];
+                                  const translatedCategory = translatedItemText[originalCategory];
+                                  if (translatedCategory !== undefined) {
+                                    tempTray = tempTray.replace(/^(Entree|Drink|Side)/, translatedCategory);
+                                  }
+                                }
+                                
+                                // Replace size in parentheses
+                                const sizeMatch = itemTray.match(/\((small|medium|large)\)/i);
+                                if (sizeMatch) {
+                                  const originalSize = sizeMatch[1].toLowerCase();
+                                  const translatedSize = translatedItemText[originalSize];
+                                  if (translatedSize !== undefined) {
+                                    tempTray = tempTray.replace(/\((small|medium|large)\)/i, `(${translatedSize})`);
+                                  }
+                                }
+                                
+                                translatedTray = tempTray;
+                              }
+                            }
+                            
+                            return (
+                              <div key={idx} className="kitchen-ticket-item">
+                                {displayName}
+                                {/* If item has a tray property, show translated tray */}
+                                {translatedTray && (
+                                  <span className="kitchen-ticket-tray" style={{ marginLeft: 8, color: '#888', fontSize: '0.95em' }}>
+                                    {' '}
+                                    {translatedTexts['Tray:'] || 'Tray:'}{' '}
+                                    {translatedTray}
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                       )}
                       <div className="kitchen-ticket-actions">
