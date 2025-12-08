@@ -48,10 +48,10 @@ export default function Login() {
       });
       const data = await res.json().catch(() => null);
       if (res.ok && data && data.success) {
-        console.log('Login successful for user:', userName);
+        //console.log('Login successful for user:', userName);
         return true;
       }
-      console.log('Login failed for user:', userName, data);
+      //console.log('Login failed for user:', userName, data);
       return false;
     } catch (error) {
       console.error('Error during login request:', error);
@@ -89,7 +89,7 @@ export default function Login() {
           break;
         case 2:
           alert('Invalid Login.');
-          return;
+          return; //supposed to just stay on page purposful return
         case 3:
           alert('Invalid Login. Cannot access Customer functionality.');
           break;
@@ -115,7 +115,14 @@ export default function Login() {
     const add = params.get('add');
     if (isSuccess === 'true') {
       // Fetch user info from backend
-      const res = await fetch('/api/auth/me', { credentials: 'include' });
+      try {
+        const res = await fetch('/api/auth/me', { credentials: 'include' });
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+        alert('Failed to verify login. Please try again.');
+        navigate('/login', { replace: true });
+        return;
+      }
 
       if (res.headers.get('content-type')?.includes('application/json')) {
         const data = await res.json();
@@ -153,10 +160,8 @@ export default function Login() {
             await fetch('/api/add-googleid', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ username: data.user.userName, googleid: '107052280673566149562' })
-            });
-            alert('added');
-          }
+              body: JSON.stringify({ username: data.user.userName, googleid: data.user.googleId })
+            });          }
           sessionStorage.removeItem('loginReturnTo');
           sessionStorage.removeItem('loginFunctionality');
           
@@ -199,10 +204,13 @@ export default function Login() {
     console.log('Login: checking for Google Login callback');
     const params = new URLSearchParams(window.location.search);
     if (params.get('success')) {
-      handleGoogleLogin(params);
+      handleGoogleLogin(params).then(() => {
+        window.history.replaceState({}, '', window.location.pathname);
       // Clear the URL parameters from the address bar
+    });
+    } else {
+      window.history.replaceState({}, '', window.location.pathname);
     }
-    window.history.replaceState({}, '', window.location.pathname);
   }, []);
 
   // Clear inputs when shown
@@ -274,10 +282,10 @@ export default function Login() {
             Sign Up
           </button>
         )}
-        <button className="debug-button" onClick={() => navigate("/hub")}>
+        {/* <button className="debug-button" onClick={() => navigate("/hub")}>
           <img className='img' src={getImageForItem("debugbutton")} alt="Debug" />
           Debugging Skip Login
-        </button>
+        </button> */}
       </div>
     </div>
     </>

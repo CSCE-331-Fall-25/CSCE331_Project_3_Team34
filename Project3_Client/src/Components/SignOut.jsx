@@ -19,7 +19,8 @@ export default function SignOutButton({ onClose } = {}) {
       }
 
       // success: navigate back to login
-      navigate('/');
+      sessionStorage.setItem('loginReturnTo', '/hub');
+      navigate('/login?returnTo=/hub&functionality=2');
       
     } catch (err) {
       console.error('Error during sign out:', err);

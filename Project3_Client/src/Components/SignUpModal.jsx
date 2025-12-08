@@ -20,14 +20,30 @@ export default function SignUpModal({ show, onClose, onSignUp }) {
       return;
     }
 
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      setErrorMessage('Please enter a valid email address');
+      return;
+    }
+
+    // Validate password strength
+    if (password.length < 8) {
+      setErrorMessage('Password must be at least 8 characters long');
+      return;
+    }
     setLoading(true);
 
     try {
       // Call the signup endpoint (you'll need to create this on the backend)
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
       const res = await fetch('/api/signup-customer', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
+        signal: controller.signal,
         body: JSON.stringify({
           name: customerName.trim(),
           username: username.trim(),
@@ -35,11 +51,12 @@ export default function SignUpModal({ show, onClose, onSignUp }) {
           email: email.trim()
         })
       });
+      clearTimeout(timeoutId);
 
       const data = await res.json();
 
       if (res.ok && data.success) {
-        console.log('Sign up successful for customer:', username);
+        //console.log('Sign up successful for customer:', username);
         // Call the parent callback to handle successful signup
         if (typeof onSignUp === 'function') {
           onSignUp();
@@ -50,7 +67,11 @@ export default function SignUpModal({ show, onClose, onSignUp }) {
       }
     } catch (error) {
       console.error('Error during signup:', error);
-      setErrorMessage('An error occurred. Please try again.');
+      if (error.name === 'AbortError') {
+        setErrorMessage('Request timed out. Please try again.');
+      } else {
+        setErrorMessage('An error occurred. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -76,6 +97,14 @@ export default function SignUpModal({ show, onClose, onSignUp }) {
           <input
             type="text"
             placeholder="Full Name"
+            id="signup-fullname"
+            aria-label="Full Name"
+            />
+          <input
+            type="text"
+            placeholder="Full Name"
+            id="signup-fullname"
+            aria-label="Full Name"
             value={customerName}
             onChange={(e) => setCustomerName(e.target.value)}
             className="modal-input"
@@ -84,6 +113,8 @@ export default function SignUpModal({ show, onClose, onSignUp }) {
           <input
             type="text"
             placeholder="Username"
+            id="signup-username"
+            aria-label="Username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             className="modal-input"
@@ -92,6 +123,8 @@ export default function SignUpModal({ show, onClose, onSignUp }) {
           <input
             type="email"
             placeholder="Email"
+            id="signup-email"
+            aria-label="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="modal-input"
@@ -100,11 +133,13 @@ export default function SignUpModal({ show, onClose, onSignUp }) {
           <input
             type="password"
             placeholder="Password"
+            id="signup-password"
+            aria-label="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="modal-input"
             disabled={loading}
-          />
+          />           
 
           {errorMessage && (
             <div className="modal-error" style={{ color: '#dc3545', fontSize: '14px', marginBottom: '8px' }}>

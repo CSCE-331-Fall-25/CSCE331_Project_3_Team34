@@ -415,7 +415,7 @@ export default function Kiosk() {
       await fetchSizeMods();
     });
     
-    // Load saved order
+    // Load saved order from sessionStorage (persists within browser session)
     const savedOrder = loadOrder('kiosk');
     if (savedOrder.length > 0) {
       setOrderItems(savedOrder);
@@ -1158,7 +1158,7 @@ export default function Kiosk() {
               <div>{translatedTexts['Total']}: ${total.toFixed(2)}</div>
               <div className="kiosk-order-controls">
                 <button onClick={clearOrderAndUI} className="kiosk-clear-btn">{translatedTexts['Clear']}</button>
-                <button onClick={() => {console.log('Proceed to checkout', orderItems); handlePurchase();}} className="kiosk-checkout-btn">{translatedTexts['Checkout']}</button>
+                <button onClick={() => {console.log('Proceed to checkout', orderItems); handlePurchase();}} className="kiosk-checkout-btn" disabled={loading}>{translatedTexts['Checkout']}</button>
               </div>
             </div>
           </div>
@@ -1227,17 +1227,17 @@ export default function Kiosk() {
 
               {/* Buttons section */}
               <div className="purchase-buttons">
-                <div className="purchase-option" onClick={() => handlePayment("Cash")}>
+                <div className={`purchase-option ${loading ? 'disabled' : ''}`} onClick={() => !loading && handlePayment("Cash")}>
                   <img src={getImageForItem("cashImg")} alt="Cash" className="option-img" />
                   <span className="option-text">{translatedTexts['Cash']}</span>
                 </div>
 
-                <div className="purchase-option" onClick={() => handlePayment("Card")}>
+                <div className={`purchase-option ${loading ? 'disabled' : ''}`} onClick={() => !loading && handlePayment("Card")}>
                   <img src={getImageForItem("cardImg")} alt="Card" className="option-img" />
                   <span className="option-text">{translatedTexts['Card']}</span>
                 </div>
 
-                <div className="purchase-option" onClick={() => handlePayment("Rewards")}>
+                <div className={`purchase-option ${loading ? 'disabled' : ''}`} onClick={() => !loading && handlePayment("Rewards")}>
                   <img src={getImageForItem("rewardsImg")} alt="Rewards" className="option-img" />
                   <span className="option-text">{translatedTexts['Rewards']}</span>
                 </div>  

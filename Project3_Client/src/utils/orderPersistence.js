@@ -6,7 +6,7 @@ const STORAGE_KEYS = {
 
 export const saveOrder = (orderItems, type = 'kiosk') => {
   try {
-    localStorage.setItem(STORAGE_KEYS[type], JSON.stringify(orderItems));
+    sessionStorage.setItem(STORAGE_KEYS[type], JSON.stringify(orderItems));
   } catch (error) {
     console.error('Failed to save order:', error);
   }
@@ -14,7 +14,7 @@ export const saveOrder = (orderItems, type = 'kiosk') => {
 
 export const loadOrder = (type = 'kiosk') => {
   try {
-    const stored = localStorage.getItem(STORAGE_KEYS[type]);
+    const stored = sessionStorage.getItem(STORAGE_KEYS[type]);
     return stored ? JSON.parse(stored) : [];
   } catch (error) {
     console.error('Failed to load order:', error);
@@ -24,7 +24,7 @@ export const loadOrder = (type = 'kiosk') => {
 
 export const clearOrder = (type = 'kiosk') => {
   try {
-    localStorage.removeItem(STORAGE_KEYS[type]);
+    sessionStorage.removeItem(STORAGE_KEYS[type]);
   } catch (error) {
     console.error('Failed to clear order:', error);
   }
