@@ -104,28 +104,35 @@ export default function Cashier() {
     useEffect(() => {
       window.history.replaceState({}, '', window.location.pathname);
 
-      // Always update page state when returning from login, regardless of success/failure
-      if (sucessfulOverrideLogin) {
-        UpdatePage();
-      }
+        // Guard against duplicate handling (React StrictMode / HMR can cause double mount)
+        try {
+          if (typeof window !== 'undefined' && window.__cashier_override_handled) return;
+        } catch (e) {}
 
-      if (sucessfulOverrideLogin == 2) {
-        fetchUserData().then((data) => {
-          if (data && data.success) {
-            console.log("Fetched user data before Manager Override Login");
-            console.log("Attempting Manager Override Login as " + (data.user || null));
-            if(data.isManager){
-              setTempManager(true);
-              console.log("Manager Override Login Successful");
-              setShowDiscountModal(true);
+        // Always update page state when returning from login, regardless of success/failure
+        if (sucessfulOverrideLogin) {
+          UpdatePage();
+        }
+
+        if (sucessfulOverrideLogin == 2) {
+          // mark handled to avoid duplicate alerts
+          try { if (typeof window !== 'undefined') window.__cashier_override_handled = true; } catch (e) {}
+          fetchUserData().then((data) => {
+            if (data && data.success) {
+              console.log("Fetched user data before Manager Override Login");
+              console.log("Attempting Manager Override Login as " + (data.user || null));
+              if(data.isManager){
+                setTempManager(true);
+                console.log("Manager Override Login Successful");
+                setShowDiscountModal(true);
+              }
+              else{
+                alert('Manager Override Login Failed: Not a Manager');
+              }
             }
-            else{
-              alert('Manager Override Login Failed: Not a Manager');
-            }
-          }
-        });
-      }
-      console.log('sucessfulOverrideLogin param:', sucessfulOverrideLogin);
+          });
+        }
+        console.log('sucessfulOverrideLogin param:', sucessfulOverrideLogin);
     }, [sucessfulOverrideLogin]);
 
   useEffect(() => {

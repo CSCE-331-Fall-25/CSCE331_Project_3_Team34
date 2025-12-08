@@ -423,6 +423,11 @@ export default function Kiosk() {
     
     // Handle login success
     const success = searchParams.get('success');
+    // Guard against duplicate handling (React StrictMode / HMR can cause double mount)
+    try {
+      if (typeof window !== 'undefined' && window.__kiosk_google_login_handled) return;
+    } catch (e) {}
+
     if (success == '4') {
       setCustomerLoggedIn(true);
       // Fetch customer data
@@ -439,6 +444,8 @@ export default function Kiosk() {
         })
         .catch((err) => console.error('Failed to fetch customer data:', err));
       alert('Customer logged in successfully');
+      // mark handled so we don't show this alert again on a duplicate mount
+      try { if (typeof window !== 'undefined') window.__kiosk_google_login_handled = true; } catch (e) {}
       window.history.replaceState({}, '', window.location.pathname);
     } else if (success == '2') {
       navigate('/hub');
