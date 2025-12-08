@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import pandaLogo from '../assets/PandaLogo.svg'
 import WeatherScreen from './WeatherScreen';
@@ -8,6 +8,9 @@ import '../styles/Kiosk.css';
 import { getImageForItem } from "../assets/utils/imageMapper";
 import ChatModal from '../Components/ChatModal';
 import { saveOrder, loadOrder, clearOrder } from '../utils/orderPersistence';
+import { useTranslatedObject } from '../hooks/useTranslatedText';
+import { useContext } from 'react';
+import { TranslationContext } from '../contexts/TranslationContext';
 
 export default function Kiosk() {
 
@@ -18,6 +21,37 @@ export default function Kiosk() {
   const increaseFont = () => setBaseFontSize(prev => Math.min(prev + 2, 30));
   const decreaseFont = () => setBaseFontSize(prev => Math.max(prev - 2, 10));
 
+  // --- Translation system --- //
+  const translationKeys = useMemo(() => ({
+    'Select': 'Select',
+    'Current Order': 'Current Order',
+    'No items yet': 'No items yet',
+    'Total': 'Total',
+    'Clear': 'Clear',
+    'Checkout': 'Checkout',
+    'Welcome': 'Welcome',
+    'Customer Sign In': 'Customer Sign In',
+    'Sign Out': 'Sign Out',
+    'Employee Sign In': 'Employee Sign In',
+    'Back': 'Back',
+    'No items': 'No items',
+    'Select Payment Method': 'Select Payment Method',
+    'Cash': 'Cash',
+    'Card': 'Card',
+    'Rewards': 'Rewards',
+    'Transaction': 'Transaction',
+    'Complete': 'Complete',
+    'New Order': 'New Order',
+    'Loading': 'Loading',
+    'calories': 'calories',
+    'Allergens': 'Allergens'
+  }), []);
+
+  const translatedTexts = useTranslatedObject(translationKeys);
+
+  // Get translation context for dynamic content like menu item names
+  const translationContext = useContext(TranslationContext);
+  const selectedLanguage = translationContext?.selectedLanguage || 'en';
 
   // --- inactivity timer --- //
 
@@ -89,6 +123,7 @@ export default function Kiosk() {
   const [menuItems, setMenuItems] = useState([]);
   const [orderItems, setOrderItems] = useState([]);
   const [items, setItems] = useState([]);
+  const [translatedItemNames, setTranslatedItemNames] = useState({});
   const [selectionQueue, setSelectionQueue] = useState([]);
   const [currentGroupId, setCurrentGroupId] = useState(null);
   const [activeSelection, setActiveSelection] = useState(null); // { type, label, remaining }
@@ -132,6 +167,21 @@ export default function Kiosk() {
   const changeState = (newState) => {
     setState(newState);
   }
+
+  // Helper to get translated item name (from cache or original)
+  const getTranslatedItemName = (name) => {
+    return translatedItemNames[name] || name;
+  };
+
+  // Helper to translate allergen string (comma-separated list)
+  const getTranslatedAllergens = (allergenString) => {
+    if (!allergenString || allergenString === 'NA') return allergenString;
+    
+    // Split by comma, translate each allergen, then join back
+    const allergens = allergenString.split(',').map(a => a.trim());
+    const translated = allergens.map(allergen => translatedItemNames[allergen] || allergen);
+    return translated.join(', ');
+  };
 
   // size modifiers fetched from server grouped by type (lowercased)
   const [sizeModsByType, setSizeModsByType] = useState({});
@@ -395,6 +445,60 @@ export default function Kiosk() {
       window.history.replaceState({}, '', window.location.pathname);
     }
   }, []);
+
+  // Translate item names and allergens when items/menuItems change OR language changes
+  useEffect(() => {
+    if (!translationContext) return;
+
+    const translateItemNames = async () => {
+      // If English, just use original names
+      if (selectedLanguage === 'en') {
+        const englishNames = {};
+        items.forEach(item => item.name && (englishNames[item.name] = item.name));
+        menuItems.forEach(item => {
+          if (item.name) englishNames[item.name] = item.name;
+          // Also collect allergens
+          if (item.allergens && item.allergens !== 'NA') {
+            const allergens = item.allergens.split(',').map(a => a.trim());
+            allergens.forEach(allergen => englishNames[allergen] = allergen);
+          }
+        });
+        setTranslatedItemNames(englishNames);
+        return;
+      }
+
+      // Collect all unique item names and allergens to translate
+      const textsToTranslate = new Set();
+      items.forEach(item => item.name && textsToTranslate.add(item.name));
+      menuItems.forEach(item => {
+        if (item.name) textsToTranslate.add(item.name);
+        // Parse allergens and add each one
+        if (item.allergens && item.allergens !== 'NA') {
+          const allergens = item.allergens.split(',').map(a => a.trim());
+          allergens.forEach(allergen => textsToTranslate.add(allergen));
+        }
+      });
+
+      if (textsToTranslate.size === 0) return;
+
+      try {
+        // Translate all texts
+        const translations = await translationContext.translateTexts(
+          Array.from(textsToTranslate),
+          selectedLanguage
+        );
+        setTranslatedItemNames(translations);
+      } catch (error) {
+        console.error('Failed to translate item names:', error);
+        // Fallback to original names
+        const fallback = {};
+        textsToTranslate.forEach(text => fallback[text] = text);
+        setTranslatedItemNames(fallback);
+      }
+    };
+
+    translateItemNames();
+  }, [items, menuItems, selectedLanguage, translationContext]);
 
   async function fetchMenuRowsByType(type) {
     if (!type) return [];
@@ -838,7 +942,7 @@ export default function Kiosk() {
       <div>
         {loading && (
           <div className="loading-overlay" aria-hidden>
-            <div className="loading-inner">Loading…</div>
+            <div className="loading-inner">{translatedTexts['Loading']}…</div>
           </div>
         )}
         {blocking && !loading && (
@@ -857,7 +961,7 @@ export default function Kiosk() {
                     className={`kiosk-type-btn ${selectedItemId === currItemId ? 'active' : ''}`}
                     onClick={() => handleItemSelection(item)}
                   >
-                    <div className="kiosk-type-name">{item.name || currItemId}</div>
+                    <div className="kiosk-type-name">{getTranslatedItemName(item.name) || currItemId}</div>
                     <div className="kiosk-item-price">${basePrice.toFixed(2)}</div>
                   </button>
                 );
@@ -879,14 +983,14 @@ export default function Kiosk() {
               <>
                 {activeSelection && (
                   <div className="kiosk-selection-banner">
-                    Select {activeSelection.label || activeSelection.type}
+                    {translatedTexts['Select']} {activeSelection.label || activeSelection.type}
                     {typeof activeSelection.remaining === 'number' && activeSelection.remaining > 0 && (
                       <span className="kiosk-selection-remaining"> ({activeSelection.remaining} more after this)</span>
                     )}
                   </div>
                 )}
                 <div className="kiosk-items-grid">
-                  {menuItems.length === 0 && <div className="kiosk-empty">No items</div>}
+                  {menuItems.length === 0 && <div className="kiosk-empty">{translatedTexts['No items']}</div>}
                   {menuItems.map(it => {
                     const { value, hide, allergies, hideAllergies } = resolveDisplayPrice(it);
 
@@ -918,10 +1022,14 @@ export default function Kiosk() {
                             className='kiosk-menu-image'
                           />
                         )}
-                        <div className="kiosk-item-name">{it.name}</div>
+                        <div className="kiosk-item-name">{getTranslatedItemName(it.name)}</div>
                         <div className="kiosk-item-price">{hide ? '' : `$${value.toFixed(2)}`}</div>
-                        <div className="kiosk-item-calories">{it.calories ? `${it.calories} calories` : '0 calories'}</div>
-                        <div className="kiosk-item-calories">{hideAllergies ? '' : `${allergies}`}</div>
+                        <div className="kiosk-item-calories">
+                          {it.calories ? `${it.calories} ${translatedTexts['calories']}` : `0 ${translatedTexts['calories']}`}
+                        </div>
+                        <div className="kiosk-item-calories">
+                          {hideAllergies ? '' : (allergies ? `${translatedTexts['Allergens']}: ${getTranslatedAllergens(allergies)}` : '')}
+                        </div>
                       </div>
                     );
                   })}
@@ -930,7 +1038,7 @@ export default function Kiosk() {
                   <div className="kiosk-size-modal-backdrop">
                     <div className="kiosk-size-modal">
                       <div className="kiosk-size-modal-title">
-                        Choose a size for {pendingSizeSelection.option?.name}
+                        Choose a size for {getTranslatedItemName(pendingSizeSelection.option?.name)}
                       </div>
                       <div className="kiosk-size-modal-subtitle">
                         {pendingSizeSelection.selectionLabel || 'Selection'} requires a size.
@@ -968,12 +1076,12 @@ export default function Kiosk() {
           <div className="kiosk-right">
             {customerLoggedIn && customerName && (
               <div className="kiosk-customer-info">
-                <h3>Welcome, {customerName}!</h3>
+                <h3>{translatedTexts['Welcome']}, {customerName}!</h3>
               </div>
             )}
-            <h3 className="kiosk-title">Current Order</h3>
+            <h3 className="kiosk-title">{translatedTexts['Current Order']}</h3>
             <div className="kiosk-order-list">
-              {orderItems.length === 0 && <div className="kiosk-empty">No items yet</div>}
+              {orderItems.length === 0 && <div className="kiosk-empty">{translatedTexts['No items yet']}</div>}
               {orderItems.map((it, idx) => {
                 const { value, hide } = resolveDisplayPrice(it);
                 const rowClass = `kiosk-order-row${it.isParent ? ' kiosk-order-row-parent' : (value > 0) ? ' kiosk-order-row-child-premium' : ' kiosk-order-row-child-default'}`;
@@ -1009,10 +1117,10 @@ export default function Kiosk() {
               })}
             </div>
             <div className="kiosk-order-summary">
-              <div>Total: ${total.toFixed(2)}</div>
+              <div>{translatedTexts['Total']}: ${total.toFixed(2)}</div>
               <div className="kiosk-order-controls">
-                <button onClick={clearOrderAndUI} className="kiosk-clear-btn">Clear</button>
-                <button onClick={() => {console.log('Proceed to checkout', orderItems); handlePurchase();}} className="kiosk-checkout-btn">Checkout</button>
+                <button onClick={clearOrderAndUI} className="kiosk-clear-btn">{translatedTexts['Clear']}</button>
+                <button onClick={() => {console.log('Proceed to checkout', orderItems); handlePurchase();}} className="kiosk-checkout-btn">{translatedTexts['Checkout']}</button>
               </div>
             </div>
           </div>
@@ -1075,25 +1183,25 @@ export default function Kiosk() {
               <img src={pandaLogo} alt="Panda Express" className="purchase-logo" />
 
               {/* Top image */}
-              <h4 className="purchase-screen-title">Select Payment Method</h4>
-              <div className="purchase-screen-price">Total: ${total.toFixed(2)}</div>
+              <h4 className="purchase-screen-title">{translatedTexts['Select Payment Method']}</h4>
+              <div className="purchase-screen-price">{translatedTexts['Total']}: ${total.toFixed(2)}</div>
 
 
               {/* Buttons section */}
               <div className="purchase-buttons">
                 <div className="purchase-option" onClick={() => handlePayment("Cash")}>
                   <img src={getImageForItem("cashImg")} alt="Cash" className="option-img" />
-                  <span className="option-text">Cash</span>
+                  <span className="option-text">{translatedTexts['Cash']}</span>
                 </div>
 
                 <div className="purchase-option" onClick={() => handlePayment("Card")}>
                   <img src={getImageForItem("cardImg")} alt="Card" className="option-img" />
-                  <span className="option-text">Card</span>
+                  <span className="option-text">{translatedTexts['Card']}</span>
                 </div>
 
                 <div className="purchase-option" onClick={() => handlePayment("Rewards")}>
                   <img src={getImageForItem("rewardsImg")} alt="Rewards" className="option-img" />
-                  <span className="option-text">Rewards</span>
+                  <span className="option-text">{translatedTexts['Rewards']}</span>
                 </div>  
               </div>
             </div>
@@ -1106,8 +1214,8 @@ export default function Kiosk() {
               <img src={getImageForItem("orderComplete")} alt="orderComplete" className="finished-img" />
 
               {/* Top image */}
-              <h4 className="purchase-screen-title">Transaction: {transactionNumber} Complete!</h4>
-              <div className="purchase-screen-price">Total: ${total.toFixed(2)}</div>
+              <h4 className="purchase-screen-title">{translatedTexts['Transaction']}: {transactionNumber} {translatedTexts['Complete']}!</h4>
+              <div className="purchase-screen-price">{translatedTexts['Total']}: ${total.toFixed(2)}</div>
 
               <br></br>
 
@@ -1116,7 +1224,7 @@ export default function Kiosk() {
                 setTransactionNumber(transactionNumber + 1);  
                 goBackToKiosk();
                 }}>
-                New Order
+                {translatedTexts['New Order']}
               </div>
               
             </div>

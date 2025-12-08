@@ -11,6 +11,9 @@ import MealAttributes  from './pages/MealAttributes.jsx'
 import Login from './pages/Login.jsx'
 import './styles/App.css'
 
+import { getImageForItem } from './assets/utils/imageMapper';
+import { TranslationProvider } from './contexts/TranslationContext';
+
 
 
 
@@ -22,10 +25,10 @@ export default function App() {
   }, []);
    
   return (
-    <div>
-
-      {/* Routing logic */}
-      <Routes>
+    <TranslationProvider>
+      <div>
+        {/* Routing logic */}
+        <Routes>
         <Route path="/weather" element={<WeatherScreen />} />
         <Route path="/setmeal" element={<MealAttributes />} />
         <Route path="/cashier" element={<Cashier />} />
@@ -39,6 +42,7 @@ export default function App() {
         <Route path="*" element={<div>404 Not Found</div>} />
         {/* Removed invalid Route that used `this` as element. */}
       </Routes>
-    </div>
+      </div>
+    </TranslationProvider>
   )
 }
