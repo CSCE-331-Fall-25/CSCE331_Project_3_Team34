@@ -71,57 +71,63 @@ kioskRouter.post('/submit-order', async (req, res) => {
         if (!orderData) {
             return res.status(400).json({ error: "Missing order data" });
         }
-        let result = '';
-        let price = 0;
-        let family = false;
-        for (const row of orderData) {
-            console.log(row);
-            if (row.price) {
-                price += row.price;
-                nextOrderNum++;
-                console.log(nextTransactionNum + "   " + row.itemid + "   " + nextOrderNum);
-                await pool.query("INSERT INTO orders (transactionid, itemid, orderid) VALUES ($1, $2, $3)", [nextTransactionNum, row.itemid, nextOrderNum]);
-                await pool.query("UPDATE inventory AS i SET quantity = i.quantity - 1 FROM items AS it WHERE i.inventoryid = ANY(it.inventoryids) AND it.itemid = " + row.itemid + ";");
-                if (row.itemid == 4) {
-                    family = true;
-                }
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
+            let result = '';
+            let price = 0;
+            let family = false;
+            for (const row of orderData) {
+                console.log(row);
+                if (row.price) {
+                    price += row.price;
+                    nextOrderNum++;
+                    console.log(nextTransactionNum + "   " + row.itemid + "   " + nextOrderNum);
+                    await client.query("INSERT INTO orders (transactionid, itemid, orderid) VALUES ($1, $2, $3)", [nextTransactionNum, row.itemid, nextOrderNum]);
+                    await client.query("UPDATE inventory AS i SET quantity = i.quantity - 1 FROM items AS it WHERE i.inventoryid = ANY(it.inventoryids) AND it.itemid = $1;", [row.itemid]);
+                    if (row.itemid == 4) {
+                        family = true;
+                    }            }
                 else {
-                    family = false;
+                    price += row.pricemod;
+                    console.log(nextOrderNum + "   " + row.menuid + "   " + row.type + "    small");
+                    if (row.sizeKey == "large" || family) {
+                        await client.query("UPDATE inventory AS i SET quantity = i.quantity - 3 FROM menu AS m WHERE i.inventoryid = ANY(m.inventoryids) AND m.menuid = $1;", [row.menuid]);
+                        await client.query("INSERT INTO trays (orderid, menuid, type, size) VALUES ($1, $2, $3, $4)", [nextOrderNum, row.menuid, row.type, "large"]);
+                    }
+                    else if (row.sizeKey == "medium") {
+                        await client.query("UPDATE inventory AS i SET quantity = i.quantity - 2 FROM menu AS m WHERE i.inventoryid = ANY(m.inventoryids) AND m.menuid = $1;", [row.menuid]);
+                        await client.query("INSERT INTO trays (orderid, menuid, type, size) VALUES ($1, $2, $3, $4)", [nextOrderNum, row.menuid, row.type, "medium"]);
+                    }
+                    else {
+                        await client.query("UPDATE inventory AS i SET quantity = i.quantity - 1 FROM menu AS m WHERE i.inventoryid = ANY(m.inventoryids) AND m.menuid = $1;", [row.menuid]);
+                        await client.query("INSERT INTO trays (orderid, menuid, type, size) VALUES ($1, $2, $3, $4)", [nextOrderNum, row.menuid, row.type, "small"]);
+                    }
                 }
             }
-            else {
-                price += row.pricemod;
-                console.log(nextOrderNum + "   " + row.menuid + "   " + row.type + "    small");
-                if (row.sizeKey == "large" || family) {
-                    await pool.query("UPDATE inventory AS i SET quantity = i.quantity - 3 FROM menu AS m WHERE i.inventoryid = ANY(m.inventoryids) AND m.menuid = " + row.menuid + ";");
-                    await pool.query("INSERT INTO trays (orderid, menuid, type, size) VALUES ($1, $2, $3, $4)", [nextOrderNum, row.menuid, row.type, "large"]);
-                }
-                else if (row.sizeKey == "medium") {
-                    await pool.query("UPDATE inventory AS i SET quantity = i.quantity - 2 FROM menu AS m WHERE i.inventoryid = ANY(m.inventoryids) AND m.menuid = " + row.menuid + ";");
-                    await pool.query("INSERT INTO trays (orderid, menuid, type, size) VALUES ($1, $2, $3, $4)", [nextOrderNum, row.menuid, row.type, "medium"]);
-                }
-                else {
-                    await pool.query("UPDATE inventory AS i SET quantity = i.quantity - 1 FROM menu AS m WHERE i.inventoryid = ANY(m.inventoryids) AND m.menuid = " + row.menuid + ";");
-                    await pool.query("INSERT INTO trays (orderid, menuid, type, size) VALUES ($1, $2, $3, $4)", [nextOrderNum, row.menuid, row.type, "small"]);
-                }
-            }
+            console.log(nextTransactionNum + "   -1   " + now.toISOString().slice(0, 19).replace('T', ' ') + "   " + price + "   " + (price * .27).toFixed(2) + "    " + "   4");
+            let timestamp = now.toISOString().slice(0, 19).replace('T', ' ');
+            // if (Number(timestamp.substring(11, 13)) < 6) {
+            //     timestamp = timestamp.substring(0, 11) + String(Number(timestamp.substring(11, 13)) + 18) + timestamp.substring(13, 19);
+            // }
+            // else {
+            //     if (String(Number(timestamp.substring(11, 13)) - 6).length == 1) {
+            //         timestamp = timestamp.substring(0, 11) + "0" + String(Number(timestamp.substring(11, 13)) - 6) + timestamp.substring(13, 19);
+            //     }
+            //     else {
+            //         timestamp = timestamp.substring(0, 11) + String(Number(timestamp.substring(11, 13)) - 6) + timestamp.substring(13, 19);
+            //     }
+            // }
+            const query = `INSERT INTO transactions (transactionid, employeeid, time, amount, profit, customerid, stage) VALUES ($1, $2, $3, $4, $5, $6, $7)`;
+            const values = [nextTransactionNum, -1, timestamp, price, (price * .27).toFixed(2), -1, 4];
+            result = await client.query(query, values);
+            await client.query('COMMIT');
+        } catch (error) {
+            await client.query('ROLLBACK');
+            throw error;
+        } finally {
+            client.release();
         }
-        console.log(nextTransactionNum + "   -1   " + now.toISOString().slice(0, 19).replace('T', ' ') + "   " + price + "   " + (price * .27).toFixed(2) + "    " + "   4");
-        let timestamp = now.toISOString().slice(0, 19).replace('T', ' ');
-        // if (Number(timestamp.substring(11, 13)) < 6) {
-        //     timestamp = timestamp.substring(0, 11) + String(Number(timestamp.substring(11, 13)) + 18) + timestamp.substring(13, 19);
-        // }
-        // else {
-        //     if (String(Number(timestamp.substring(11, 13)) - 6).length == 1) {
-        //         timestamp = timestamp.substring(0, 11) + "0" + String(Number(timestamp.substring(11, 13)) - 6) + timestamp.substring(13, 19);
-        //     }
-        //     else {
-        //         timestamp = timestamp.substring(0, 11) + String(Number(timestamp.substring(11, 13)) - 6) + timestamp.substring(13, 19);
-        //     }
-        // }
-        const query = `INSERT INTO transactions (transactionid, employeeid, time, amount, profit, customerid, stage) VALUES ($1, $2, $3, $4, $5, $6, $7)`;
-        const values = [nextTransactionNum, -1, timestamp, price, (price * .27).toFixed(2), -1, 4];
-        result = await pool.query(query, values);
         console.log("We did it");
         nextTransactionNum++;
         res.json({ transactionid: nextTransactionNum - 1 });
