@@ -1,6 +1,43 @@
-import React, { useState } from "react";
+import React, { useState, useContext, useEffect } from "react";
+import { TranslationContext } from "../contexts/TranslationContext";
 
 export default function ClearTransactionButton({ onCleared }) {
+  const translationContext = useContext(TranslationContext);
+  const selectedLanguage = translationContext?.selectedLanguage || 'en';
+  const [translatedTexts, setTranslatedTexts] = useState({
+    'CLEAR TRANS': 'CLEAR TRANS',
+    'Clearing...': 'Clearing...'
+  });
+
+  // Translate UI texts
+  useEffect(() => {
+    if (!translationContext) return;
+
+    const translateUITexts = async () => {
+      const uiTexts = ['CLEAR TRANS', 'Clearing...'];
+
+      if (selectedLanguage === 'en') {
+        const english = {};
+        uiTexts.forEach(text => english[text] = text);
+        setTranslatedTexts(english);
+        return;
+      }
+
+      try {
+        const translations = await translationContext.translateMultiple(uiTexts, selectedLanguage);
+        const map = {};
+        uiTexts.forEach((t, i) => { map[t] = translations[i] || t; });
+        setTranslatedTexts(map);
+      } catch (error) {
+        console.error('Failed to translate UI texts:', error);
+        const fallback = {};
+        uiTexts.forEach(text => fallback[text] = text);
+        setTranslatedTexts(fallback);
+      }
+    };
+
+    translateUITexts();
+  }, [selectedLanguage]);
   const [loading, setLoading] = useState(false);
 
   const handleClear = async () => {
@@ -27,7 +64,7 @@ export default function ClearTransactionButton({ onCleared }) {
 
   return (
     <button onClick={handleClear} className="UpdateOrderButton" disabled={loading}>
-      {loading ? "Clearing..." : "CLEAR TRANS"}
+      {loading ? translatedTexts['Clearing...'] : translatedTexts['CLEAR TRANS']}
     </button>
   );
 }

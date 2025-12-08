@@ -12,7 +12,7 @@ export default function TranslationClient() {
         id="language-select"
         value={selectedLanguage}
         onChange={(e) => setSelectedLanguage(e.target.value)}
-        className="language-select"
+        className="language-select language-select-weather"
       >
         {Object.entries(supportedLanguages).map(([code, name]) => (
           <option key={code} value={code}>
