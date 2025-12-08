@@ -86,20 +86,22 @@ export default function Kiosk() {
       const newData = await response.json();
       //console.log(JSON.stringify(newData));
       setInventoryData(newData);
-      setTableColumns([{ accessorKey: "inventoryid", header: "Inventory ID", cell: info => info.getValue() },
-      { accessorKey: "name", header: "Name", cell: info => info.getValue() },
-      { accessorKey: "quantity", header: "Quantity", cell: info => info.getValue() },
-      { accessorKey: "minstock", header: "Minimum Stock", cell: info => info.getValue() },
-      { accessorKey: "maxstock", header: "Maximum Stock", cell: info => info.getValue() }]);
+      setTableColumns([
+        { accessorKey: "inventoryid", header: translatedTexts['Inventory ID'] || "Inventory ID", cell: info => info.getValue() },
+        { accessorKey: "name", header: translatedTexts['Name'] || "Name", cell: info => getTranslatedItemName(info.getValue()) },
+        { accessorKey: "quantity", header: translatedTexts['Quantity'] || "Quantity", cell: info => info.getValue() },
+        { accessorKey: "minstock", header: translatedTexts['Minimum Stock'] || "Minimum Stock", cell: info => info.getValue() },
+        { accessorKey: "maxstock", header: translatedTexts['Maximum Stock'] || "Maximum Stock", cell: info => info.getValue() }
+      ]);
       // console.log(JSON.stringify(newData));
       if (newData.error == -2) {
-        setErrorLabel("Failed to connect to backend");
+        setErrorLabel(translatedTexts['Failed to connect to backend'] || "Failed to connect to backend");
       }
       else if (newData.error == -1) {
-        setErrorLabel("Error getting inventory items");
+        setErrorLabel(translatedTexts['Error getting inventory items'] || "Error getting inventory items");
       }
       else if (newData.error == 0) {
-        setErrorLabel("No inventory items");
+        setErrorLabel(translatedTexts['No inventory items'] || "No inventory items");
       }
       setTableData(Array.isArray(newData) ? newData.slice() : [newData]);
     }
@@ -432,7 +434,7 @@ export default function Kiosk() {
         .then((res) => res.json())
         .then((data) => {
           if (data.success && data.user) {
-            setCustomerName(data.user.username);
+            setCustomerName(getTranslatedItemName(data.user.username));
           }
         })
         .catch((err) => console.error('Failed to fetch customer data:', err));
@@ -454,13 +456,28 @@ export default function Kiosk() {
       // If English, just use original names
       if (selectedLanguage === 'en') {
         const englishNames = {};
-        items.forEach(item => item.name && (englishNames[item.name] = item.name));
-        menuItems.forEach(item => {
-          if (item.name) englishNames[item.name] = item.name;
-          // Also collect allergens
+        items.forEach(item => {
+          item.name && (englishNames[item.name] = item.name);
+          // Also collect allergens from both fields
           if (item.allergens && item.allergens !== 'NA') {
             const allergens = item.allergens.split(',').map(a => a.trim());
             allergens.forEach(allergen => englishNames[allergen] = allergen);
+          }
+          if (item.allergies && item.allergies !== 'NA') {
+            const allergies = item.allergies.split(',').map(a => a.trim());
+            allergies.forEach(allergen => englishNames[allergen] = allergen);
+          }
+        });
+        menuItems.forEach(item => {
+          if (item.name) englishNames[item.name] = item.name;
+          // Also collect allergens from both fields
+          if (item.allergens && item.allergens !== 'NA') {
+            const allergens = item.allergens.split(',').map(a => a.trim());
+            allergens.forEach(allergen => englishNames[allergen] = allergen);
+          }
+          if (item.allergies && item.allergies !== 'NA') {
+            const allergies = item.allergies.split(',').map(a => a.trim());
+            allergies.forEach(allergen => englishNames[allergen] = allergen);
           }
         });
         setTranslatedItemNames(englishNames);
@@ -469,13 +486,28 @@ export default function Kiosk() {
 
       // Collect all unique item names and allergens to translate
       const textsToTranslate = new Set();
-      items.forEach(item => item.name && textsToTranslate.add(item.name));
-      menuItems.forEach(item => {
-        if (item.name) textsToTranslate.add(item.name);
-        // Parse allergens and add each one
+      items.forEach(item => {
+        item.name && textsToTranslate.add(item.name);
+        // Also collect allergens from items (check both 'allergens' and 'allergies' fields)
         if (item.allergens && item.allergens !== 'NA') {
           const allergens = item.allergens.split(',').map(a => a.trim());
           allergens.forEach(allergen => textsToTranslate.add(allergen));
+        }
+        if (item.allergies && item.allergies !== 'NA') {
+          const allergies = item.allergies.split(',').map(a => a.trim());
+          allergies.forEach(allergen => textsToTranslate.add(allergen));
+        }
+      });
+      menuItems.forEach(item => {
+        if (item.name) textsToTranslate.add(item.name);
+        // Parse allergens and add each one (check both 'allergens' and 'allergies' fields)
+        if (item.allergens && item.allergens !== 'NA') {
+          const allergens = item.allergens.split(',').map(a => a.trim());
+          allergens.forEach(allergen => textsToTranslate.add(allergen));
+        }
+        if (item.allergies && item.allergies !== 'NA') {
+          const allergies = item.allergies.split(',').map(a => a.trim());
+          allergies.forEach(allergen => textsToTranslate.add(allergen));
         }
       });
 
@@ -483,11 +515,17 @@ export default function Kiosk() {
 
       try {
         // Translate all texts
-        const translations = await translationContext.translateTexts(
-          Array.from(textsToTranslate),
+        const textsArray = Array.from(textsToTranslate);
+        const translations = await translationContext.translateMultiple(
+          textsArray,
           selectedLanguage
         );
-        setTranslatedItemNames(translations);
+        // Map original text to translated text
+        const translationMap = {};
+        textsArray.forEach((text, idx) => {
+          translationMap[text] = translations[idx] || text;
+        });
+        setTranslatedItemNames(translationMap);
       } catch (error) {
         console.error('Failed to translate item names:', error);
         // Fallback to original names
