@@ -105,6 +105,9 @@ app.post('/api/ask-gen-ai', async (req, res) => {
     res.json({ success: true, response_text: response });
   } catch (err) {
     console.error('Error communicating with GenAI:', err);
+    if (err.status === 429 || (err.message && err.message.includes('429'))) {
+      return res.status(429).json({ success: false, error: 'AI service is currently busy (Quota Exceeded). Please try again in a minute.' });
+    }
     res.status(500).json({ success: false, error: 'Failed to get response from GenAI' });
   }
 });
