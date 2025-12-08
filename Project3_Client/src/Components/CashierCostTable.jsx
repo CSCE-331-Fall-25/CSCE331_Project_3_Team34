@@ -5,6 +5,8 @@ export default function CashierCostTable({
   selectedRow,
   setSelectedRow,
   lastRowRef,
+  translatedTexts = {},
+  getTranslatedItemName = (name) => name,
 }) {
 
   // Render transaction items as a flat list: each entry is either a main or not
@@ -14,8 +16,8 @@ export default function CashierCostTable({
         <table className="orderTable order-table">
           <thead>
             <tr>
-              <th>Cost</th>
-              <th>Item</th>
+              <th>{translatedTexts['Cost'] || 'Cost'}</th>
+              <th>{translatedTexts['Item'] || 'Item'}</th>
             </tr>
           </thead>
           <tbody>
@@ -36,7 +38,7 @@ export default function CashierCostTable({
                   orderIndex = lastMainSeen >= 0 ? lastMainSeen : 0;
                 }
 
-                const displayText = name;
+                const displayText = getTranslatedItemName(name);
                 const isSelected = selectedRow === orderIndex;
                 return (
                   <tr
