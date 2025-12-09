@@ -45,7 +45,7 @@ export default function CashierCostTable({
                     key={`row-${idx}-${name || idx}`}
                     ref={idx === transactionItems.length - 1 ? lastRowRef : null}
                     className={isSelected ? "selected-row" : "clickable-row"}
-                    onClick={() => setSelectedRow(orderIndex)}
+                    onClick={() => setSelectedRow(isSelected ? null : orderIndex)}
                   >
                     <td>{isMain ? `$${entry.cost}` : ""}</td>
                     <td style={isMain ? {} : { paddingLeft: "2em" }}>{displayText}</td>

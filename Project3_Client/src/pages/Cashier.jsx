@@ -465,9 +465,11 @@ export default function Cashier() {
               <RemoveItemButton index={selectedRow} onRemoved={() => { setSelectedRow(null); UpdatePage(); }} />
             </div>
             <div className="update-btn">
-              <ClearTransactionButton onCleared={() => { UpdatePage(); }} />
+              <ClearTransactionButton onCleared={() => { setSelectedRow(null); UpdatePage(); }} />
             </div>
-            <button onClick={handleCustomizeOrder} className="UpdateOrderButton">{translatedTexts['CUSTOMIZE'] || 'CUSTOMIZE'}</button>
+            <button onClick={handleCustomizeOrder} className="UpdateOrderButton" disabled={selectedRow === null || selectedRow === undefined}>
+              {translatedTexts['CUSTOMIZE'] || 'CUSTOMIZE'}
+            </button>
           </div>
         </section>
 
