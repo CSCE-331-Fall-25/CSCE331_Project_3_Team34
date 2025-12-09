@@ -233,11 +233,9 @@ export default function Cashier() {
       // ignore any access errors and continue
     }
 
-    // Load saved order first
-    const savedOrder = loadOrder('cashier');
-    if (savedOrder.length > 0) {
-      setTransactionItems(savedOrder);
-    }
+    // Always clear cashier order persistence on page load to start fresh
+    clearOrder('cashier');
+    console.log("Cleared cashier order persistence on page load");
 
     UpdatePage();
   }, []);

@@ -99,12 +99,6 @@ export default function SignUpModal({ show, onClose, onSignUp }) {
             placeholder="Full Name"
             id="signup-fullname"
             aria-label="Full Name"
-            />
-          <input
-            type="text"
-            placeholder="Full Name"
-            id="signup-fullname"
-            aria-label="Full Name"
             value={customerName}
             onChange={(e) => setCustomerName(e.target.value)}
             className="modal-input"
