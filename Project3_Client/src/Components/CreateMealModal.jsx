@@ -1,34 +1,9 @@
-import React, { useEffect, useState, useContext } from "react";
+import React, { useEffect, useState } from "react";
 import "../styles/Cashier/DiscountModal.css";
-import { TranslationContext } from "../contexts/TranslationContext";
 
 export default function CreateMealModal({ show, onClose, initialType, onBought, requestSizeSelection, selectedSize, customizingIndex, initialOrderData }) {
   const [extraMenus, setExtraMenus] = useState([]);
   const isCustomizeMode = customizingIndex !== null && customizingIndex !== undefined;
-
-  // --- Translation --- //
-  const translationContext = useContext(TranslationContext);
-  const selectedLanguage = translationContext?.selectedLanguage || 'en';
-  const [translatedItemNames, setTranslatedItemNames] = useState({});
-  const [translatedTexts, setTranslatedTexts] = useState({
-
-    'Entrees': 'Entrees',
-    'Sides': 'Sides',
-    'Drinks': 'Drinks',
-    'Bottles': 'Bottles',
-    'A La Carte': 'A La Carte',
-    'Appetizers': 'Appetizers',
-    'Selected Entrees': 'Selected Entrees',
-    'Selected Sides': 'Selected Sides',
-    'Selected Drink': 'Selected Drink',
-    'Selected Bottle': 'Selected Bottle',
-    'Selected Item': 'Selected Item',
-    'Selected Appetizer': 'Selected Appetizer',
-    'Set Size': 'Set Size',
-    'Continue': 'Continue',
-    'Update Order': 'Update Order',
-    'NONE': 'NONE'
-  });
 
   const [showMealGUI, setShowMealGUI] = useState(false);
   const [showAppGUI, setShowAppGUI] = useState(false);
@@ -94,75 +69,6 @@ export default function CreateMealModal({ show, onClose, initialType, onBought, 
     return () => { mounted = false; };
   }, [show]);
 
-  // Translate menu item names when extraMenus or language changes
-  useEffect(() => {
-    if (!translationContext) return;
-
-    const translateMenuNames = async () => {
-      const texts = new Set();
-      extraMenus.forEach(item => {
-        if (item.menuName) texts.add(item.menuName);
-      });
-
-      if (selectedLanguage === 'en') {
-        const english = {};
-        texts.forEach(text => english[text] = text);
-        setTranslatedItemNames(english);
-        return;
-      }
-
-      if (texts.size === 0) {
-        setTranslatedItemNames({});
-        return;
-      }
-
-      try {
-        const arr = Array.from(texts);
-        const translations = await translationContext.translateMultiple(arr, selectedLanguage);
-        const map = {};
-        arr.forEach((t, i) => { map[t] = translations[i] || t; });
-        setTranslatedItemNames(map);
-      } catch (error) {
-        console.error('Failed to translate meal menu names:', error);
-        const fallback = {};
-        texts.forEach(text => fallback[text] = text);
-        setTranslatedItemNames(fallback);
-      }
-    };
-
-    translateMenuNames();
-  }, [extraMenus, selectedLanguage]);
-
-  // Translate static UI texts
-  useEffect(() => {
-    if (!translationContext) return;
-
-    const translateUITexts = async () => {
-      const uiTexts = ['Entrees', 'Sides', 'Drinks', 'Bottles', 'A La Carte', 'Appetizers', 'Selected Entrees', 'Selected Sides', 'Selected Drink', 'Selected Bottle', 'Selected Item', 'Selected Appetizer', 'Set Size', 'Continue', 'Update Order', 'NONE'];
-
-      if (selectedLanguage === 'en') {
-        const english = {};
-        uiTexts.forEach(text => english[text] = text);
-        setTranslatedTexts(english);
-        return;
-      }
-
-      try {
-        const translations = await translationContext.translateMultiple(uiTexts, selectedLanguage);
-        const map = {};
-        uiTexts.forEach((t, i) => { map[t] = translations[i] || t; });
-        setTranslatedTexts(map);
-      } catch (error) {
-        console.error('Failed to translate UI texts:', error);
-        const fallback = {};
-        uiTexts.forEach(text => fallback[text] = text);
-        setTranslatedTexts(fallback);
-      }
-    };
-
-    translateUITexts();
-  }, [selectedLanguage]);
-
   // prepare categorized arrays
   const items_entrees = [];
   const items_sides = [];
@@ -208,9 +114,9 @@ export default function CreateMealModal({ show, onClose, initialType, onBought, 
     let newNumEntree = 0, newNumSide = 0, newNumApp = 0, newNumDrink = 0, newNumALC = 0;
 
     switch (id) {
-      case "Bowl": newNumEntree = 1; newNumSide = 1; setShowMealGUI(true); break;
-      case "Plate": newNumEntree = 2; newNumSide = 1; setShowMealGUI(true); break;
-      case "Bigger": newNumEntree = 3; newNumSide = 1; setShowMealGUI(true); break;
+      case "Bowl": newNumEntree = 1; newNumSide = 2; setShowMealGUI(true); break;
+      case "Plate": newNumEntree = 2; newNumSide = 2; setShowMealGUI(true); break;
+      case "Bigger": newNumEntree = 3; newNumSide = 2; setShowMealGUI(true); break;
       case "Family": newNumEntree = 3; newNumSide = 2; setShowMealGUI(true); break;
       case "A La Carte": newNumALC = 1; setShowAlcGUI(true); setAlcMode(true); break;
       case "Drink": newNumDrink = 1; setShowDrinkGUI(true); setAlcMode(false); break;
@@ -350,8 +256,6 @@ export default function CreateMealModal({ show, onClose, initialType, onBought, 
     }
   };
 
-  const getTranslatedItemName = (name) => translatedItemNames[name] || name;
-
   const removeIndex = (i, type) => {
     if (type === "Entree") {
       const updated = [...entreeList]; updated[i] = null; const compact = updated.filter(x => x !== null); while (compact.length < numEntree) compact.push(null); setEntreeList(compact); setIndexEntree(Math.max(indexEntree - 1, 0));
@@ -378,7 +282,7 @@ export default function CreateMealModal({ show, onClose, initialType, onBought, 
     let finished = false;
     const mealTypes = ["Bowl", "Plate", "Bigger", "Family"];
     const drinkTypes = ["Drink", "Bottle"];
-    if (mealTypes.includes(initialType)) finished = (indexEntree === numEntree) && (indexSide === numSide);
+    if (mealTypes.includes(initialType)) finished = (indexEntree === numEntree) && (indexSide === numSide || (indexSide + 1 === numSide && initialType != "Family"));
     else if (initialType === "A La Carte") finished = (indexALC === numALC);
     else if (initialType === "Appetizer") finished = (indexApp === numApp);
     else if (drinkTypes.includes(initialType)) finished = (indexDrink === numDrink);
@@ -446,21 +350,21 @@ export default function CreateMealModal({ show, onClose, initialType, onBought, 
             <div className="main-layout">
               <div className="menu-wrapper">
                 <div className="section section-entrees">
-                  <h3 className="section-title">{translatedTexts['Entrees']}</h3>
+                  <h3 className="section-title">Entrees:</h3>
                   {rows_entree.map((row, rowIndex) => (
                     <div key={rowIndex} className={`menu-row `}>
                       {row.map((item, itemIndex) => (
-                        <button key={itemIndex} id={item.menuName} className="buy-button" onClick={() => selectAttribute(item)}>{getTranslatedItemName(item.menuName)}</button>
+                        <button key={itemIndex} id={item.menuName} className="buy-button" onClick={() => selectAttribute(item)}>{item.menuName}</button>
                       ))}
                     </div>
                   ))}
                 </div>
                 <div className="section section-sides">
-                  <h3 className="section-title">{translatedTexts['Sides']}</h3>
+                  <h3 className="section-title">Sides:</h3>
                   {rows_side.map((row, rowIndex) => (
                     <div key={rowIndex} className={`menu-row ${rowIndex > 0 ? 'spaced' : ''}`}>
                       {row.map((item, itemIndex) => (
-                        <button key={itemIndex} id={item.menuName} className="buy-button" onClick={() => selectAttribute(item)}>{getTranslatedItemName(item.menuName)}</button>
+                        <button key={itemIndex} id={item.menuName} className="buy-button" onClick={() => selectAttribute(item)}>{item.menuName}</button>
                       ))}
                     </div>
                   ))}
@@ -470,15 +374,15 @@ export default function CreateMealModal({ show, onClose, initialType, onBought, 
 
             <div className="selected-panel">
               <div className="selected-group">
-                <h3 className="section-title">{translatedTexts['Selected Entrees']}</h3>
+                <h3 className="section-title">Selected Entrees</h3>
                 {Array.from({ length: numEntree }).map((_, i) => (
-                  <button key={i} className="selected-button" onClick={() => removeIndex(i, "Entree")}>{entreeList[i] ? getTranslatedItemName(entreeList[i].menuName) : translatedTexts['NONE']}</button>
+                  <button key={i} className="selected-button" onClick={() => removeIndex(i, "Entree")}>{entreeList[i] ? entreeList[i].menuName : "NONE"}</button>
                 ))}
               </div>
               <div className="selected-group">
-                <h3 className="section-title">{translatedTexts['Selected Sides']}</h3>
+                <h3 className="section-title">Selected Sides</h3>
                 {Array.from({ length: numSide }).map((_, i) => (
-                  <button key={i} className="selected-button" onClick={() => removeIndex(i, "Side")}>{sideList[i] ? getTranslatedItemName(sideList[i].menuName) : translatedTexts['NONE']}</button>
+                  <button key={i} className="selected-button" onClick={() => removeIndex(i, "Side")}>{sideList[i] ? sideList[i].menuName : "NONE"}</button>
                 ))}
               </div>
             </div>
@@ -490,11 +394,11 @@ export default function CreateMealModal({ show, onClose, initialType, onBought, 
             <div className="main-layout">
               <div className="menu-wrapper">
                 <div className="section section-drinks">
-                  <h3 className="section-title">{translatedTexts['Drinks']}</h3>
+                  <h3 className="section-title">Drinks:</h3>
                   {rows_drink.map((row, rowIndex) => (
                     <div key={rowIndex} className={`menu-row `}>
                       {row.map((item, itemIndex) => (
-                        <button key={itemIndex} id={item.menuName} className="buy-button" onClick={() => selectAttribute(item)}>{getTranslatedItemName(item.menuName)}</button>
+                        <button key={itemIndex} id={item.menuName} className="buy-button" onClick={() => selectAttribute(item)}>{item.menuName}</button>
                       ))}
                     </div>
                   ))}
@@ -503,15 +407,15 @@ export default function CreateMealModal({ show, onClose, initialType, onBought, 
             </div>
             <div className="selected-panel">
               <div className="selected-group">
-                <h3 className="section-title">{translatedTexts['Selected Drink']}</h3>
+                <h3 className="section-title">Selected Drink</h3>
                 {Array.from({ length: numDrink }).map((_, i) => (
                   <div key={i} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                    <button className="selected-button" onClick={() => removeIndex(i, "Drink")}>{drinkList[i] ? `${getTranslatedItemName(drinkList[i].menuName)}${drinkSizes[i] ? ` (${drinkSizes[i]})` : ''}` : translatedTexts['NONE']}</button>
+                    <button className="selected-button" onClick={() => removeIndex(i, "Drink")}>{drinkList[i] ? `${drinkList[i].menuName}${drinkSizes[i] ? ` (${drinkSizes[i]})` : ''}` : "NONE"}</button>
                     <button className="small-button" onClick={() => {
                       if (typeof requestSizeSelection === 'function') {
                         requestSizeSelection((size) => setDrinkSizeAt(i, size));
                       }
-                    }}>{translatedTexts['Set Size']}</button>
+                    }}>Set Size</button>
                   </div>
                 ))}
               </div>
@@ -524,11 +428,11 @@ export default function CreateMealModal({ show, onClose, initialType, onBought, 
             <div className="main-layout">
               <div className="menu-wrapper">
                 <div className="section section-drinks">
-                  <h3 className="section-title">{translatedTexts['Bottles']}</h3>
+                  <h3 className="section-title">Bottles:</h3>
                   {rows_bottle.map((row, rowIndex) => (
                     <div key={rowIndex} className={`menu-row `}>
                       {row.map((item, itemIndex) => (
-                        <button key={itemIndex} id={item.menuName} className="buy-button" onClick={() => selectAttribute(item)}>{getTranslatedItemName(item.menuName)}</button>
+                        <button key={itemIndex} id={item.menuName} className="buy-button" onClick={() => selectAttribute(item)}>{item.menuName}</button>
                       ))}
                     </div>
                   ))}
@@ -537,9 +441,9 @@ export default function CreateMealModal({ show, onClose, initialType, onBought, 
             </div>
             <div className="selected-panel">
               <div className="selected-group">
-                <h3 className="section-title">{translatedTexts['Selected Bottle']}</h3>
+                <h3 className="section-title">Selected Bottle</h3>
                 {Array.from({ length: numDrink }).map((_, i) => (
-                  <button key={i} className="selected-button" onClick={() => removeIndex(i, "Drink")}>{drinkList[i] ? getTranslatedItemName(drinkList[i].menuName) : translatedTexts['NONE']}</button>
+                  <button key={i} className="selected-button" onClick={() => removeIndex(i, "Drink")}>{drinkList[i] ? drinkList[i].menuName : "NONE"}</button>
                 ))}
               </div>
             </div>
@@ -551,11 +455,11 @@ export default function CreateMealModal({ show, onClose, initialType, onBought, 
             <div className="main-layout">
               <div className="menu-wrapper">
                 <div className="section section-entrees">
-                  <h3 className="section-title">{translatedTexts['A La Carte']}</h3>
+                  <h3 className="section-title">A La Carte</h3>
                   {rows_alc.map((row, rowIndex) => (
                     <div key={rowIndex} className={`menu-row `}>
                       {row.map((item, itemIndex) => (
-                        <button key={itemIndex} id={item.menuName} className="buy-button" onClick={() => selectAttribute(item)}>{getTranslatedItemName(item.menuName)}</button>
+                        <button key={itemIndex} id={item.menuName} className="buy-button" onClick={() => selectAttribute(item)}>{item.menuName}</button>
                       ))}
                     </div>
                   ))}
@@ -564,15 +468,15 @@ export default function CreateMealModal({ show, onClose, initialType, onBought, 
             </div>
             <div className="selected-panel">
               <div className="selected-group">
-                <h3 className="section-title">{translatedTexts['Selected Item']}</h3>
+                <h3 className="section-title">Selected Item</h3>
                 {Array.from({ length: numALC }).map((_, i) => (
                   <div key={i} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                    <button className="selected-button" onClick={() => removeIndex(i, "A La Carte")}>{alcList[i] ? `${getTranslatedItemName(alcList[i].menuName)}${alcSizes[i] ? ` (${alcSizes[i]})` : ''}` : translatedTexts['NONE']}</button>
+                    <button className="selected-button" onClick={() => removeIndex(i, "A La Carte")}>{alcList[i] ? `${alcList[i].menuName}${alcSizes[i] ? ` (${alcSizes[i]})` : ''}` : "NONE"}</button>
                     <button className="small-button" onClick={() => {
                       if (typeof requestSizeSelection === 'function') {
                         requestSizeSelection((size) => setAlcSizeAt(i, size));
                       }
-                    }}>{translatedTexts['Set Size']}</button>
+                    }}>Set Size</button>
                   </div>
                 ))}
               </div>
@@ -585,11 +489,11 @@ export default function CreateMealModal({ show, onClose, initialType, onBought, 
             <div className="main-layout">
               <div className="menu-wrapper">
                 <div className="section section-entrees">
-                  <h3 className="section-title">{translatedTexts['Appetizers']}</h3>
+                  <h3 className="section-title">Appetizers:</h3>
                   {rows_app.map((row, rowIndex) => (
                     <div key={rowIndex} className={`menu-row `}>
                       {row.map((item, itemIndex) => (
-                        <button key={itemIndex} id={item.menuName} className="buy-button" onClick={() => selectAttribute(item)}>{getTranslatedItemName(item.menuName)}</button>
+                        <button key={itemIndex} id={item.menuName} className="buy-button" onClick={() => selectAttribute(item)}>{item.menuName}</button>
                       ))}
                     </div>
                   ))}
@@ -598,16 +502,16 @@ export default function CreateMealModal({ show, onClose, initialType, onBought, 
             </div>
             <div className="selected-panel">
               <div className="selected-group">
-                <h3 className="section-title">{translatedTexts['Selected Appetizer']}</h3>
+                <h3 className="section-title">Selected Appetizer</h3>
                 {Array.from({ length: numApp }).map((_, i) => (
-                  <button key={i} className="selected-button" onClick={() => removeIndex(i, "Appetizer")}>{appList[i] ? getTranslatedItemName(appList[i].menuName) : translatedTexts['NONE']}</button>
+                  <button key={i} className="selected-button" onClick={() => removeIndex(i, "Appetizer")}>{appList[i] ? appList[i].menuName : "NONE"}</button>
                 ))}
               </div>
             </div>
           </>
         )}
 
-        <button className="continue-button" onClick={handleFinishSelection}>{isCustomizeMode ? translatedTexts['Update Order'] : translatedTexts['Continue']}</button>
+        <button className="continue-button" onClick={handleFinishSelection}>{isCustomizeMode ? "Update Order" : "Continue"}</button>
       </div>
     </div>
   );

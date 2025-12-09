@@ -44,7 +44,15 @@ export default function Kiosk() {
     'New Order': 'New Order',
     'Loading': 'Loading',
     'calories': 'calories',
-    'Allergens': 'Allergens'
+    'Allergens': 'Allergens',
+    'Choose a size for': 'Choose a size for',
+    'requires a size.': 'requires a size.',
+    'options': 'options',
+    'Included': 'Included',
+    'Cancel': 'Cancel',
+    'Small': 'Small',
+    'Medium': 'Medium',
+    'Large': 'Large',
   }), []);
 
   const translatedTexts = useTranslatedObject(translationKeys);
@@ -126,6 +134,7 @@ export default function Kiosk() {
   const [orderItems, setOrderItems] = useState([]);
   const [items, setItems] = useState([]);
   const [translatedItemNames, setTranslatedItemNames] = useState({});
+  const [bandaidHalfAndHalf, setBandaidHalfAndHalf] = useState(0);
   const [selectionQueue, setSelectionQueue] = useState([]);
   const [currentGroupId, setCurrentGroupId] = useState(null);
   const [activeSelection, setActiveSelection] = useState(null); // { type, label, remaining }
@@ -325,8 +334,9 @@ export default function Kiosk() {
     }
   }
 
-  async function handleSwap(idx) {
-    const target = orderItems[idx];
+  async function handleSwap(idx, it) {
+    setBandaidHalfAndHalf(0);
+    const target = it;
     if (!target || target.isParent) return;
 
     const parentEntry = orderItems.find(entry => entry.groupId === target.groupId && entry.isParent);
@@ -336,6 +346,7 @@ export default function Kiosk() {
     swapTargetRef.current = {
       index: idx,
       groupId: target.groupId ?? null,
+      halfAndHalf: target.halfAndHalf,
       type: target.type,
       parentItemId,
     };
@@ -630,10 +641,14 @@ export default function Kiosk() {
   }
 
   async function handleItemSelection(item) {
-    if (currentGroupId != null && (selectionQueue.length > 0 || activeSelection)) {
+    if (currentGroupId != null && (selectionQueue.length > 0 || activeSelection) && bandaidHalfAndHalf < 2) {
       removeGroupFromOrder(currentGroupId);
     }
     clearUI();
+    setBandaidHalfAndHalf(0);
+    if (item.itemid < 4) {
+      setBandaidHalfAndHalf(1);
+    }
 
     const newGroupId = groupIdRef.current + 1;
     groupIdRef.current = newGroupId;
@@ -660,6 +675,12 @@ export default function Kiosk() {
         sizeCategory: sizeContext.label,
       });
       return;
+    }
+    if (option.type == "side" && bandaidHalfAndHalf == 2) {
+      setBandaidHalfAndHalf(3);
+    }
+    if (option.type == "side" && bandaidHalfAndHalf == 1) {
+      setBandaidHalfAndHalf(2);
     }
     handleMenuChoice(option);
   }
@@ -696,20 +717,33 @@ export default function Kiosk() {
     const selectedSize = explicitSize ?? (sizeOptions.length ? sizeOptions[0] : null);
     const sizePayload = selectedSize ? { sizeLabel: selectedSize.label, sizeKey: selectedSize.key, sizePriceMod: selectedSize.priceDelta } : {};
 
-    if (currentGroupId != null) {
+    if (currentGroupId != null && option != "C") {
+      const halfFlag = (pendingSwap && pendingSwap.halfAndHalf !== undefined)
+        ? pendingSwap.halfAndHalf
+        : (bandaidHalfAndHalf == 2);
+
       addToOrder(option, {
         groupId: currentGroupId,
         isParent: false,
         parentItemId: currentParentItemIdRef.current,
         type: activeSelection?.type,
+        halfAndHalf: halfFlag,
         ...sizePayload
       }, insertAt);
-    } else {
+    } else if (option != "C") {
       addToOrder(option, { ...sizePayload }, insertAt);
     }
 
     if (pendingSwap) {
       swapTargetRef.current = null;
+    }
+
+    if (bandaidHalfAndHalf == 2 && option != "C") {
+      for (let row of orderItems) {
+        if (row.groupId == groupIdRef.current && row.halfAndHalf == false && row.type == 'side') {
+          row["halfAndHalf"] = true;
+        }
+      }
     }
 
     if (selectionQueue.length === 0) {
@@ -922,7 +956,7 @@ export default function Kiosk() {
 
   async function handlePurchase() {
     // Move to Checkout screen; actual purchase should occur after payment
-    if (orderItems.length === 0 || selectionQueue.length > 0 || activeSelection) {
+    if ((orderItems.length === 0 || selectionQueue.length > 0 || activeSelection) && bandaidHalfAndHalf != 2) {
       return;
     }
     changeState("Checkout");
@@ -1078,19 +1112,30 @@ export default function Kiosk() {
                       </div>
                     );
                   })}
+                  {(bandaidHalfAndHalf == 2) && (
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      className={`kiosk-item kisok-item-button${false ? ' out-of-stock' : ''}${true ? ' no-img' : ''}`}
+                      onClick={() => { handleMenuTileClick("C"); }}
+                      onKeyDown={(e) => { if (e.key === 'Enter') handleMenuTileClick("C"); }}
+                    >
+                      <div className="kiosk-item-name">{translatedTexts['Complete']}</div>
+                    </div> 
+                  )}
                 </div>
                 {pendingSizeSelection && (
                   <div className="kiosk-size-modal-backdrop">
                     <div className="kiosk-size-modal">
                       <div className="kiosk-size-modal-title">
-                        Choose a size for {getTranslatedItemName(pendingSizeSelection.option?.name)}
+                        {translatedTexts['Choose a size for']} {getTranslatedItemName(pendingSizeSelection.option?.name)}
                       </div>
                       <div className="kiosk-size-modal-subtitle">
-                        {pendingSizeSelection.selectionLabel || 'Selection'} requires a size.
+                        {pendingSizeSelection.selectionLabel || 'Selection'} {translatedTexts['requires a size.'] || 'requires a size.'}
                       </div>
                       {pendingSizeSelection.sizeCategory && (
                         <div className="kiosk-size-modal-subtitle secondary">
-                          {pendingSizeSelection.sizeCategory} options
+                          {pendingSizeSelection.sizeCategory} {translatedTexts['options'] || 'options'}
                         </div>
                       )}
                       <div className="kiosk-size-modal-options">
@@ -1101,16 +1146,16 @@ export default function Kiosk() {
                             className="kiosk-size-btn"
                             onClick={() => confirmSizeSelection(opt)}
                           >
-                            <span className="kiosk-size-label">{opt.label}</span>
+                            <span className="kiosk-size-label">{translatedTexts[opt.label] || opt.label}</span>
                             {opt.priceDelta ? (
                               <span className="kiosk-size-price">+${opt.priceDelta.toFixed(2)}</span>
                             ) : (
-                              <span className="kiosk-size-price">Included</span>
+                              <span className="kiosk-size-price">{translatedTexts['Included'] || 'Included'}</span>
                             )}
                           </button>
                         ))}
                       </div>
-                      <button type="button" className="kiosk-size-cancel" onClick={cancelSizeSelection}>Cancel</button>
+                      <button type="button" className="kiosk-size-cancel" onClick={cancelSizeSelection}>{translatedTexts['Cancel'] || 'Cancel'}</button>
                     </div>
                   </div>
                 )}
@@ -1134,31 +1179,38 @@ export default function Kiosk() {
                 const sizeModValue = hasSizeMod ? safeNumber(it.sizePriceMod) : 0;
                 const sizeModLabel = hasSizeMod ? `${sizeModValue >= 0 ? '+' : '-'}$${Math.abs(sizeModValue).toFixed(2)}` : '';
                 const priceLabel = hasSizeMod ? sizeModLabel : (hide ? '' : `$${value.toFixed(2)}`);
-                return (
-                  <div className={rowClass} key={idx}>  
-                    <div className="kiosk-order-name">
-                      <span>{it.name}</span>
-                      {it.sizeLabel && (
-                        <span className="kiosk-order-size-note">
-                          {it.sizeLabel}
-                          {hasSizeMod && ` (${sizeModLabel})`}
-                        </span>
-                      )}
+                if (it.type != "HalfAndHalf") {
+                  return (
+                    <div className={rowClass} key={idx}>  
+                      <div className="kiosk-order-name">
+                        <span>{it.name}</span>
+                        {it.sizeLabel && (
+                          <span className="kiosk-order-size-note">
+                            {it.sizeLabel}
+                            {hasSizeMod && ` (${sizeModLabel})`}
+                          </span>
+                        )}
+                        {it.halfAndHalf && (
+                          <span className="kiosk-order-size-note">
+                            {"Half & Half"}
+                          </span>
+                        )}
+                      </div>
+                      <div className="kiosk-order-actions">
+                        <div className="kiosk-order-price">{priceLabel}</div>
+                        {it.isParent ? (
+                          <button className="kiosk-remove-btn" onClick={() => removeFromOrder(idx)}>
+                            <img src={getImageForItem("trashcan")} alt="Remove" className="remove-icon" />
+                          </button>
+                        ) : (
+                          <button className="kiosk-swap-btn" onClick={() => handleSwap(idx, it)}>
+                            <img src={getImageForItem("swapArrows")} alt="Swap" className="swap-icon" />
+                          </button>
+                        )}
+                      </div>
                     </div>
-                    <div className="kiosk-order-actions">
-                      <div className="kiosk-order-price">{priceLabel}</div>
-                      {it.isParent ? (
-                        <button className="kiosk-remove-btn" onClick={() => removeFromOrder(idx)}>
-                          <img src={getImageForItem("trashcan")} alt="Remove" className="remove-icon" />
-                        </button>
-                      ) : (
-                        <button className="kiosk-swap-btn" onClick={() => handleSwap(idx)}>
-                          <img src={getImageForItem("swapArrows")} alt="Swap" className="swap-icon" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
+                  );
+                }
               })}
             </div>
             <div className="kiosk-order-summary">
