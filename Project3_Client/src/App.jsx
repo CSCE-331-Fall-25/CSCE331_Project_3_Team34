@@ -10,6 +10,7 @@ import Hub from './pages/Hub.jsx'
 import MealAttributes  from './pages/MealAttributes.jsx' 
 import Login from './pages/Login.jsx'
 import './styles/App.css'
+import './styles/accessibility.css'
 
 import { getImageForItem } from './assets/utils/imageMapper';
 import { TranslationProvider } from './contexts/TranslationContext';

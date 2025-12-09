@@ -239,47 +239,48 @@ export default function Login() {
         onClose={() => setShowSignUpModal(false)}
         onSignUp={handleSignUpSuccess}
       />
-      <div className="login-page-background">
-      <div className="login-card">
-        <img
-          className="login-logo"
-          src={pandaLogo}
-          alt="Panda Express Logo"
-        />
-        <form onSubmit={handleLogin} className="login-form">
-          <input
-            type="text"
-            placeholder="Employee Username"
-            value={employeeId ?? ''}
-            onChange={handleIdChange}
+      <main className="login-page-background">
+        <div className="login-card">
+          <h1 className="sr-only">Panda Express Login</h1>
+          <img
+            className="login-logo"
+            src={pandaLogo}
+            alt="Panda Express Logo"
           />
-          <input
-            type="password"
-            placeholder="Password"
-            value={employeePassword ?? ''}
-            onChange={handlePasswordChange}
-          />
-          <button type="submit">Login</button>
-        </form>
-        {!customer && 
-        <GoogleLoginButton returnTo={returnTo} functionality={functionality} />
-        }
-        {customer && (
-          <button className="back-button" onClick={handleCustomerBack} style={{ marginTop: '10px', width: '100%', padding: '10px', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
-            Back to Kiosk
+          <form onSubmit={handleLogin} className="login-form">
+            <input
+              type="text"
+              placeholder="Employee Username"
+              value={employeeId ?? ''}
+              onChange={handleIdChange}
+            />
+            <input
+              type="password"
+              placeholder="Password"
+              value={employeePassword ?? ''}
+              onChange={handlePasswordChange}
+            />
+            <button type="submit">Login</button>
+          </form>
+          {!customer && 
+          <GoogleLoginButton returnTo={returnTo} functionality={functionality} />
+          }
+          {customer && (
+            <button className="back-button" onClick={handleCustomerBack} style={{ marginTop: '10px', width: '100%', padding: '10px', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+              Back to Kiosk
+            </button>
+          )}
+          {customer && (
+            <button type="button" onClick={() => setShowSignUpModal(true)} style={{ marginTop: '10px', width: '100%', padding: '10px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+              Sign Up
+            </button>
+          )}
+          <button className="debug-button" onClick={() => navigate("/hub")}>
+            <img className='img' src={getImageForItem("debugbutton")} alt="Debug" />
+            Debugging Skip Login
           </button>
-        )}
-        {customer && (
-          <button type="button" onClick={() => setShowSignUpModal(true)} style={{ marginTop: '10px', width: '100%', padding: '10px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
-            Sign Up
-          </button>
-        )}
-        <button className="debug-button" onClick={() => navigate("/hub")}>
-          <img className='img' src={getImageForItem("debugbutton")} alt="Debug" />
-          Debugging Skip Login
-        </button>
-      </div>
-    </div>
+        </div>
+      </main>
     </>
   );
 }
