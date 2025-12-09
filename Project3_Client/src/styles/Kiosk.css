@@ -95,6 +95,8 @@
 .purchase-buttons { display: flex; justify-content: space-around; gap: 20px; margin-top: 20px; }
 .purchase-option { width: 240px; height: 240px; border: 2px solid #1a1a1a; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.2s, background-color 0.2s; }
 .purchase-option:hover { transform: scale(1.05); background-color: #f0f0f0; color: #e33; border: 2px solid #e33; }
+.purchase-option.disabled { cursor: not-allowed; opacity: 0.5; }
+.purchase-option.disabled:hover { transform: none; background-color: transparent; color: inherit; border: 2px solid #1a1a1a; }
 .option-img { width: 100px; height: 100px; margin-bottom: 10px; }
 .option-text { font-weight: bold; font-size: 16px; font-family: Furtiger, sans-serif; padding: 5px; }
 .finished-img { width: 250px; height: auto; margin-bottom: 20px; }

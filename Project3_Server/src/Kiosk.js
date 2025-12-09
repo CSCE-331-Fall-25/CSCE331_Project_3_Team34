@@ -75,11 +75,9 @@ kioskRouter.post('/submit-order', async (req, res) => {
         let price = 0;
         let family = false;
         for (const row of orderData) {
-            console.log(row);
             if (row.price) {
                 price += row.price;
                 nextOrderNum++;
-                console.log(nextTransactionNum + "   " + row.itemid + "   " + nextOrderNum);
                 await pool.query("INSERT INTO orders (transactionid, itemid, orderid) VALUES ($1, $2, $3)", [nextTransactionNum, row.itemid, nextOrderNum]);
                 await pool.query("UPDATE inventory AS i SET quantity = i.quantity - 1 FROM items AS it WHERE i.inventoryid = ANY(it.inventoryids) AND it.itemid = " + row.itemid + ";");
                 if (row.itemid == 4) {
@@ -91,8 +89,7 @@ kioskRouter.post('/submit-order', async (req, res) => {
             }
             else {
                 price += row.pricemod;
-                console.log(nextOrderNum + "   " + row.menuid + "   " + row.type + "    small");
-                if (row.sizeKey == "large" || family) {
+                if (row.sizeKey == "large") {
                     await pool.query("UPDATE inventory AS i SET quantity = i.quantity - 3 FROM menu AS m WHERE i.inventoryid = ANY(m.inventoryids) AND m.menuid = " + row.menuid + ";");
                     await pool.query("INSERT INTO trays (orderid, menuid, type, size) VALUES ($1, $2, $3, $4)", [nextOrderNum, row.menuid, row.type, "large"]);
                 }
@@ -100,13 +97,20 @@ kioskRouter.post('/submit-order', async (req, res) => {
                     await pool.query("UPDATE inventory AS i SET quantity = i.quantity - 2 FROM menu AS m WHERE i.inventoryid = ANY(m.inventoryids) AND m.menuid = " + row.menuid + ";");
                     await pool.query("INSERT INTO trays (orderid, menuid, type, size) VALUES ($1, $2, $3, $4)", [nextOrderNum, row.menuid, row.type, "medium"]);
                 }
-                else {
+                else if (row.sizeKey == "small") {
                     await pool.query("UPDATE inventory AS i SET quantity = i.quantity - 1 FROM menu AS m WHERE i.inventoryid = ANY(m.inventoryids) AND m.menuid = " + row.menuid + ";");
                     await pool.query("INSERT INTO trays (orderid, menuid, type, size) VALUES ($1, $2, $3, $4)", [nextOrderNum, row.menuid, row.type, "small"]);
                 }
+                else if (family) {
+                    await pool.query("UPDATE inventory AS i SET quantity = i.quantity - 2 FROM menu AS m WHERE i.inventoryid = ANY(m.inventoryids) AND m.menuid = " + row.menuid + ";");
+                    await pool.query("INSERT INTO trays (orderid, menuid, type, size) VALUES ($1, $2, $3, $4)", [nextOrderNum, row.menuid, row.type, null]);
+                }
+                else {
+                    await pool.query("UPDATE inventory AS i SET quantity = i.quantity - 1 FROM menu AS m WHERE i.inventoryid = ANY(m.inventoryids) AND m.menuid = " + row.menuid + ";");
+                    await pool.query("INSERT INTO trays (orderid, menuid, type, size) VALUES ($1, $2, $3, $4)", [nextOrderNum, row.menuid, row.type, null]);
+                }
             }
         }
-        console.log(nextTransactionNum + "   -1   " + now.toISOString().slice(0, 19).replace('T', ' ') + "   " + price + "   " + (price * .27).toFixed(2) + "    " + "   4");
         let timestamp = now.toISOString().slice(0, 19).replace('T', ' ');
         // if (Number(timestamp.substring(11, 13)) < 6) {
         //     timestamp = timestamp.substring(0, 11) + String(Number(timestamp.substring(11, 13)) + 18) + timestamp.substring(13, 19);

@@ -114,9 +114,9 @@ export default function CreateMealModal({ show, onClose, initialType, onBought, 
     let newNumEntree = 0, newNumSide = 0, newNumApp = 0, newNumDrink = 0, newNumALC = 0;
 
     switch (id) {
-      case "Bowl": newNumEntree = 1; newNumSide = 1; setShowMealGUI(true); break;
-      case "Plate": newNumEntree = 2; newNumSide = 1; setShowMealGUI(true); break;
-      case "Bigger": newNumEntree = 3; newNumSide = 1; setShowMealGUI(true); break;
+      case "Bowl": newNumEntree = 1; newNumSide = 2; setShowMealGUI(true); break;
+      case "Plate": newNumEntree = 2; newNumSide = 2; setShowMealGUI(true); break;
+      case "Bigger": newNumEntree = 3; newNumSide = 2; setShowMealGUI(true); break;
       case "Family": newNumEntree = 3; newNumSide = 2; setShowMealGUI(true); break;
       case "A La Carte": newNumALC = 1; setShowAlcGUI(true); setAlcMode(true); break;
       case "Drink": newNumDrink = 1; setShowDrinkGUI(true); setAlcMode(false); break;
@@ -282,7 +282,7 @@ export default function CreateMealModal({ show, onClose, initialType, onBought, 
     let finished = false;
     const mealTypes = ["Bowl", "Plate", "Bigger", "Family"];
     const drinkTypes = ["Drink", "Bottle"];
-    if (mealTypes.includes(initialType)) finished = (indexEntree === numEntree) && (indexSide === numSide);
+    if (mealTypes.includes(initialType)) finished = (indexEntree === numEntree) && (indexSide === numSide || (indexSide + 1 === numSide && initialType != "Family"));
     else if (initialType === "A La Carte") finished = (indexALC === numALC);
     else if (initialType === "Appetizer") finished = (indexApp === numApp);
     else if (drinkTypes.includes(initialType)) finished = (indexDrink === numDrink);

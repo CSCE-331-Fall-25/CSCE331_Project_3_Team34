@@ -6,6 +6,7 @@ import '../styles/WeatherScreen.css'
 import { getImageForItem } from '../assets/utils/imageMapper';
 import TranslationClient from '../Components/TranslationClient';
 import { TranslationContext } from '../contexts/TranslationContext';
+import { clearOrder } from '../utils/orderPersistence';
 
 export default function WeatherScreen() {
   const translationContext = useContext(TranslationContext);
@@ -91,6 +92,7 @@ export default function WeatherScreen() {
 
   function handleClick() {
     setFadeOut(true);
+    clearOrder('kiosk'); // Clear any existing order when starting fresh from weather screen
     setTimeout(() => navigate("/kiosk"), 350); // match CSS fadeOut time
   }
 

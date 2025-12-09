@@ -28,6 +28,8 @@
     background-color: #d60606;
     color: white;
     font-weight: 700;
+    margin-top: 6px;
+    margin-bottom: 6px;
 }
 .button:hover {
     background-color: #cc1e1e;

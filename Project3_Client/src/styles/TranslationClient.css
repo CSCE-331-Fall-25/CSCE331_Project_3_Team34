@@ -45,3 +45,13 @@
   background-color: white;
   color: #333;
 }
+
+.language-select-weather {
+  color: #333 !important;
+  background-color: white !important;
+}
+
+.language-select-weather option {
+  color: #333 !important;
+  background-color: white !important;
+}

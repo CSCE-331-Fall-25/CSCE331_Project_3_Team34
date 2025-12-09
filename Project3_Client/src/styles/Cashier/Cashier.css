@@ -48,6 +48,25 @@
 	font-weight: 600;
 }
 
+.language-picker {
+	align-items: flex-end;
+}
+
+.language-select {
+	margin-top: 4px;
+	padding: 6px 10px;
+	border-radius: 8px;
+	border: 1px solid rgba(255, 255, 255, 0.5);
+	background: rgba(255, 255, 255, 0.15);
+	color: #fff;
+	font-weight: 600;
+	backdrop-filter: blur(4px);
+}
+
+.language-select option {
+	color: #1f2333;
+}
+
 .cashier-grid {
 	flex: 1;
 	display: grid;

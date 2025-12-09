@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo, useContext } from "react";
 import "../styles/Cashier/Cashier.css";
 import "../styles/Cashier/DiscountModal.css";
 import { useEffect, useState, useRef } from "react";
@@ -20,6 +20,8 @@ import VoidModal from "../Components/VoidModal.jsx";
 import CreateMealModal from "../Components/CreateMealModal.jsx";
 import SizeModal from "../Components/SizeModal.jsx";
 import { saveOrder, loadOrder, clearOrder } from '../utils/orderPersistence';
+import { useTranslatedObject } from "../hooks/useTranslatedText";
+import { TranslationContext } from "../contexts/TranslationContext";
 export default function Cashier() {
   const navigate = useNavigate();
   //newest Row reference for auto scrolling
@@ -45,6 +47,40 @@ export default function Cashier() {
   const [pendingSizeCallback, setPendingSizeCallback] = useState(null);
   const sizeOptions = ["Small", "Medium", "Large"]; //UPDATE BASED ON WHAT SIZES WE HAVE
 
+  // --- Translation --- //
+  const translationKeys = useMemo(() => ({
+    'Discount': 'Discount',
+    'Void': 'Void',
+    'Sign Out': 'Sign Out',
+    'Current Order': 'Current Order',
+    'Subtotal': 'Subtotal',
+    'DiscountLabel': 'Discount',
+    'Tax': 'Tax',
+    'Total': 'Total',
+    'CUSTOMIZE': 'CUSTOMIZE',
+    'A La Carte': 'A La Carte',
+    'Appetizer': 'Appetizer',
+    'Drink': 'Drink',
+    'Bottle': 'Bottle',
+    'Bowl': 'Bowl',
+    'Plate': 'Plate',
+    'Bigger': 'Bigger',
+    'Family': 'Family',
+    'Employee': 'Employee',
+    'item': 'item',
+    'items': 'items',
+    'Cost': 'Cost',
+    'Item': 'Item',
+    'Language': 'Language'
+  }), []);
+
+  const translatedTexts = useTranslatedObject(translationKeys);
+  const translationContext = useContext(TranslationContext);
+  const selectedLanguage = translationContext?.selectedLanguage || 'en';
+  const supportedLanguages = translationContext?.supportedLanguages || {};
+  const setSelectedLanguage = translationContext?.setSelectedLanguage;
+  const [translatedItemNames, setTranslatedItemNames] = useState({});
+
   //updates for orderTable
   const [currCost, setCurrCost] = useState(0);
   const [tax, setTax] = useState(0);
@@ -68,28 +104,35 @@ export default function Cashier() {
     useEffect(() => {
       window.history.replaceState({}, '', window.location.pathname);
 
-      // Always update page state when returning from login, regardless of success/failure
-      if (sucessfulOverrideLogin) {
-        UpdatePage();
-      }
+        // Guard against duplicate handling (React StrictMode / HMR can cause double mount)
+        try {
+          if (typeof window !== 'undefined' && window.__cashier_override_handled) return;
+        } catch (e) {}
 
-      if (sucessfulOverrideLogin == 2) {
-        fetchUserData().then((data) => {
-          if (data && data.success) {
-            console.log("Fetched user data before Manager Override Login");
-            console.log("Attempting Manager Override Login as " + (data.user || null));
-            if(data.isManager){
-              setTempManager(true);
-              console.log("Manager Override Login Successful");
-              setShowDiscountModal(true);
+        // Always update page state when returning from login, regardless of success/failure
+        if (sucessfulOverrideLogin) {
+          UpdatePage();
+        }
+
+        if (sucessfulOverrideLogin == 2) {
+          // mark handled to avoid duplicate alerts
+          try { if (typeof window !== 'undefined') window.__cashier_override_handled = true; } catch (e) {}
+          fetchUserData().then((data) => {
+            if (data && data.success) {
+              console.log("Fetched user data before Manager Override Login");
+              console.log("Attempting Manager Override Login as " + (data.user || null));
+              if(data.isManager){
+                setTempManager(true);
+                console.log("Manager Override Login Successful");
+                setShowDiscountModal(true);
+              }
+              else{
+                alert('Manager Override Login Failed: Not a Manager');
+              }
             }
-            else{
-              alert('Manager Override Login Failed: Not a Manager');
-            }
-          }
-        });
-      }
-      console.log('sucessfulOverrideLogin param:', sucessfulOverrideLogin);
+          });
+        }
+        console.log('sucessfulOverrideLogin param:', sucessfulOverrideLogin);
     }, [sucessfulOverrideLogin]);
 
   useEffect(() => {
@@ -142,6 +185,8 @@ export default function Cashier() {
   const handleShowVoid = () => setShowVoidModal(true);
   const handleAddDiscount = () => setShowDiscountModal(true);
   const handleCreateMeal = () => setShowCreateMealModal(true);
+
+  const getTranslatedItemName = (name) => translatedItemNames[name] || name;
 
   // Handle customize order by opening CreateMealModal in customize mode
   const handleCustomizeOrder = () => {
@@ -205,6 +250,53 @@ export default function Cashier() {
     }
   }, [transactionItems]);
 
+  // Translate dynamic item names when orders or language change
+  useEffect(() => {
+    if (!translationContext) return;
+
+    const extractName = (item) => {
+      if (!item) return '';
+      if (typeof item === 'string') return item;
+      if (typeof item === 'object') return item.name || item.menuName || item.item || '';
+      return '';
+    };
+
+    const translateNames = async () => {
+      const texts = new Set();
+      transactionItems.forEach(entry => {
+        const name = extractName(entry.item);
+        if (name) texts.add(name);
+      });
+
+      if (selectedLanguage === 'en') {
+        const english = {};
+        texts.forEach(text => english[text] = text);
+        setTranslatedItemNames(english);
+        return;
+      }
+
+      if (texts.size === 0) {
+        setTranslatedItemNames({});
+        return;
+      }
+
+      try {
+        const arr = Array.from(texts);
+        const translations = await translationContext.translateMultiple(arr, selectedLanguage);
+        const map = {};
+        arr.forEach((t, i) => { map[t] = translations[i] || t; });
+        setTranslatedItemNames(map);
+      } catch (error) {
+        console.error('Failed to translate cashier item names:', error);
+        const fallback = {};
+        texts.forEach(text => fallback[text] = text);
+        setTranslatedItemNames(fallback);
+      }
+    };
+
+    translateNames();
+  }, [transactionItems, selectedLanguage, translationContext]);
+
   const UpdatePage = () => {
   fetch("/api/current-state", {
     credentials: 'include' // Include cookies with this request
@@ -254,9 +346,9 @@ export default function Cashier() {
   }
 
 
-
-
-  const orderCountLabel = transactionItems.length === 1 ? "1 item" : `${transactionItems.length} items`;
+  const orderCountLabel = transactionItems.length === 1
+    ? `1 ${translatedTexts['item'] || 'item'}`
+    : `${transactionItems.length} ${translatedTexts['items'] || 'items'}`;
   return (
     <div className="main-page bkgColor cashier-screen">
       {/* //to use the size modal, set sizes based on options, then collect setSelectedSize for output */}
@@ -317,10 +409,22 @@ export default function Cashier() {
       />
       <header className="cashier-top">
         <div className="top-meta">
-          <span className="meta-value">{User?.username || "Employee"}</span>
+          <span className="meta-value">{User?.username || translatedTexts['Employee'] || "Employee"}</span>
         </div>
         <div className="top-meta">
           <span className="meta-value">{currentTime}</span>
+        </div>
+        <div className="top-meta language-picker">
+          <span className="meta-label">{translatedTexts['Language'] || 'Language'}</span>
+          <select
+            className="language-select"
+            value={selectedLanguage}
+            onChange={(e) => setSelectedLanguage && setSelectedLanguage(e.target.value)}
+          >
+            {Object.entries(supportedLanguages).map(([code, label]) => (
+              <option key={code} value={code}>{label}</option>
+            ))}
+          </select>
         </div>
       </header>
 
@@ -328,9 +432,9 @@ export default function Cashier() {
         <section className="card actions-column">
           <div className="action-stack">
             {[
-              { text: "Discount", handler: handleAddDiscount },
-              { text: "Void", handler: handleShowVoid },
-              { text: "Sign Out", handler: () => setShowSignOutModal(true) },
+              { text: translatedTexts['Discount'] || "Discount", handler: handleAddDiscount },
+              { text: translatedTexts['Void'] || "Void", handler: handleShowVoid },
+              { text: translatedTexts['Sign Out'] || "Sign Out", handler: () => setShowSignOutModal(true) },
             ].map((btn) => (
               <button key={btn.text} onClick={btn.handler} className="function-button">
                 {btn.text}
@@ -344,14 +448,14 @@ export default function Cashier() {
             <div className="cashier-menu-row">
               {["Bowl", "Plate", "Bigger", "Family"].map((item) => (
                 <button key={item} id={item} className="cashier-menu-button" onClick={handleBuildItem}>
-                  {item}
+                  {translatedTexts[item] || item}
                 </button>
               ))}
             </div>
             <div className="cashier-menu-row">
               {["A La Carte", "Appetizer", "Drink", "Bottle"].map((item) => (
                 <button key={item} id={item} className="cashier-menu-button" onClick={handleBuildItem}>
-                  {item}
+                  {translatedTexts[item] || item}
                 </button>
               ))}
             </div>
@@ -361,15 +465,17 @@ export default function Cashier() {
               <RemoveItemButton index={selectedRow} onRemoved={() => { setSelectedRow(null); UpdatePage(); }} />
             </div>
             <div className="update-btn">
-              <ClearTransactionButton onCleared={() => { UpdatePage(); }} />
+              <ClearTransactionButton onCleared={() => { setSelectedRow(null); UpdatePage(); }} />
             </div>
-            <button onClick={handleCustomizeOrder} className="UpdateOrderButton">CUSTOMIZE</button>
+            <button onClick={handleCustomizeOrder} className="UpdateOrderButton" disabled={selectedRow === null || selectedRow === undefined}>
+              {translatedTexts['CUSTOMIZE'] || 'CUSTOMIZE'}
+            </button>
           </div>
         </section>
 
         <section className="card order-column">
           <div className="column-heading">
-            <h2>Current Order</h2>
+            <h2>{translatedTexts['Current Order'] || 'Current Order'}</h2>
             <span className="order-count">{orderCountLabel}</span>
           </div>
           <div className="order-table-wrapper">
@@ -378,15 +484,17 @@ export default function Cashier() {
               selectedRow={selectedRow}
               setSelectedRow={setSelectedRow}
               lastRowRef={lastRowRef}
+              translatedTexts={translatedTexts}
+              getTranslatedItemName={getTranslatedItemName}
             />
           </div>
           <div className="order-bottom">
             <div className="order-descriptors">
               {[
-                { label: "Subtotal", value: currCost },
-                { label: "Discount", value: -(discountAmount || 0) - (discountPriceOff || 0) },
-                { label: "Tax", value: tax },
-                { label: "Total", value: priceTotal }
+                { label: translatedTexts['Subtotal'] || "Subtotal", value: currCost },
+                { label: translatedTexts['DiscountLabel'] || "Discount", value: -(discountAmount || 0) - (discountPriceOff || 0) },
+                { label: translatedTexts['Tax'] || "Tax", value: tax },
+                { label: translatedTexts['Total'] || "Total", value: priceTotal }
               ].map((row) => (
                 <div key={row.label} className="descriptor-row">
                   <span className="descriptor-label">{row.label}</span>

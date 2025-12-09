@@ -1,3 +1,20 @@
+/* Ensure language dropdown uses black text on white background */
+.language-select {
+  color: #111 !important;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 1rem;
+}
+
+/* Increase specificity for Kitchen screen to override shared styles */
+.kitchen-screen .language-select,
+.kitchen-screen .language-select option {
+  color: #111 !important;
+  background: #fff !important;
+  font-weight: 600;
+}
 .kitchen-screen {
   height: 100vh;
   display: flex;

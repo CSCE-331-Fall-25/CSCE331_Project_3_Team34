@@ -249,7 +249,7 @@ export default function Login() {
         <form onSubmit={handleLogin} className="login-form">
           <input
             type="text"
-            placeholder="Employee ID"
+            placeholder="Employee Username"
             value={employeeId ?? ''}
             onChange={handleIdChange}
           />

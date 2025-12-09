@@ -27,6 +27,7 @@ ChartJS.register(
 
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import SignOutButton from "../Components/SignOut.jsx";
 
 export default function Manager() {
 
@@ -872,8 +873,7 @@ export default function Manager() {
     else {
       const newData = await response.json();
       console.log(newData);
-      setReplace(true);
-      setShowImageDownloadModal(true);
+      
       getMenuData();
       switch (newData.error) {
         case -2:
@@ -909,6 +909,8 @@ export default function Manager() {
         case 55:
           setErrorLabel("");
           break;
+        setReplace(true);
+        setShowImageDownloadModal(true);
       }
     }
   }
@@ -937,7 +939,7 @@ export default function Manager() {
     }
     else {
       const newData = await response.json();
-      console.log(newData.stringify);
+      //console.log(newData.stringify);
       setTableColumns([{ accessorKey: "inventoryid", header: "Inventory ID", cell: info => info.getValue() },
       { accessorKey: "name", header: "Name", cell: info => info.getValue() },
       { accessorKey: "quantity", header: "Quantity", cell: info => info.getValue() },
@@ -1131,15 +1133,25 @@ export default function Manager() {
   const [replace, setReplace] = useState(false);
   const inputRef = useRef(null);
 
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+      setMessage('File not found');      }
+    };
+  }, [previewUrl]);
+
   function handleSelectFile(e) {
     const f = e.target.files && e.target.files[0];
     if (!f) {
-      setMessage('File now found');
+      setMessage('File not found');
       return;
     }
     if (f.type !== 'image/png') {
       setMessage('Only PNG files are allowed.');
       return;
+    }
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
     }
     setFile(f);
     setPreviewUrl(URL.createObjectURL(f));
@@ -1155,6 +1167,9 @@ export default function Manager() {
     if (f.type !== 'image/png') {
       setMessage('Only PNG files are allowed.');
       return;
+    }
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
     }
     setFile(f);
     setPreviewUrl(URL.createObjectURL(f));
@@ -1180,18 +1195,23 @@ export default function Manager() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ menuId, rowSelection }),
       });
+      if(!response.ok) {
+        setMessage('Failed to fetch menu IDs');
+        setLoading(false);
+        return;
+      }
       let resp = await response.json();
       console.log(resp + "aasfbsdbstenb");
       switch (resp.error) {
         case 2:
           setMessage('Menu Id not found');
-          break;
+          return;
         case 3:
           setMessage('No menu items found to update');
-          break;
-        case 55:
-          setMessage('Upload successful');
-          break;
+        //   break;
+        // case 55:
+        //   setMessage('Upload successful');
+          return;
       }
       for (let row of resp.ids) {
         console.log(row + "aafgafg");
@@ -1199,6 +1219,7 @@ export default function Manager() {
       }
 
       console.log(ids);
+      let uploadErrors = [];
       for (let name of ids) {
         console.log(name);
         const form = new FormData();
@@ -1207,12 +1228,23 @@ export default function Manager() {
         form.append('replace', replace);
         
         const res = await fetch('/api/upload', {
-        method: 'POST',
-        body: form,
+          method: 'POST',
+          body: form,
         });
+        
+        if (!res.ok) {
+          uploadErrors.push(`Failed to upload image for menu ID ${name}`);
+        }
+      }
+      
+      if (uploadErrors.length > 0) {
+        setMessage(`Upload completed with errors: ${uploadErrors.join(', ')}`);
+      } else {
+        setMessage('All images uploaded successfully');
       }
     } catch (err) {
       console.error(err);
+      setMessage('Upload failed: ' + err.message);
     } finally {
       setLoading(false);
     }
@@ -1533,23 +1565,7 @@ export default function Manager() {
         )
       }
       {showSignOutModal && (
-        <div
-          className="modal-overlay"
-          onClick={() => setShowSignOutModal(false)}
-            >
-          <div className="modal-window" onClick={e => e.stopPropagation()}>
-            <div className="modal-title">
-              <h2>Confirm Sign Out</h2>
-            <div>
-              Are you sure you want to sign out?
-            </div>
-            </div>
-            <div className= "modal-actions">
-              <button className="button" onClick={handleSignOut}>Yes</button>
-              <button className="button" onClick={() => setShowSignOutModal(false)}>No</button>
-            </div>
-          </div>
-        </div>
+        <SignOutButton onClose={() => setShowSignOutModal(false)} />
       )}
       <div className = "manager-subheader"><h1>Welcome, {employeeName === null ? "missing" : employeeName}!</h1></div>
 
@@ -1582,8 +1598,6 @@ export default function Manager() {
         >
           Manage Menu
         </button>
-        {/* Can be used for accessability settings in the future */}
-        <button className = "button manager-button">Settings</button>
         <button className = "button manager-button" onClick={() => setShowSignOutModal(true)}>Sign Out</button>
       </div>
       <div className="line-chart">

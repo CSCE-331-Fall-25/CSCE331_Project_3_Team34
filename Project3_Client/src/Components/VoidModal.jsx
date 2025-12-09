@@ -53,7 +53,7 @@ export default function VoidModal({ show, onClose, userIsManager }) {
           </div>
         <div className="modal-actions">
           <button onClick={() => voidTransaction()} className="modal-back" disabled={loading}>
-            Void
+            Void From Database
           </button>
           <button onClick={() => typeof onClose === "function" && onClose()} className="modal-back" disabled={loading}>
             Back
