@@ -26,15 +26,15 @@ describe('Login view', () => {
 
   test('renders username and password inputs and login button', () => {
     render(<Login />);
-    expect(screen.getByPlaceholderText('Employee ID')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Employee Username')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Password')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /login/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Login$/i })).toBeInTheDocument();
   });
 
   test('alerts when submitting empty credentials', async () => {
     const alertSpy = jest.spyOn(window, 'alert').mockImplementation(() => {});
     render(<Login />);
-    fireEvent.click(screen.getByRole('button', { name: /login/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^Login$/i }));
     expect(alertSpy).toHaveBeenCalledWith('Please enter both Username and Password.');
     alertSpy.mockRestore();
   });
@@ -49,9 +49,9 @@ describe('Login view', () => {
     });
     const alertSpy = jest.spyOn(window, 'alert').mockImplementation(() => {});
     render(<Login />);
-    fireEvent.change(screen.getByPlaceholderText('Employee ID'), { target: { value: 'user1' } });
+    fireEvent.change(screen.getByPlaceholderText('Employee Username'), { target: { value: 'user1' } });
     fireEvent.change(screen.getByPlaceholderText('Password'), { target: { value: 'pass1' } });
-    fireEvent.click(screen.getByRole('button', { name: /login/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^Login$/i }));
     await waitFor(() => expect(alertSpy).toHaveBeenCalled());
     alertSpy.mockRestore();
   });
@@ -70,9 +70,9 @@ describe('Login view', () => {
     });
 
     render(<Login />);
-    fireEvent.change(screen.getByPlaceholderText('Employee ID'), { target: { value: 'user1' } });
+    fireEvent.change(screen.getByPlaceholderText('Employee Username'), { target: { value: 'user1' } });
     fireEvent.change(screen.getByPlaceholderText('Password'), { target: { value: 'pass1' } });
-    fireEvent.click(screen.getByRole('button', { name: /login/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^Login$/i }));
     await waitFor(() => expect(mockNavigate).toHaveBeenCalled());
   });
 });
