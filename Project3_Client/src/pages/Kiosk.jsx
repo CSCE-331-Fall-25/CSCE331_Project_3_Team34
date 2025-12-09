@@ -1166,13 +1166,13 @@ export default function Kiosk() {
               className={`ai-chat-btn ${!open ? 'pulse' : 'fadeIn'}`} // change open --> isChatOpen
               onClick={() => setShowChat(true)}
             >
-              <img src={getImageForItem('bobrosspanda')} alt="Bob Ross Panda" className='ai-chat-img'/>
+              <div className='aitext'>AI</div>
           </button>
           <button
             className="circle-btn"
             onClick={() => customerLoggedIn ? (setCustomerLoggedIn(false), setCustomerName('')) : navigate('/login?returnTo=/kiosk&functionality=3')}>
             {/* {customerLoggedIn ? 'Sign Out' : 'Customer Sign In'} */}
-            <img src={getImageForItem('userIcon')} alt="User Login / Sign out Button" className='icon-img'/>
+            Login
           </button>
           {/* <button
             className="kiosk-signin-btn"
