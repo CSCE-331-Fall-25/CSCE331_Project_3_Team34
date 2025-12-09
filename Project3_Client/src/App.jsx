@@ -20,9 +20,18 @@ import { TranslationProvider } from './contexts/TranslationContext';
 export default function App() {
   const navigate = useNavigate();
   useEffect(() => {
+    // Don't redirect if we're already on a specific page (checking current pathname)
+    const currentPath = window.location.pathname;
+    
+    // If already on a route other than root, don't force redirect
+    if (currentPath && currentPath !== '/' && currentPath !== '') {
+      return;
+    }
+    
+    // Only redirect to login if on root path
     sessionStorage.setItem('loginReturnTo', '/hub');
     navigate('/login?returnTo=/hub&functionality=2');
-  }, []);
+  }, [navigate]);
    
   return (
     <TranslationProvider>
