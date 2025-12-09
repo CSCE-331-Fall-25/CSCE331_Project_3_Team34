@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "jest --config ./jest.config.cjs",
+    "test:ci": "jest --config ./jest.config.cjs --runInBand"
   },
   "dependencies": {
     "@react-oauth/google": "^0.12.2",
