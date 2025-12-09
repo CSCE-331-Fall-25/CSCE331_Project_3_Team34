@@ -1192,7 +1192,7 @@ export default function Kiosk() {
                         )}
                         {it.halfAndHalf && (
                           <span className="kiosk-order-size-note">
-                            {"Half & Half"}
+                            {translatedTexts['Half & Half']}
                           </span>
                         )}
                       </div>
