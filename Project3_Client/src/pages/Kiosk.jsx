@@ -1030,7 +1030,7 @@ export default function Kiosk() {
         )}
         {(state == "Kiosk") && (
         <div className="kiosk-root">
-          <div className="kiosk-left">
+          <nav className="kiosk-left" aria-label="Menu categories">
             <div className="kiosk-type-list">
               {items.map((item, idx) => {
                 const currItemId = item.itemid;
@@ -1047,9 +1047,9 @@ export default function Kiosk() {
                 );
               })}
             </div>
-          </div>
+          </nav>
 
-          <div className="kiosk-middle">
+          <section className="kiosk-middle" aria-label="Menu items">
             {!selectedItemId && (
               <div className="kiosk-logo-wrapper">
                 <img
@@ -1162,9 +1162,9 @@ export default function Kiosk() {
                 )}
               </>
             )}
-          </div>
+          </section>
 
-          <div className="kiosk-right">
+          <aside className="kiosk-right" aria-label="Order summary">
             {customerLoggedIn && customerName && (
               <div className="kiosk-customer-info">
                 <h3>{translatedTexts['Welcome']}, {customerName}!</h3>
@@ -1221,7 +1221,7 @@ export default function Kiosk() {
                 <button onClick={() => {console.log('Proceed to checkout', orderItems); handlePurchase();}} className="kiosk-checkout-btn" disabled={loading}>{translatedTexts['Checkout']}</button>
               </div>
             </div>
-          </div>
+          </aside>
           <button
               className={`ai-chat-btn ${!open ? 'pulse' : 'fadeIn'}`} // change open --> isChatOpen
               onClick={() => setShowChat(true)}
@@ -1275,7 +1275,7 @@ export default function Kiosk() {
         </div>
         )} 
         {state == "Checkout" && (
-          <div className="purchase-screen-wrapper">
+          <section className="purchase-screen-wrapper" aria-label="Checkout">
             <div className="purchase-screen-card">
 
               <img src={pandaLogo} alt="Panda Express" className="purchase-logo" />
@@ -1303,10 +1303,10 @@ export default function Kiosk() {
                 </div>  
               </div>
             </div>
-          </div>
+          </section>
         )}
         {state == "Finished" && (
-          <div className="purchase-screen-wrapper">
+          <section className="purchase-screen-wrapper" aria-label="Order complete">
             <div className="purchase-screen-card">
 
               <img src={getImageForItem("orderComplete")} alt="orderComplete" className="finished-img" />
@@ -1326,7 +1326,7 @@ export default function Kiosk() {
               </div>
               
             </div>
-          </div>
+          </section>
         )}
       </main>
     </div>
