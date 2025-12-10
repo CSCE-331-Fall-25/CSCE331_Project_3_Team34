@@ -487,7 +487,9 @@ class Manager {
     async AddEmployee(employeeid, name, role, wage, isManager, username, email, password) {
         try {
             if (employeeid.length == 0 || employeeid == '') {
-                return { error: 1 };
+                let q = "SELECT * FROM employees ORDER BY employeeid DESC;";
+                let result = await this.db.query(q);
+                employeeid = result.rows[0].employeeid + 1;
             }
             for (let i = 0; i < employeeid.length; i++) {
                 if (isNaN(employeeid.substring(i, i + 1))) {
@@ -500,7 +502,6 @@ class Manager {
                 console.log("Employee id already exists");
                 return { error: 0 };
             }
-            console.log( employeeid + "    " + name + "    " + role + "    " + wage + "    " + isManager + "    " + username + "    " + email + "    " + password);
             
             if (name.length == 0 || name == '') {
                 return { error: 3 };
@@ -869,8 +870,9 @@ class Manager {
     async AddMenu(menuid, name, type, calories, allergies, pricemod, inventoryids) {
         try {
             if (menuid.length == 0 || menuid == '') {
-                console.log(menuid);
-                return { error: 1 };
+                let q = "SELECT * FROM menu ORDER BY menuid DESC;";
+                let result = await this.db.query(q);
+                menuid = result.rows[0].menuid + 1;
             }
             for (let i = 0; i < menuid.length; i++) {
                 if (isNaN(menuid.substring(i, i + 1))) {
@@ -1163,7 +1165,9 @@ class Manager {
     async AddInventory(inventoryid, items, quantity, maxstock, minstock) {
         try {
             if (inventoryid.length == 0 || inventoryid == '') {
-                return { error: 1 };
+                let q = "SELECT * FROM inventory ORDER BY inventoryid DESC;";
+                let result = await this.db.query(q);
+                inventoryid = result.rows[0].inventoryid + 1;
             }
             for (let i = 0; i < inventoryid.length; i++) {
                 if (isNaN(inventoryid.substring(i, i + 1))) {

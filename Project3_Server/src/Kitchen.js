@@ -7,6 +7,7 @@ async function buildTraySummaries(transactionId) {
     const trayRows = await pool.query(
         `SELECT trays.orderid,
                 items.name AS tray_type,
+                trays.type AS tray_catagory,
                 menu.name AS menu_item,
                 trays.size AS tray_size
          FROM orders
@@ -17,25 +18,37 @@ async function buildTraySummaries(transactionId) {
          ORDER BY trays.orderid, menu.name`,
         [transactionId]
     );
-
     const grouped = trayRows.rows.reduce((acc, row) => {
         const key = `${row.orderid}-${row.tray_type}-${row.tray_size ?? ''}`;
         if (!acc[key]) {
             acc[key] = {
                 orderId: row.orderid,
                 trayType: row.tray_type,
+                trayCatagory: row.tray_catagory,
                 traySize: row.tray_size,
+                // store menu items as objects so we can keep per-item category
                 menuItems: [],
             };
         }
-        acc[key].menuItems.push(row.menu_item);
+        acc[key].menuItems.push({ name: row.menu_item, catagory: row.tray_catagory });
         return acc;
     }, {});
 
     return Object.values(grouped).map(tray => {
-        const itemLines = tray.menuItems.map(item => `- ${item}`).join('\n');
+        // Build lines from menu item names (client will decode/translate)
+        const itemLines = tray.menuItems.map(mi => `- ${mi.name}`).join('\n');
         const sizeLabel = tray.traySize ? ` (${tray.traySize})` : '';
-        return `${tray.trayType}${sizeLabel}:\n${itemLines}`;
+
+        // count how many menu items in this tray have category 'side'
+        const sideCount = (tray.menuItems || []).filter(mi => mi?.catagory && mi.catagory.toLowerCase() === 'side').length;
+
+        // const variable: set to "Half & Half" when there are at least two
+        // side items in this tray and the tray type isn't 'Family'
+        const halfAndHalfLabel = (sideCount >= 2 && !(tray.trayType && tray.trayType.toLowerCase() === 'family'))
+            ? 'Half & Half'
+            : '';
+
+        return `${tray.trayType}${sizeLabel}${halfAndHalfLabel ? ` (${halfAndHalfLabel})` : ''}:\n${itemLines}`;
     });
 }
 

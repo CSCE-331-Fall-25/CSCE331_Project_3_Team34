@@ -53,6 +53,8 @@ export default function Kiosk() {
     'Small': 'Small',
     'Medium': 'Medium',
     'Large': 'Large',
+    'No Half & Half': 'No Half & Half',
+    'Half & Half': 'Half & Half',
   }), []);
 
   const translatedTexts = useTranslatedObject(translationKeys);
@@ -1144,7 +1146,7 @@ export default function Kiosk() {
                       onClick={() => { handleMenuTileClick("C"); }}
                       onKeyDown={(e) => { if (e.key === 'Enter') handleMenuTileClick("C"); }}
                     >
-                      <div className="kiosk-item-name">{translatedTexts['Complete']}</div>
+                      <div className="kiosk-item-name">{translatedTexts['No Half & Half']}</div>
                     </div> 
                   )}
                 </div>
