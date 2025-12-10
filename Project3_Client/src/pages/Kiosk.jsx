@@ -1081,6 +1081,15 @@ export default function Kiosk() {
                 );
               })}
             </div>
+            <div className="ai-chat-container">
+              <button
+                type="button"
+                className="ai-chat-btn"
+                onClick={() => setShowChat(true)}
+              >
+                <div className='aitext'>AI Assistant</div>
+              </button>
+            </div>
           </nav>
 
           <section className="kiosk-middle" aria-label="Menu items">
@@ -1280,13 +1289,6 @@ export default function Kiosk() {
               </div>
             </div>
           </aside>
-          <button
-              className={`ai-chat-btn ${!open ? 'pulse' : 'fadeIn'}`} // change open --> isChatOpen
-              onClick={() => setShowChat(true)}
-            >
-              <div className='aitext'>AI Assistant</div>
-          </button>
-          
           {showChat && <ChatModal onClose={() => setShowChat(false)} onAddOrder={handleAIOrder} />}
           {showAccessibility && (
             <div className="accessibility-modal-overlay">
