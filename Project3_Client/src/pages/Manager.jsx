@@ -1667,8 +1667,6 @@ export default function Manager() {
           </div>
         </section>
       </main>
-      
-      
     </div>
   );
 }
