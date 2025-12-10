@@ -51,7 +51,7 @@ export function TranslationProvider({ children }) {
       });
 
       if (!response.ok) {
-        console.error('Translation failed:', response.statusText);
+        console.error('Translation API failed:', response.statusText);
         return text;
       }
 

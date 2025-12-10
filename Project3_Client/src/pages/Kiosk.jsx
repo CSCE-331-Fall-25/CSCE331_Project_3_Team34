@@ -59,6 +59,7 @@ export default function Kiosk() {
     'Large': 'Large',
     'No Half & Half': 'No Half & Half',
     'Half & Half': 'Half & Half',
+    'Login': 'Login',
   }), []);
 
   const translatedTexts = useTranslatedObject(translationKeys);
@@ -532,6 +533,14 @@ export default function Kiosk() {
             allergies.forEach(allergen => englishNames[allergen] = allergen);
           }
         });
+        // Also add size labels from sizeModsByType
+        Object.values(sizeModsByType).forEach(sizeOptions => {
+          if (Array.isArray(sizeOptions)) {
+            sizeOptions.forEach(option => {
+              if (option.label) englishNames[option.label] = option.label;
+            });
+          }
+        });
         setTranslatedItemNames(englishNames);
         return;
       }
@@ -563,6 +572,20 @@ export default function Kiosk() {
         }
       });
 
+      // Also collect names from current order items to ensure they get translated
+      orderItems.forEach(item => {
+        if (item.name) textsToTranslate.add(item.name);
+      });
+
+      // Also add size labels from sizeModsByType
+      Object.values(sizeModsByType).forEach(sizeOptions => {
+        if (Array.isArray(sizeOptions)) {
+          sizeOptions.forEach(option => {
+            if (option.label) textsToTranslate.add(option.label);
+          });
+        }
+      });
+
       if (textsToTranslate.size === 0) return;
 
       try {
@@ -588,7 +611,7 @@ export default function Kiosk() {
     };
 
     translateItemNames();
-  }, [items, menuItems, selectedLanguage, translationContext]);
+  }, [items, menuItems, selectedLanguage, translationContext, sizeModsByType, orderItems]);
 
   async function fetchMenuRowsByType(type) {
     if (!type) return [];
@@ -1106,7 +1129,7 @@ export default function Kiosk() {
               <>
                 {activeSelection && (
                   <div className="kiosk-selection-banner">
-                    {translatedTexts['Select']} {activeSelection.label || activeSelection.type}
+                    {translatedTexts['Select']} {getTranslatedItemName(activeSelection.label || activeSelection.type)}
                     {typeof activeSelection.remaining === 'number' && activeSelection.remaining > 0 && (
                       <span className="kiosk-selection-remaining"> ({activeSelection.remaining} more after this)</span>
                     )}
@@ -1227,10 +1250,10 @@ export default function Kiosk() {
                   return (
                     <div className={rowClass} key={idx}>  
                       <div className="kiosk-order-name">
-                        <span>{it.name}</span>
+                        <span>{getTranslatedItemName(it.name)}</span>
                         {it.sizeLabel && (
                           <span className="kiosk-order-size-note">
-                            {it.sizeLabel}
+                            {getTranslatedItemName(it.sizeLabel)}
                             {hasSizeMod && ` (${sizeModLabel})`}
                           </span>
                         )}
@@ -1271,7 +1294,7 @@ export default function Kiosk() {
                     <button
                       className="accessibility-btn"
                       onClick={() => navigate('/login?returnTo=/kiosk&functionality=3')}>
-                      Login
+                      {translatedTexts['Login']}
                     </button>
                   )}
                   <button

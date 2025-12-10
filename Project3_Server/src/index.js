@@ -445,19 +445,23 @@ app.get('/api/health', (req, res) => {
 
 // Translation endpoint for supporting multiple languages in the kiosk
 app.post('/api/translate', async (req, res) => {
+  console.log('[API] /api/translate endpoint called');
   try {
     const { text, targetLanguage } = req.body;
+    console.log('[API] Translation request received:', { text, targetLanguage });
 
     if (!text || !targetLanguage) {
+      console.warn('[API] Missing required fields:', { hasText: !!text, hasTargetLanguage: !!targetLanguage });
       return res.status(400).json({ 
         error: 'Missing required fields: text and targetLanguage' 
       });
     }
 
     const translatedText = await translateText(text, targetLanguage);
+    console.log('[API] Translation endpoint returning:', { originalText: text, translatedText, targetLanguage });
     res.json({ translatedText });
   } catch (error) {
-    console.error('Translation API error:', error);
+    console.error('[API] Translation API error:', error);
     res.status(500).json({ 
       error: 'Translation service error',
       message: error.message 
