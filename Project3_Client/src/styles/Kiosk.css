@@ -229,7 +229,7 @@
 }
 
 .kiosk-clear-btn{ background: #f2f2f2; padding: 8px 10px; border-radius:6px; border:none; cursor:pointer }
-.kiosk-checkout-btn{ background: #138a33; color:white; padding: 8px 10px; border-radius:6px; border:none; cursor:pointer; font-weight: 600; }
+.kiosk-checkout-btn{ background: #0e6b26; color:white; padding: 8px 10px; border-radius:6px; border:none; cursor:pointer; font-weight: 600; }
 
 .kiosk-empty{ color:#666; padding: 18px; text-align:center }
 
