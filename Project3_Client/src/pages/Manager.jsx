@@ -1622,47 +1622,51 @@ export default function Manager() {
         <SignOutButton onClose={() => setShowSignOutModal(false)} />
       )} */}
       
-      <main>
-      <div className = "manager-subheader"><h1>Welcome, {employeeName === null ? "missing" : employeeName}!</h1></div>
+      <main className="manager-main">
+        <section className="manager-left" aria-label="Manager shortcuts">
+          <div className="manager-subheader">
+            <h1>Welcome, {employeeName === null ? "missing" : employeeName}!</h1>
+          </div>
 
-      <div className = "manager-buttons-container">
-        <button className = "button manager-button" onClick={() => {setShowReportModal(true); generateXReport(); setLabel("");}}>View Reports</button>
-        <button className = "button manager-button" onClick={()=> {
-            setShowInventoryModal(true);
-            setErrorLabel("");
-            setRowSelection([]);
-            getInventoryData();}
-          }
-        >
-          Manage Inventory
-        </button>
-        <button className = "button manager-button"onClick={()=> {
-            setShowEmployeeModal(true);
-            setErrorLabel("");
-            setRowSelection([]);
-            getEmployeeData();}
-          }
-        >
-          Manage Employees
-        </button>
-        <button className = "button manager-button"onClick={()=> {
-            setShowMenuModal(true);
-            setErrorLabel("");
-            setRowSelection([]);
-            getMenuData();}
-          }
-        >
-          Manage Menu
-        </button>
-        <BackToHubButton className="button manager-button" />
+          <div className="manager-buttons-container">
+            <button className = "button manager-button" onClick={() => {setShowReportModal(true); generateXReport(); setLabel("");}}>View Reports</button>
+            <button className = "button manager-button" onClick={()=> {
+                setShowInventoryModal(true);
+                setErrorLabel("");
+                setRowSelection([]);
+                getInventoryData();}
+              }
+            >
+              Manage Inventory
+            </button>
+            <button className = "button manager-button"onClick={()=> {
+                setShowEmployeeModal(true);
+                setErrorLabel("");
+                setRowSelection([]);
+                getEmployeeData();}
+              }
+            >
+              Manage Employees
+            </button>
+            <button className = "button manager-button"onClick={()=> {
+                setShowMenuModal(true);
+                setErrorLabel("");
+                setRowSelection([]);
+                getMenuData();}
+              }
+            >
+              Manage Menu
+            </button>
+            <BackToHubButton className="button manager-button" />
+          </div>
+        </section>
 
-      </div>
-      <div className="line-chart">
-        <Line data={salesData} options={options} aria-label="Sales Data Chart" role="img"/>
-      </div>
+        <section className="manager-chart-card" aria-label="Sales performance">
+          <div className="line-chart">
+            <Line data={salesData} options={options} aria-label="Sales Data Chart" role="img"/>
+          </div>
+        </section>
       </main>
-      
-      
     </div>
   );
 }

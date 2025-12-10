@@ -1290,7 +1290,18 @@ export default function Kiosk() {
                   <div>{translatedTexts['Total']}: ${total.toFixed(2)}</div>
                   <div className="kiosk-order-controls">
                     <button onClick={clearOrderAndUI} className="kiosk-clear-btn">{translatedTexts['Clear']}</button>
-                    <button onClick={() => {handlePurchase();}} className="kiosk-checkout-btn" disabled={loading}>{translatedTexts['Checkout']}</button>
+                    <button
+                      onClick={() => {handlePurchase();}}
+                      className="kiosk-checkout-btn"
+                      disabled={
+                        loading ||
+                        orderItems.length === 0 ||
+                        selectionQueue.length > 0 ||
+                        !!activeSelection
+                      }
+                    >
+                      {translatedTexts['Checkout']}
+                    </button>
                   </div>
                 </div>
                 <div className='bottom-row-bottom'>
