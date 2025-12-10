@@ -214,21 +214,17 @@
 	box-shadow: none;
 }
 
-.cashier-menu-groups {
-	display: flex;
-	flex-direction: column;
-	gap: 20px;
-}
 
-.cashier-menu-row {
-	display: flex;
-	flex-wrap: wrap;
+.cashier-menu-groups {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
 	gap: 16px;
+	width: 100%;
 }
 
 .cashier-menu-button {
-	width: 140px;
-	height: 78px;
+	width: 100%;
+	min-height: 78px;
 	border: none;
 	border-radius: 14px;
 	background: linear-gradient(150deg, #ffffff, #f0f0f5);
@@ -237,6 +233,10 @@
 	cursor: pointer;
 	box-shadow: 0 12px 28px rgba(15, 23, 42, 0.1);
 	transition: transform 140ms ease, box-shadow 140ms ease;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	text-align: center;
 }
 
 .cashier-menu-button:hover {

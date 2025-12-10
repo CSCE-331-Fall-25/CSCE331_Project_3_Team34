@@ -347,6 +347,16 @@ export default function Cashier() {
   const orderCountLabel = transactionItems.length === 1
     ? `1 ${translatedTexts['item'] || 'item'}`
     : `${transactionItems.length} ${translatedTexts['items'] || 'items'}`;
+  const menuButtons = [
+    "Bowl",
+    "Plate",
+    "Bigger",
+    "Family",
+    "A La Carte",
+    "Appetizer",
+    "Drink",
+    "Bottle"
+  ];
   return (
     <div className="main-page bkgColor cashier-screen">
       {/* //to use the size modal, set sizes based on options, then collect setSelectedSize for output */}
@@ -445,20 +455,11 @@ export default function Cashier() {
 
         <section className="card menu-column">
           <div className="cashier-menu-groups">
-            <div className="cashier-menu-row">
-              {["Bowl", "Plate", "Bigger", "Family"].map((item) => (
-                <button key={item} id={item} className="cashier-menu-button" onClick={handleBuildItem}>
-                  {translatedTexts[item] || item}
-                </button>
-              ))}
-            </div>
-            <div className="cashier-menu-row">
-              {["A La Carte", "Appetizer", "Drink", "Bottle"].map((item) => (
-                <button key={item} id={item} className="cashier-menu-button" onClick={handleBuildItem}>
-                  {translatedTexts[item] || item}
-                </button>
-              ))}
-            </div>
+            {menuButtons.map((item) => (
+              <button key={item} id={item} className="cashier-menu-button" onClick={handleBuildItem}>
+                {translatedTexts[item] || item}
+              </button>
+            ))}
           </div>
           <div className="update-row">
             <div className="update-btn">
