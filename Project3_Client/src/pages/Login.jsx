@@ -266,12 +266,12 @@ export default function Login() {
           <GoogleLoginButton returnTo={returnTo} functionality={functionality} />
           }
           {customer && (
-            <button className="back-button" onClick={handleCustomerBack} style={{ marginTop: '10px', width: '100%', padding: '10px', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+            <button className="login-wide-button login-secondary-button" onClick={handleCustomerBack}>
               Back to Kiosk
             </button>
           )}
           {customer && (
-            <button type="button" onClick={() => setShowSignUpModal(true)} style={{ marginTop: '10px', width: '100%', padding: '10px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+            <button type="button" className="login-wide-button login-accent-button" onClick={() => setShowSignUpModal(true)}>
               Sign Up
             </button>
           )}
