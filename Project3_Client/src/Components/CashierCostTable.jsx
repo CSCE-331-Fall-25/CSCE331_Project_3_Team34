@@ -26,8 +26,12 @@ export default function CashierCostTable({
               let mainCounter = 0;
               let lastMainSeen = -1;
               return transactionItems.map((entry, idx) => {
+                //console.log(idx);
                 const isMain = entry.type === "main";
-                const name = (entry && typeof entry.item === "object" && entry.item !== null) ? entry.item.name : entry.item;
+                let name = (entry && typeof entry.item === "object" && entry.item !== null) ? entry.item.name : entry.item;
+                if (entry.item.halfAndHalf) {
+                  name = name + " (1/2)";
+                }
                 // Determine which order (main) this flat row belongs to
                 let orderIndex;
                 if (isMain) {
