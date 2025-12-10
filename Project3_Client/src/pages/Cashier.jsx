@@ -349,6 +349,7 @@ export default function Cashier() {
     : `${transactionItems.length} ${translatedTexts['items'] || 'items'}`;
   return (
     <div className="main-page bkgColor cashier-screen">
+      <h1 className="sr-only">Cashier Dashboard</h1>
       {/* //to use the size modal, set sizes based on options, then collect setSelectedSize for output */}
       {showSizeModal && (
         <SizeModal
@@ -418,6 +419,7 @@ export default function Cashier() {
             className="language-select"
             value={selectedLanguage}
             onChange={(e) => setSelectedLanguage && setSelectedLanguage(e.target.value)}
+            aria-label={translatedTexts['Language'] || 'Language'}
           >
             {Object.entries(supportedLanguages).map(([code, label]) => (
               <option key={code} value={code}>{label}</option>
