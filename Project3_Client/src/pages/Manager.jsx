@@ -725,7 +725,7 @@ export default function Manager() {
       { accessorKey: "allergies", header: "Allergies", cell: info => info.getValue() },
       { accessorKey: "pricemod", header: "Price Modifier", cell: info => info.getValue() },
       { accessorKey: "inventoryids", header: "Inventory ID's", cell: info => info.getValue() }]);
-      console.log(JSON.stringify(newData));
+      //console.log(JSON.stringify(newData));
       if (newData.error == -2) {
         setErrorLabel("Failed to connect to backend");
       }

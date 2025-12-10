@@ -693,16 +693,17 @@ app.get('/api/get-sales-data', async (req, res) => {
 
 import { fileURLToPath } from 'url';
 import { handleFileUpload } from './Upload.js';
+import path from "path";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-app.use('/assets', express.static(path.join(__dirname, 'assets')));
+
+// Serve client assets (where uploaded images go)
+const clientAssetsPath = path.resolve(__dirname, '../../Project3_Client/src/assets');
+app.use('/assets', express.static(clientAssetsPath));
 
 app.post('/api/upload', handleFileUpload);
 // ------------------------------------- Manager API Endpoints End ------------------------------------
-
-
-import path from "path";
 
 
 // ✅ Serve React build folder (adjust if you used CRA instead of Vite)

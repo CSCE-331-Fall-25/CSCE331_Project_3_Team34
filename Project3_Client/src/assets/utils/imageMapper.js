@@ -9,10 +9,24 @@ const imageMap = Object.fromEntries(
 );
 
 export function getImageForItem(name) {
-  if (!name) return imageMap["pandalogo"] || "";
+  if (!name) {
+    // Try build-time images first
+    const buildImage = imageMap["pandalogo"];
+    if (buildImage) return buildImage;
+    // Fallback to runtime asset
+    return "/assets/itemImages/pandalogo.png";
+  }
+  
   // Remove spaces and convert to lowercase for matching
   const key = name.replace(/\s+/g, "").toLowerCase();
-  // Try exact match first, then try as fallback
-  //return imageMap[key] || imageMap["pandalogotrans"] || "";
-  return imageMap[key];
+  
+  // Try static build images first (faster, no network call)
+  if (imageMap[key]) {
+    return imageMap[key];
+  }
+  
+  // If not found in build, try runtime upload endpoint
+  // This allows dynamically uploaded images to be served
+  return `/assets/itemImages/${name.replace(/\s+/g, "")}.png`;
 }
+

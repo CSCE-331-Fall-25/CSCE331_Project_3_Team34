@@ -10,6 +10,7 @@ import Hub from './pages/Hub.jsx'
 import MealAttributes  from './pages/MealAttributes.jsx' 
 import Login from './pages/Login.jsx'
 import './styles/App.css'
+import './styles/accessibility.css'
 
 import { getImageForItem } from './assets/utils/imageMapper';
 import { TranslationProvider } from './contexts/TranslationContext';
@@ -20,9 +21,18 @@ import { TranslationProvider } from './contexts/TranslationContext';
 export default function App() {
   const navigate = useNavigate();
   useEffect(() => {
+    // Don't redirect if we're already on a specific page (checking current pathname)
+    const currentPath = window.location.pathname;
+    
+    // If already on a route other than root, don't force redirect
+    if (currentPath && currentPath !== '/' && currentPath !== '') {
+      return;
+    }
+    
+    // Only redirect to login if on root path
     sessionStorage.setItem('loginReturnTo', '/hub');
     navigate('/login?returnTo=/hub&functionality=2');
-  }, []);
+  }, [navigate]);
    
   return (
     <TranslationProvider>
