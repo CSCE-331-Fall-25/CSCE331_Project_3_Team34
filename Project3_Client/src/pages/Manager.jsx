@@ -34,6 +34,8 @@ export default function Manager() {
   //Reports
   const [showReportModal, setShowReportModal] = useState(false);
   const [employeeName, setEmployeeName] = useState("Missing");
+  const [isManager, setIsManager] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   
   // Managment modals
   const [showEmployeeModal, setShowEmployeeModal] = useState(false);
@@ -84,18 +86,33 @@ export default function Manager() {
       console.log("Error in function call");
       setErrorLabel("Failed to connect to backend");
       setEmployeeName("Missing, Error" );
+      setIsLoading(false);
+      navigate('/');
     }
     else if (response == null) {
       console.log("Error getting data");
       setErrorLabel("Failed to connect to backend");
       setEmployeeName("Missing, Error response null");
+      setIsLoading(false);
+      navigate('/');
     }
     else {
       const newData = await response.json();
       console.log(newData);
+      // Check if user is a manager
+      const managerStatus = newData && newData.isManager ? true : false;
+      if (!managerStatus) {
+        // User is not a manager, redirect to home
+        console.log("User is not a manager, redirecting to home");
+        navigate('/');
+        setIsLoading(false);
+        return;
+      }
       // `newData.user` is an object { username, isEmployee } — store the username string
       const username = newData && newData.user && newData.user.username ? newData.user.username : null;
       setEmployeeName(username);
+      setIsManager(managerStatus);
+      setIsLoading(false);
     }
   }
 
@@ -1264,6 +1281,18 @@ export default function Manager() {
 
   return (
     <div className = "manager-page-container">
+      {isLoading && (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontSize: '18px' }}>
+          Loading...
+        </div>
+      )}
+      {!isLoading && !isManager && (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontSize: '18px', color: 'red' }}>
+          Access Denied: Manager role required
+        </div>
+      )}
+      {!isLoading && isManager && (
+      <>
       {showReportModal &&(
           <div className="modal-overlay">
             <div className="modal-content">
@@ -1605,6 +1634,8 @@ export default function Manager() {
         <Line data={salesData} options={options} aria-label="Sales Data Chart" role="img"/>
       </div>
       </main>
+      </>
+      )}
     </div>
   );
 }

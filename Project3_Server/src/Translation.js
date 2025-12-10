@@ -36,9 +36,6 @@ export async function translateText(text, targetLanguage) {
     return text;
   }
 
-  console.log('🔑 API Key loaded:', translateKey ? `${translateKey.substring(0, 10)}...` : 'MISSING');
-  console.log('📝 Translating:', text.substring(0, 50), 'to', targetLanguage);
-
   try {
     // Google Translate API v2 requires the API key as a URL parameter
     const url = `https://translation.googleapis.com/language/translate/v2?key=${translateKey}`;
@@ -56,12 +53,8 @@ export async function translateText(text, targetLanguage) {
       body: JSON.stringify(requestBody),
     });
 
-    console.log('📡 Response status:', response.status, response.statusText);
-
     if (!response.ok) {
       const errorBody = await response.text();
-      console.error('❌ Translation API error:', response.statusText);
-      console.error('❌ Error details:', errorBody);
       return text;
     }
 
