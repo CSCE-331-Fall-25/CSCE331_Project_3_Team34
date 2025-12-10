@@ -15,6 +15,19 @@ export default function Hub() {
     day: 'numeric'
   }).format(new Date());
 
+  useEffect(() => {
+    // Force a refresh when navigating via browser back/forward so stale cached UI is replaced.
+    const handlePageShow = (event) => {
+      const navigationType = performance.getEntriesByType('navigation')[0]?.type;
+      if (event.persisted || navigationType === 'back_forward') {
+        window.location.reload();
+      }
+    };
+
+    window.addEventListener('pageshow', handlePageShow);
+    return () => window.removeEventListener('pageshow', handlePageShow);
+  }, []);
+
   const goFullscreen = () => {
     document.documentElement.requestFullscreen();
   };
