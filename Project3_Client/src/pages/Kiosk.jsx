@@ -60,6 +60,7 @@ export default function Kiosk() {
     'No Half & Half': 'No Half & Half',
     'Half & Half': 'Half & Half',
     'Login': 'Login',
+    'AI Assistant': 'AI Assistant',
   }), []);
 
   const translatedTexts = useTranslatedObject(translationKeys);
@@ -1110,7 +1111,7 @@ export default function Kiosk() {
                 className="ai-chat-btn"
                 onClick={() => setShowChat(true)}
               >
-                <div className='aitext'>AI Assistant</div>
+                <div className='aitext'>{translatedTexts['AI Assistant']}</div>
               </button>
             </div>
           </nav>
