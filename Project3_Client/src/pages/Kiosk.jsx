@@ -468,28 +468,24 @@ export default function Kiosk() {
     
     // Handle login success
     const success = searchParams.get('success');
-    // Guard against duplicate handling (React StrictMode / HMR can cause double mount)
-    try {
-      if (typeof window !== 'undefined' && window.__kiosk_google_login_handled) return;
-    } catch (e) {}
+    console.log('Kiosk: success parameter:', success);
 
-    if (success == '4') {
+    if (success === '4') {
       setCustomerLoggedIn(true);
-      // Fetch customer data
       fetch('/api/get-user', {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include'
+        credentials: 'include',
       })
         .then((res) => res.json())
         .then((data) => {
           if (data.success && data.user) {
-            setCustomerName(getTranslatedItemName(data.user.username));
+            console.log('Fetched customer data:', data.user);
+            setCustomerName(data.user.username);
           }
         })
         .catch((err) => console.error('Failed to fetch customer data:', err));
-      //alert('Customer logged in successfully');
-      // mark handled so we don't show this alert again on a duplicate mount
+        // mark handled so we don't show this alert again on a duplicate mount
       try { if (typeof window !== 'undefined') window.__kiosk_google_login_handled = true; } catch (e) {}
       window.history.replaceState({}, '', window.location.pathname);
     } else if (success == '2') {
@@ -498,7 +494,7 @@ export default function Kiosk() {
       // Clear any other success params
       window.history.replaceState({}, '', window.location.pathname);
     }
-  }, []);
+  }, [searchParams]);
 
   // Translate item names and allergens when items/menuItems change OR language changes
   useEffect(() => {

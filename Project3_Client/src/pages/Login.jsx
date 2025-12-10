@@ -8,6 +8,7 @@ import { getImageForItem } from '../assets/utils/imageMapper';
 export default function Login() {
   const [employeeId, setEmployeeId] = useState('');
   const [employeePassword, setEmployeePassword] = useState('');
+  const [message, setMessage] = useState('');
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [customer, setCustomer] = useState(false);
@@ -64,7 +65,7 @@ export default function Login() {
     const trimmedId = employeeId ? employeeId.trim() : '';
     const trimmedPassword = employeePassword ? employeePassword.trim() : '';
     if (!trimmedId || !trimmedPassword) {
-      alert('Please enter both Username and Password.');
+      setMessage('Please enter both Username and Password.');
       return;
     }
     console.log("Logging in with ID:", employeeId, "and Password:", employeePassword);
@@ -85,23 +86,23 @@ export default function Login() {
       console.log("Login failed, functionality: " + functionality);
       switch(functionality){
         case 1:
-          alert('Invalid Login. Cannot access Manager functionality.');
+          setMessage('Invalid Login. Cannot access Manager functionality.');
           break;
         case 2:
-          alert('Invalid Login.');
+          setMessage('Invalid Login.');
           return;
         case 3:
-          alert('Invalid Login. Cannot access Customer functionality.');
+          setMessage('Invalid Login. Cannot access Customer functionality.');
           break;
         default:
-          alert('Invalid Login.');
+          setMessage('Invalid Login.');
           break;
       }
-      console.log("Navigating to: " + returnTo + " with success=0");
+      // console.log("Navigating to: " + returnTo + " with success=0");
       // On failure, navigate with success=0
-      const url = new URL(returnTo, window.location.origin);
-      url.searchParams.set('success', '0');
-      navigate(url.pathname + url.search, { replace: true });
+      // const url = new URL(returnTo, window.location.origin);
+      // url.searchParams.set('success', '0');
+      // navigate(url.pathname + url.search, { replace: true });
       
     }
   }
@@ -225,11 +226,12 @@ export default function Login() {
     navigate(url.pathname + url.search, { replace: true });
   }
 
-  function handleSignUpSuccess() {
-    alert('Account created successfully! You can now log in.');
+  function handleSignUpSuccess(username, password) {
+    alert('Account created successfully! Logging you in...');
     setShowSignUpModal(false);
-    setEmployeeId('');
-    setEmployeePassword('');
+    setEmployeeId(username);
+    setEmployeePassword(password);
+    handleLogin({ preventDefault: () => {} }); // Trigger login
   }
 
   return (
@@ -264,6 +266,11 @@ export default function Login() {
             />
             <button type="submit">Login</button>
           </form>
+          {message && (
+            <div className="login-message-box">
+              {message}
+            </div>
+          )}
           {!customer && 
           <GoogleLoginButton returnTo={returnTo} functionality={functionality} />
           }

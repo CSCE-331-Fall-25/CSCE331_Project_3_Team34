@@ -59,7 +59,7 @@ export default function SignUpModal({ show, onClose, onSignUp }) {
         //console.log('Sign up successful for customer:', username);
         // Call the parent callback to handle successful signup
         if (typeof onSignUp === 'function') {
-          onSignUp();
+          onSignUp(username, password);
         }
         handleClose();
       } else {
