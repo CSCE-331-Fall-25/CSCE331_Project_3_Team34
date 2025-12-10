@@ -488,7 +488,7 @@ export default function Kiosk() {
           }
         })
         .catch((err) => console.error('Failed to fetch customer data:', err));
-      alert('Customer logged in successfully');
+      //alert('Customer logged in successfully');
       // mark handled so we don't show this alert again on a duplicate mount
       try { if (typeof window !== 'undefined') window.__kiosk_google_login_handled = true; } catch (e) {}
       window.history.replaceState({}, '', window.location.pathname);
