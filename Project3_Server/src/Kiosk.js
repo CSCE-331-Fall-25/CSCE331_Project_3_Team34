@@ -11,12 +11,39 @@ let nextOrderNum = -1;
 
 kioskRouter.get('/get-next-transaction-number', async (req, res) => {
     try {
-        const result = await pool.query("SELECT transactionid, orderid FROM orders ORDER BY orderid DESC LIMIT 1");
-        nextTransactionNum = 1 + result.rows[0].transactionid;
-        nextOrderNum = 1 + result.rows[0].orderid;
+        // Set a timeout for the queries to prevent indefinite hanging
+        const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Database query timeout')), 5000)
+        );
+        
+        const queriesPromise = (async () => {
+            // Query transaction ID from transactions table
+            const transRes = await pool.query('SELECT transactionid FROM transactions ORDER BY transactionid DESC LIMIT 1');
+            if (!transRes || !transRes.rows || transRes.rows.length === 0) {
+                nextTransactionNum = 1;
+            } else {
+                nextTransactionNum = transRes.rows[0].transactionid + 1;
+            }
+            
+            // Query order ID from orders table
+            const orderRes = await pool.query('SELECT orderid FROM orders ORDER BY orderid DESC LIMIT 1');
+            if (!orderRes || !orderRes.rows || orderRes.rows.length === 0) {
+                nextOrderNum = 1;
+            } else {
+                nextOrderNum = orderRes.rows[0].orderid + 1;
+            }
+            
+            return { transactionNumber: nextTransactionNum, orderNumber: nextOrderNum };
+        })();
+        
+        const result = await Promise.race([queriesPromise, timeoutPromise]);
+        res.json(result);
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: "Database query failed" });
+        console.error('Error fetching next transaction number:', err.message);
+        // On error, default to 1 instead of failing
+        nextTransactionNum = 1;
+        nextOrderNum = 1;
+        res.json({ transactionNumber: 1, orderNumber: 1 });
     }
 });
 

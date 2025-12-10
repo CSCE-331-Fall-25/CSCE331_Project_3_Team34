@@ -167,11 +167,18 @@ export default function Kiosk() {
   };
 
   // Fetch wrapper with timeout using AbortController to avoid indefinite hangs
-  const fetchWithTimeout = (url, options = {}, timeoutMs = 8000) => {
+  const fetchWithTimeout = (url, options = {}, timeoutMs = 15000) => {
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), timeoutMs);
     const opts = { ...options, signal: controller.signal };
     return fetch(url, opts)
+      .catch(err => {
+        // Handle AbortError from timeout separately
+        if (err.name === 'AbortError') {
+          console.warn(`Fetch timeout after ${timeoutMs}ms for ${url}`);
+        }
+        throw err;
+      })
       .finally(() => clearTimeout(id));
   };
 
@@ -412,18 +419,34 @@ export default function Kiosk() {
   async function getNextTransactionNum() {
     try {
       const res = await fetchWithTimeout('/api/kiosk/get-next-transaction-number');
+      if (!res.ok) {
+        console.warn(`Failed to fetch transaction number: ${res.status}`);
+        return;
+      }
+      const data = await res.json();
+      if (data && data.transactionNumber) {
+        setTransactionNumber(data.transactionNumber);
+      }
     }
     catch (err) {
-      console.error('fetch failed', err);
+      if (err.name === 'AbortError') {
+        console.warn('Transaction number fetch timed out, will use default');
+      } else {
+        console.error('fetch failed', err);
+      }
+      // Don't re-throw - let the page continue even if this fails
     }
   }
 
   useEffect(() => {
     // Initial data fetches should show the loading overlay
     withLoading(async () => {
-      await fetchItems();
-      await getNextTransactionNum();
-      await fetchSizeMods();
+      // Run all three fetches in parallel for better performance
+      await Promise.all([
+        fetchItems(),
+        getNextTransactionNum(),
+        fetchSizeMods()
+      ]);
     });
     
     // Load saved order from sessionStorage (persists within browser session)
