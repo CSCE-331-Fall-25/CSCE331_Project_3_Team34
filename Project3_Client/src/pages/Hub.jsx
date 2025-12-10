@@ -133,7 +133,8 @@ export default function Hub() {
   };
 
   return (
-    <div className="hub-wrapper">
+    <main className="hub-wrapper">
+      <h1 className="sr-only">Home Hub</h1>
       <img src={bobRoss} alt="Bob Ross Panda" className="hub-hero-image" />
       <div className="home-grid">
         <Link to="/weather"><button onClick={goFullscreen}>Kiosk</button></Link>
@@ -144,6 +145,6 @@ export default function Hub() {
         <button className="google-btn" onClick={handleLinkGoogleId}>Link Google ID</button>
         <button className="google-btn" onClick={handleUnlinkGoogleId}>Unlink Google ID</button>
       </div>
-    </div>
+    </main>
   );
 }

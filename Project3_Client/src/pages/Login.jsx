@@ -251,12 +251,14 @@ export default function Login() {
             <input
               type="text"
               placeholder="Employee Username"
+              aria-label="Employee Username"
               value={employeeId ?? ''}
               onChange={handleIdChange}
             />
             <input
               type="password"
               placeholder="Password"
+              aria-label="Password"
               value={employeePassword ?? ''}
               onChange={handlePasswordChange}
             />
