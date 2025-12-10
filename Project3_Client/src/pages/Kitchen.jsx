@@ -398,9 +398,8 @@ export default function Kitchen() {
   // Render: Three-column layout displaying order tickets at different stages
   // Each column shows tickets that can be clicked to advance to next stage
   return (
-    <div className="kitchen-screen">
+    <main className="kitchen-screen">
       <h1 className="sr-only">Kitchen Display System</h1>
-      <main>
       {/* Language selector */}
       <div className="kitchen-language-picker" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
         <span className="meta-label">{translatedTexts['Language'] || 'Language'}:</span>
@@ -561,7 +560,6 @@ export default function Kitchen() {
           </section>
         ))}
       </div>
-      </main>
-    </div>
+    </main>
   );
 }
