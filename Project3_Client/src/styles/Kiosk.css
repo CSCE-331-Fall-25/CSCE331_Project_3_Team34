@@ -88,7 +88,7 @@
 .purchase-screen-card { background-color: white; border-radius: 20px; width: 85vw; height: 85vh; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 30px; box-shadow: 0 8px 20px rgba(0,0,0,0.2); }
 .awaiting-purchase-img { width: 200px; height: auto; margin-bottom: 30px; }
 .purchase-logo { width: 200px; height: 200px; margin-bottom: 10px; }
-.option-button { width: 150px; height: 50%; padding: 10px 20px; font-size: 16px; cursor: pointer; border-radius: 10px; border: none; background-color: #1a1a1a; color: white; font-family: Furtiger, sans-serif; transition: background-color 0.2s; }
+.option-button { width: 150px; height: 50%; padding: 10px 20px; font-size: 1rem; cursor: pointer; border-radius: 10px; border: none; background-color: #1a1a1a; color: white; font-family: Furtiger, sans-serif; transition: background-color 0.2s; }
 .option-button:hover { background-color: #e33; color: #e33; }
 .purchase-screen-title { font-size: 1.5rem; font-weight: 600; margin-bottom: 20px; color: #1a1a1a; font-family: Furtiger, sans-serif; }
 .purchase-screen-price { font-size: 1.5rem; font-weight: 600; margin-bottom: 20px; color: #D71920; font-family: Furtiger, sans-serif; }
@@ -98,9 +98,9 @@
 .purchase-option.disabled { cursor: not-allowed; opacity: 0.5; }
 .purchase-option.disabled:hover { transform: none; background-color: transparent; color: inherit; border: 2px solid #1a1a1a; }
 .option-img { width: 100px; height: 100px; margin-bottom: 10px; }
-.option-text { font-weight: bold; font-size: 16px; font-family: Furtiger, sans-serif; padding: 5px; }
+.option-text { font-weight: bold; font-size: 1rem; font-family: Furtiger, sans-serif; padding: 5px; }
 .finished-img { width: 250px; height: auto; margin-bottom: 20px; }
-.finished-option { width: 180px; height: 50px; padding: 10px 20px; font-size: 16px; cursor: pointer; border-radius: 10px; border: none; background-color: #e33; color: white; font-family: Furtiger, sans-serif; transition: background-color 0.2s; display: flex; justify-content: center; align-items: center; }
+.finished-option { width: 180px; height: 50px; padding: 10px 20px; font-size: 1rem; cursor: pointer; border-radius: 10px; border: none; background-color: #e33; color: white; font-family: Furtiger, sans-serif; transition: background-color 0.2s; display: flex; justify-content: center; align-items: center; }
 .remove-icon { width: 16px; height: 16px; }
 .swap-icon { width: 16px; height: 16px; }
 
@@ -151,7 +151,7 @@
 
 .kiosk-logo-wrapper { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; }
 .kiosk-logo { width: 200px; height: auto; margin-bottom: 20px; }
-.kiosk-signin-btn { padding: 10px 20px; background-color: #d32f2f; color: white; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; transition: background-color 0.3s; }
+.kiosk-signin-btn { padding: 10px 20px; background-color: #d32f2f; color: white; border: none; border-radius: 5px; font-size: 1rem; cursor: pointer; transition: background-color 0.3s; }
 .kiosk-signin-btn:hover { background-color: #b71c1c; }
 .kiosk-customer-info { background-color: #e8f5e8; padding: 10px; border-radius: 5px; margin-bottom: 10px; text-align: center; }
 .kiosk-customer-info h3 { margin: 0; color: #2e7d32; }
@@ -228,8 +228,8 @@
   cursor: pointer;
 }
 
-.kiosk-clear-btn{ background: #f2f2f2; padding: 8px 10px; border-radius:6px; border:none; cursor:pointer }
-.kiosk-checkout-btn{ background: #0e6b26; color:white; padding: 8px 10px; border-radius:6px; border:none; cursor:pointer; font-weight: 600; }
+.kiosk-clear-btn{ position: relative; background: #f2f2f2; padding: 8px 10px; border-radius:6px; border:none; cursor:pointer }
+.kiosk-checkout-btn{ position: relative; background: #0e6b26; color:white; padding: 8px 10px; border-radius:6px; border:none; cursor:pointer; font-weight: 600; }
 
 .kiosk-empty{ color:#666; padding: 18px; text-align:center }
 
@@ -287,7 +287,7 @@
   width: 150px;
   height: 50%;
   padding: 10px 20px;
-  font-size: 16px;
+  font-size: 1rem;
   cursor: pointer;
   border-radius: 10px;
   border: none;
@@ -328,8 +328,7 @@
 
 .purchase-option {
   width: 240px; /* square width */
-  height: 240
-  px; /* square height */
+  height: 240px; /* square height */
   border: 2px solid #1a1a1a;
   border-radius: 8px;
   display: flex;
@@ -356,7 +355,7 @@
 
 .option-text {
   font-weight: bold;
-  font-size: 16px;
+  font-size: 1rem;
   font-family: Furtiger, sans-serif;
   padding: 5px;
 }
@@ -371,7 +370,7 @@
   width: 180px;
   height: 50px;
   padding: 10px 20px;
-  font-size: 16px;
+  font-size: 1rem;
   cursor: pointer;
   border-radius: 10px;
   border: none;
@@ -760,7 +759,7 @@
   color: white;
   border: none;
   border-radius: 5px;
-  font-size: 16px;
+  font-size: 1rem;
   cursor: pointer;
   transition: background-color 0.3s;
 }
@@ -783,7 +782,7 @@
 }
 
 .circle-btn {
-  position: fixed;
+  position: relative;
   bottom: 20px;
   left: 89%;
   width: 64px;
@@ -803,9 +802,9 @@
   border: 3px solid rgba(229, 65, 65);
 }
 
-.back-btn {
+/* .back-btn {
   left: 93.75% !important;
-}
+} */
 
 .icon-img {
   width: 100%;
@@ -815,7 +814,7 @@
 
 
 .accessibility-btn {
-  position: fixed;
+  position: relative;
   top: 5px;
   right: 5px;
   width: 50px;
@@ -823,11 +822,15 @@
   border-radius: 50%;
   background: white;
   border: 3px solid black;
-  font-size: 20px;
+  font-size: 1.5rem;
   cursor: pointer;
   z-index: 999;
 }
 
+.accessibility-btn:hover {
+  transform: scale(1.1);
+  border-color: #e33;
+}
 
 .accessibility-modal-overlay {
   position: fixed;
@@ -864,7 +867,7 @@
 .acc-controls button {
   width: 40px;
   height: 40px;
-  font-size: 22px;
+  font-size: 1.5rem;
   border-radius: 8px;
   cursor: pointer;
 }
@@ -881,6 +884,245 @@
 .aitext {
   font-size: 3rem;
 }
+
+.ai-chat-container {
+  margin-top: auto;
+  width: 100%;
+  display: flex;
+}
+
+.ai-chat-btn {
+  position: static;
+  width: 100%;
+  height: 70px;
+  border-radius: 12px;
+  border: 3px solid #d71920;
+  background: linear-gradient(90deg, #d71920, #f04a1d);
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 200ms ease, box-shadow 200ms ease;
+}
+
+.ai-chat-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(0,0,0,0.2);
+}
+
+.kiosk-title { font-size: 1.1rem; }
+
+.kiosk-item-calories { font-size: 0.9rem; }
+
+.kiosk-order-size-note { font-size: 0.8rem; }
+
+.kiosk-size-modal-title { font-size: 1.2rem; }
+
+.kiosk-size-modal-subtitle { font-size: 0.95rem; }
+
+.kiosk-size-modal-subtitle.secondary { font-size: 0.85rem; }
+
+.kiosk-size-price { font-size: 0.85rem; }
+
+.purchase-screen-title { font-size: 1.5rem; }
+
+.purchase-screen-price { font-size: 1.5rem; }
+
+.option-button { font-size: 1rem; } /* 16px → 1rem */
+
+.option-text { font-size: 1rem; } /* 16px → 1rem */
+
+.chat-header { font-size: 1.2rem; }
+
+.chat-input-area button { font-size: 1rem; }
+
+.loading-overlay .loading-inner { font-size: 1.25rem; }
+
+.chat-watermark p { font-size: 2rem; }
+
+.kiosk-signin-btn { font-size: 1rem; }
+
+.kiosk-customer-info h3 { font-size: 1rem; }
+
+.finished-option { font-size: 1rem; }
+
+.kiosk-root * {
+  font-size: inherit !important;
+}
+
+.bottom-right-buttons {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  flex-direction: column; /* stack rows vertically */
+  gap: 20px; /* space between rows */
+  z-index: 1000;
+}
+
+/* Row for checkout & clear order */
+.bottom-row-top {
+  top: 10px;
+  display: flex;
+  gap: 30px;
+  justify-content: flex-end;
+}
+
+/* Row for accessibility, login, back */
+.bottom-row-bottom {
+  display: flex;
+  gap: 16px;
+  justify-content: flex-end;
+  margin-top: 24px;
+}
+
+.kiosk-right {
+  display: flex;
+  flex-direction: column;
+}
+
+.kiosk-order-list {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.kiosk-order-summary {
+  flex-shrink: 0;
+}
+
+.bottom-right-buttons {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  position: relative; /* ensure z-index works */
+  z-index: 15;
+}
+.circle-btn, .accessibility-btn {
+  z-index: 999; /* ensures they are above the order list */
+}
+
+.kiosk-order-list {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0; /* critical for proper scroll */
+}
+
+.kiosk-order-summary {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: sticky;
+  bottom: 0;
+  background: white;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  z-index: 10;
+}
+
+.kiosk-right {
+  display: flex;
+  flex-direction: column; 
+}
+
+.bottom-right-buttons .bottom-row-top {
+  margin-bottom: 16px; /* adds more vertical space above the buttons row */
+}
+
+/* Bottom buttons container */
+.bottom-right-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 16px; /* space between top & bottom row */
+  position: sticky; /* stick to bottom of order summary */
+  bottom: 0;
+  background: white;
+  padding: 12px 0 12px 0;
+  z-index: 20;
+}
+
+/* Row for total / clear / checkout */
+.bottom-row-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px; /* space between total and buttons */
+  margin-bottom: 12px; /* push row above a little */
+}
+
+/* Row for accessibility, login, back */
+.bottom-row-bottom {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px; /* space between buttons */
+}
+
+/* Circle buttons */
+.circle-btn {
+  gap: 12px;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 3px solid black;
+  background: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s, border-color 0.2s;
+}
+
+.circle-btn:hover {
+  transform: scale(1.1);
+  border-color: #e33;
+}
+
+/* Back button icon */
+.back-btn .icon-img {
+  width: 60%;
+  height: auto;
+}
+
+/* Accessibility button */
+.accessibility-btn {
+  width: 4rem;
+  height: 4rem;
+  border-radius: 50%;
+  border: 3px solid black;
+  background: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.accessibility-btn:hover {
+  transform: scale(1.1);
+  border-color: #e33;
+}
+
+/* Clear & Checkout buttons */
+.kiosk-clear-btn, .kiosk-checkout-btn {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.kiosk-clear-btn { background: #f2f2f2; }
+.kiosk-checkout-btn { background: #0e6b26; color: white; }
+
+
+
+
+
 
 
 
