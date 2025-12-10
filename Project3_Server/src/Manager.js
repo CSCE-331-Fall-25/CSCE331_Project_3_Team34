@@ -44,52 +44,35 @@ class Manager {
     }
 
     async XReportData() {
-        const now = new Date();
-        let hour = now.getHours();
-        const hours = new Array();
-        const sales = new Array();
-        if (hour < 10) {
-            console.log("Invalid start time");
-            return { hour: -1, sales: -1 };
-        }
-        if (!this.db) {
-            console.log("No database connection");
-            return { hour: -1, sales: -1 };
-        }
-        if (hour == 23) {
-            hour--;
-        }
-
-        while (hour >= 10) {
-            hours.push(hour + ":00");
-            sales.push(0);
-            hour--;
-        }
-
         const data = [];
         try {
-            const q = 'SELECT time FROM transactions WHERE stage = 1 ORDER BY time ASC';
+            // Query all transactions with stage > 0 and group by hour
+            const q = `
+                SELECT 
+                    EXTRACT(HOUR FROM time) as hour,
+                    COUNT(*) as transaction_count
+                FROM transactions 
+                WHERE stage > 0
+                GROUP BY EXTRACT(HOUR FROM time)
+                ORDER BY hour DESC
+            `;
             const result = await this.db.query(q);
             if (!result.rows || result.rows.length === 0) {
-                console.log("No transactions during this time");
-                return { hour: 0, sales: 0 };
+                console.log("No transactions with stage > 0");
+                return [];
             }
+            
+            // Format the results
             for (const row of result.rows) {
-                // The time is ahead by 7 hours and I have no idea why. This weird indexing is becauce 10 is always the first hour of operation
-                if (parseInt(JSON.stringify(row.time).substring(12, 14), 10) > 8) {
-                    sales[parseInt(JSON.stringify(row.time).substring(12, 14), 10) - 17] = sales[parseInt(JSON.stringify(row.time).substring(12, 14), 10) - 17] + 1;
-                }
-                else {
-                    sales[parseInt(JSON.stringify(row.time).substring(12, 14), 10) + 7] = sales[parseInt(JSON.stringify(row.time).substring(12, 14), 10) + 7] + 1;
-                }
-            }
-
-            for (let i = 0; i < hours.length; i++) {
-                data.push({ sales: sales[hours.length - i - 1], hour: hours[i] });
+                const hourFormatted = String(Math.floor(row.hour)).padStart(2, '0') + ':00';
+                data.push({ 
+                    hour: hourFormatted, 
+                    sales: row.transaction_count 
+                });
             }
         } catch (err) {
-            console.log("error");
-            return { hour: -1, sales: -1 };
+            console.log("Error getting X report data:", err);
+            return [];
         }
         return data;
     }

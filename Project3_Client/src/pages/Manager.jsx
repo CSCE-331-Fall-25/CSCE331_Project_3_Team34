@@ -188,16 +188,32 @@ export default function Manager() {
     }
     else {
       const newData = await response.json();
+      
+      // Check if there are no transactions
+      if (!newData || newData.length === 0) {
+        setTableData([]);
+        setTableColumns([]);
+        setLabel('No transactions today or Z-Report cleared data');
+        return;
+      }
+      
+      // Convert GMT hours to local timezone
+      const localData = newData.map(item => {
+        const gmtHour = parseInt(item.hour.split(':')[0], 10);
+        const offset = new Date().getTimezoneOffset() / 60; // Get timezone offset in hours
+        const localHour = (gmtHour - offset + 24) % 24; // Adjust for timezone and wrap around
+        const localHourFormatted = String(Math.floor(localHour)).padStart(2, '0') + ':00';
+        return {
+          ...item,
+          hour: localHourFormatted
+        };
+      });
+      
       setTableColumns([{ accessorKey: "hour", header: "Hour", cell: info => info.getValue() },
       { accessorKey: "sales", header: "Sales", cell: info => info.getValue() }]);
-      console.log(JSON.stringify(newData));
-      if (newData.length == null && newData.sales == 0) {
-        setLabel('No transactions today or Z-Report cleared data');
-      }
-      else {
-        setLabel('');
-      }
-      setTableData(Array.isArray(newData) ? newData.slice() : [newData]);
+      console.log(JSON.stringify(localData));
+      setLabel('');
+      setTableData(Array.isArray(localData) ? localData.slice() : [localData]);
     }
   }
 
@@ -214,16 +230,32 @@ export default function Manager() {
     }
     else {
       const newData = await response.json();
+      
+      // Check if there are no transactions
+      if (!newData || newData.length === 0) {
+        setTableData([]);
+        setTableColumns([]);
+        setLabel('No pending transactions - Z-Report cleared data');
+        return;
+      }
+      
+      // Convert GMT hours to local timezone
+      const localData = newData.map(item => {
+        const gmtHour = parseInt(item.hour.split(':')[0], 10);
+        const offset = new Date().getTimezoneOffset() / 60; // Get timezone offset in hours
+        const localHour = (gmtHour - offset + 24) % 24; // Adjust for timezone and wrap around
+        const localHourFormatted = String(Math.floor(localHour)).padStart(2, '0') + ':00';
+        return {
+          ...item,
+          hour: localHourFormatted
+        };
+      });
+      
       setTableColumns([{ accessorKey: "hour", header: "Hour", cell: info => info.getValue() },
       { accessorKey: "sales", header: "Sales", cell: info => info.getValue() }]);
-      console.log(JSON.stringify(newData));
-      if (newData.length == null && newData.sales == 0) {
-        setLabel('No transactions today');
-      }
-      else {
-        setLabel('');
-      }
-      setTableData(Array.isArray(newData) ? newData.slice() : [newData]);
+      console.log(JSON.stringify(localData));
+      setLabel('');
+      setTableData(Array.isArray(localData) ? localData.slice() : [localData]);
     }
   }
 
