@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useMemo } from 'react';
+﻿import { useEffect, useRef, useState, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import pandaLogo from '../assets/PandaLogo.svg'
 import WeatherScreen from './WeatherScreen';
@@ -61,6 +61,9 @@ export default function Kiosk() {
     'Half & Half': 'Half & Half',
     'Login': 'Login',
     'AI Assistant': 'AI Assistant',
+    'Accessibility Options': 'Accessibility Options',
+    'Sample text: “Welcome to Panda Express!”': 'Sample text: “Welcome to Panda Express!”',
+    'Close': 'Close',
   }), []);
 
   const translatedTexts = useTranslatedObject(translationKeys);
@@ -1317,9 +1320,9 @@ export default function Kiosk() {
           {showAccessibility && (
             <div className="accessibility-modal-overlay">
               <div className="accessibility-modal">
-                <h2>Accessibility Options</h2>
+                <h2>{translatedTexts['Accessibility Options']}</h2>
                 <p style={{ fontSize: `${fontScale}rem` }}>
-                  Sample text: “Welcome to Panda Express!”
+                  {translatedTexts['Sample text: “Welcome to Panda Express!”']}
                 </p>
 
                 <div className="acc-controls">
@@ -1329,7 +1332,7 @@ export default function Kiosk() {
                 </div>
 
                 <button className="acc-close" onClick={() => setShowAccessibility(false)}>
-                  Close
+                  {translatedTexts['Close']}
                 </button>
               </div>
             </div>
