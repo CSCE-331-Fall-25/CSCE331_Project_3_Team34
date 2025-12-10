@@ -76,6 +76,38 @@
 
 .login-form button:hover { transform: translateY(-3px); opacity: 0.98 }
 
+.login-wide-button {
+    width: 320px;
+    max-width: 90vw;
+    padding: 0.9rem 1rem;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 10px;
+    border: 1px solid rgba(0,0,0,0.12);
+    cursor: pointer;
+    transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
+}
+
+.login-wide-button:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 28px rgba(0,0,0,0.14);
+}
+
+.login-wide-button:focus-visible {
+    outline: 3px solid rgba(33, 150, 243, 0.45);
+    outline-offset: 3px;
+}
+
+.login-secondary-button {
+    background: linear-gradient(180deg, #5f6772, #444a53);
+    color: #fff;
+}
+
+.login-accent-button {
+    background: linear-gradient(180deg, #f33c3c, #b01515);
+    color: #fff;
+}
+
 .login-form .small-note {
     font-size: 0.9rem;
     color: rgba(255,255,255,0.7);
