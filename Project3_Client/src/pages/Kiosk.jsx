@@ -1284,7 +1284,7 @@ export default function Kiosk() {
               className={`ai-chat-btn ${!open ? 'pulse' : 'fadeIn'}`} // change open --> isChatOpen
               onClick={() => setShowChat(true)}
             >
-              <div className='aitext'>AI</div>
+              <div className='aitext'>AI Assistant</div>
           </button>
           
           {showChat && <ChatModal onClose={() => setShowChat(false)} onAddOrder={handleAIOrder} />}
