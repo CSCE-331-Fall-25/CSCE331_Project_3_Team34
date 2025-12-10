@@ -346,6 +346,9 @@ export default function Kiosk() {
   async function handleSwap(idx, it) {
     setBandaidHalfAndHalf(0);
     const target = it;
+    if (target.halfAndHalf) {
+      setBandaidHalfAndHalf(2);
+    }
     if (!target || target.isParent) return;
 
     const parentEntry = orderItems.find(entry => entry.groupId === target.groupId && entry.isParent);
@@ -359,6 +362,12 @@ export default function Kiosk() {
       type: target.type,
       parentItemId,
     };
+
+    for (let row of orderItems) {
+      if (row.groupId == target.groupId && row.halfAndHalf == true && row.type == 'side') {
+        row["halfAndHalf"] = false;
+      }
+    }
 
     if (!target.type) return;
 
