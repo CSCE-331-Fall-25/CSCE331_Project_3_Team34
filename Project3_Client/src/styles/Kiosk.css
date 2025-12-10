@@ -78,7 +78,7 @@
 .kiosk-size-price { font-size: 0.85rem; color: #9a5d0b; }
 .kiosk-size-cancel { background: transparent; border: none; color: #d71920; font-weight: 600; cursor: pointer; }
 .kiosk-clear-btn{ background: #f2f2f2; padding: 8px 10px; border-radius:6px; border:none; cursor:pointer }
-.kiosk-checkout-btn{ background: #1a9c3b; color:white; padding: 8px 10px; border-radius:6px; border:none; cursor:pointer }
+.kiosk-checkout-btn{ background: #138a33; color:white; padding: 8px 10px; border-radius:6px; border:none; cursor:pointer; font-weight: 600; }
 .kiosk-empty{ color:#666; padding: 18px; text-align:center }
 .kiosk-logo-wrapper{ flex: 1 1 auto; display: flex; justify-content: center; align-items: flex-start; padding-top: clamp(20px, 6vh, 64px); }
 .kiosk-logo{ width: clamp(160px, 30%, 380px); height: auto; max-width: 100%; }
@@ -229,7 +229,7 @@
 }
 
 .kiosk-clear-btn{ background: #f2f2f2; padding: 8px 10px; border-radius:6px; border:none; cursor:pointer }
-.kiosk-checkout-btn{ background: #1a9c3b; color:white; padding: 8px 10px; border-radius:6px; border:none; cursor:pointer }
+.kiosk-checkout-btn{ background: #138a33; color:white; padding: 8px 10px; border-radius:6px; border:none; cursor:pointer; font-weight: 600; }
 
 .kiosk-empty{ color:#666; padding: 18px; text-align:center }
 
