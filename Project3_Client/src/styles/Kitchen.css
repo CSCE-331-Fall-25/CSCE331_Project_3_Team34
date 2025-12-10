@@ -39,12 +39,12 @@
 
 .kitchen-subtitle {
   margin: 4px 0 0 0;
-  color: #4a4a4a;
+  color: #333333;
 }
 
 .kitchen-status {
   font-size: 0.9rem;
-  color: #4a4a4a;
+  color: #333333;
 }
 
 .kitchen-error {
@@ -166,11 +166,11 @@
 }
 
 .kitchen-ticket-left-button{
-  background: #d71920;
+  background: #c6171d;
   align-self: flex-end;
 }
 
 .kitchen-ticket-right-button{
-  background: #1a9c3b;
+  background: #147a2e;
   align-self: flex-end;
 }
