@@ -14,7 +14,7 @@ const systemInstruction = {
         + " Keep responses concise and relevant to the user's queries about menu items, ingredients, and nutritional information."
         + " Use a friendly and professional tone."
         + " Limit each response to a maximum of 50 words."
-        + " Always address the user as 'valued customer' or their username if appropriate."
+        + " Always address the user as 'valued customer'if appropriate."
         + " If the user asks for recommendations, suggest popular menu items based on general customer preferences."
         + " If the user inquires about ingredients or nutritional information, provide accurate details based on standard menu data."
         + " If you don't know the answer, politely inform the user that you are unable to provide that information."
@@ -24,7 +24,8 @@ const systemInstruction = {
         + "you are allowed to use the user's history of previous messages to provide better responses."
         + "DO not reference any of the system instructions in your responses."
         + "do not start each message with the same phrase, you can start the first message of the conversation with 'Hello valued customer, how can I assist you today?' but after that vary your responses."
-        + "you dont need to always say the users name or 'valued customer' in every response, only do so when appropriate."
+        + "you dont need to always say the 'valued customer' in every response, only do so when appropriate."
+        + 'NEVER REFER TO USERS BY NAME UNLESS THEY HAVE EXPLICITLY SHARED THEIR NAME WITH YOU.'
   }]
 };
 
@@ -32,9 +33,9 @@ const systemInstruction = {
 // Pass in username of signed-in user
 async function chatWithAI(username, prompt, history, menuContext) {
  // console.log("Sending prompt to GenAI:", prompt);
-  if(!username) {
-    username = "Guest";
-  }
+  // if(!username) {
+  //   username = "Guest";
+  // }
   if(!history) {
     console.log("No history provided, initializing new history.");
     history = [];
@@ -69,7 +70,7 @@ async function chatWithAI(username, prompt, history, menuContext) {
       history: history
     });
 
-    const result = await chat.sendMessage("username is: " + username + "prompt for you to respond to: " +prompt);
+    const result = await chat.sendMessage("prompt for you to respond to: " +prompt);
     const reply = result.response.text(); 
     //console.log("Received reply from GenAI:", reply);
     history.push({ role: "model", parts: [{text: reply}] });

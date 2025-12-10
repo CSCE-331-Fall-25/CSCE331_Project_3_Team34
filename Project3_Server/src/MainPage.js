@@ -329,6 +329,7 @@ class CashierMainPage {
                 })),
                 sides: (order.sides || []).map(s => ({
                     name: s.menu?.name || 'Select Side',
+                    halfAndHalf: order.sides.length >= 2 && order.item.name !== 'Family',
                     displayType: 'Side'
                 })),
             })),
