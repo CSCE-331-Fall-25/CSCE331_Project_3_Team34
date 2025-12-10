@@ -2,13 +2,18 @@ import { data, Link, useNavigate } from "react-router-dom";
 import "../styles/Hub.css";
 import SignOutButton from "../Components/SignOut";
 import React, { useEffect, useState } from "react";
-import bobRoss from "../assets/bob-ross.png";
+import bobRoss from "../assets/BobRossPanda.png";
 
 
 export default function Hub() {
   const [isManager, setIsManager] = useState(false);
   const [showSignOutModal, setShowSignOutModal] = useState(false);
   const [pendingLink, setPendingLink] = useState(false);
+  const formattedDate = new Intl.DateTimeFormat('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric'
+  }).format(new Date());
 
   const goFullscreen = () => {
     document.documentElement.requestFullscreen();
@@ -164,20 +169,30 @@ export default function Hub() {
   return (
     <main className="hub-wrapper">
       {showSignOutModal && (
-              <SignOutButton onClose={() => setShowSignOutModal(false)} />
-            )}
+        <SignOutButton onClose={() => setShowSignOutModal(false)} />
+      )}
       <h1 className="sr-only">Home Hub</h1>
-      <img src={bobRoss} alt="Bob Ross Panda" className="hub-hero-image" />
-      <div className="home-grid">
-        <Link to="/weather"><button onClick={goFullscreen}>Kiosk</button></Link>
-        <Link to="/cashier"><button>Cashier</button></Link>
-        {isManager && <Link to="/manager"><button>Manager</button></Link>}
-        
-        <Link to="/menu"><button>Menu</button></Link>
-        <Link to="/kitchen"><button>Kitchen</button></Link>
-        <button  onClick={handleLinkGoogleId}>Link Google ID</button>
-        <button  onClick={handleUnlinkGoogleId}>Unlink Google ID</button>
-        <button onClick={() => setShowSignOutModal(true)}>Sign Out</button>
+      <div className="hub-content">
+        <section className="hub-left" aria-label="Navigation shortcuts">
+          <div className="hub-header" aria-label="Hub summary">
+            <span className="hub-header-label" aria-hidden="true"></span>
+            <h2>Welcome back!</h2>
+            <p className="hub-header-date">{formattedDate}</p>
+          </div>
+          <div className="hub-button-column">
+            <Link to="/weather"><button onClick={goFullscreen}>Kiosk</button></Link>
+            <Link to="/cashier"><button>Cashier</button></Link>
+            {isManager && <Link to="/manager"><button>Manager</button></Link>}
+            <Link to="/menu"><button>Menu</button></Link>
+            <Link to="/kitchen"><button>Kitchen</button></Link>
+            <button onClick={handleLinkGoogleId}>Link Google ID</button>
+            <button onClick={handleUnlinkGoogleId}>Unlink Google ID</button>
+            <button onClick={() => setShowSignOutModal(true)}>Sign Out</button>
+          </div>
+        </section>
+        <section className="hub-right" aria-label="Panda Express art">
+          <img src={bobRoss} alt="Bob Ross Panda" className="hub-hero-image" />
+        </section>
       </div>
     </main>
   );
