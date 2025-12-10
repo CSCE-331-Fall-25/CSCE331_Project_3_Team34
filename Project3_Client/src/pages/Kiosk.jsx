@@ -1018,7 +1018,8 @@ export default function Kiosk() {
 
   return (
     <div style={{ fontSize: `${baseFontSize}px` }}>
-      <div>
+      <h1 className="sr-only">Panda Express Kiosk</h1>
+      <main>
         {loading && (
           <div className="loading-overlay" aria-hidden>
             <div className="loading-inner">{translatedTexts['Loading']}…</div>
@@ -1327,7 +1328,7 @@ export default function Kiosk() {
             </div>
           </div>
         )}
-      </div>
+      </main>
     </div>
   );
 }

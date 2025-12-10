@@ -53,7 +53,7 @@
 .kiosk-selection-banner{ margin-bottom: 12px; font-weight: 600; color: #1a1a1a; }
 .kiosk-selection-remaining{ font-weight: 400; color: #666; }
 .kiosk-item-name{ font-weight: 600; }
-.kiosk-item-calories{ font-size: 0.9rem; color: #999; }
+.kiosk-item-calories{ font-size: 0.9rem; color: #757575; }
 .kiosk-right{ display: flex; flex-direction: column; }
 .kiosk-order-list{ flex: 1 1 auto; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
 .kiosk-order-row{ display: flex; justify-content: space-between; align-items: center; padding: 8px; border: 1px solid #f0f0f0; border-radius: 6px; }
