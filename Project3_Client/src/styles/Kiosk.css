@@ -1039,12 +1039,13 @@
 .bottom-right-buttons {
   display: flex;
   flex-direction: column;
-  gap: 16px; /* space between top & bottom row */
+  gap: 2px;
   position: sticky; /* stick to bottom of order summary */
   bottom: 0;
   background: white;
-  padding: 12px 0 12px 0;
+  padding: 6px 0 6px 0;
   z-index: 20;
+  align-items: center;
 }
 
 /* Row for total / clear / checkout */
@@ -1052,15 +1053,20 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 16px; /* space between total and buttons */
-  margin-bottom: 12px; /* push row above a little */
+  gap: 10px;
+  margin-bottom: 0;
+}
+
+.kiosk-order-controls {
+  display: flex;
+  gap: 10px;
 }
 
 /* Row for accessibility, login, back */
 .bottom-row-bottom {
   display: flex;
-  justify-content: flex-end;
-  gap: 12px; /* space between buttons */
+  justify-content: center;
+  gap: 12px;
 }
 
 /* Circle buttons */
