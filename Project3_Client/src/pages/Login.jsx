@@ -285,10 +285,6 @@ export default function Login() {
               Sign Up
             </button>
           )}
-          <button className="debug-button" onClick={() => navigate("/hub")}>
-            <img className='img' src={getImageForItem("debugbutton")} alt="Debug" />
-            Debugging Skip Login
-          </button>
         </div>
       </main>
     </>
