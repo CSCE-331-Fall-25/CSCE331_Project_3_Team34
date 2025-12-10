@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: Project3_Server/src/User.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: Project3_Server/src/User.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * @fileoverview User, Employee, and Customer model classes.
+ * Handles user authentication, profile management, and role-based access.
+ */
+
+/**
+ * User base class - Represents a system user.
+ * 
+ * @class
+ * @param {string} [username] - User login name
+ * @param {string} [password] - User password (hashed in production)
+ * @param {string} [email] - User email address
+ * @param {boolean} [isEmployee] - Whether user is an employee
+ */
+class User {
+    constructor(username = '', password = '', email = '', isEmployee = false) {
+        this.username = username;
+        this.password = password;
+        this.email = email;
+        this.isEmployee = isEmployee;
+    }
+
+    /**
+     * Fetches a user by username and password.
+     * Delegates to Employee or Customer based on user type.
+     * 
+     * @static
+     * @async
+     * @param {Object} db - Database pool connection
+     * @param {string} username - Username to authenticate
+     * @param {string} password - Password to verify
+     * @param {boolean} [customer=false] - Whether to fetch customer or employee
+     * @returns {Promise&lt;Employee|Customer|null>} User instance or null if not found/invalid
+     */
+    static async FetchByUsername(db, username, password, customer = false) {
+        console.log("fetching customer: " + customer);
+        if(!customer){
+            return Employee.FetchByUsername(db, username, password);
+        }
+        else{
+            return Customer.FetchByUsername(db, username, password);
+        }
+    }
+
+    FetchAllUsers(db) {
+        console.log('Deprecated: FetchAllUsers called. Use FetchAllEmployees');
+        return null;
+    }
+    /**
+     * Authenticates a user via username/password or Google ID.
+     * Prioritizes Google ID authentication if provided.
+     * 
+     * @static
+     * @async
+     * @param {Object} db - Database pool connection
+     * @param {string} [username] - Username for auth
+     * @param {string} [password] - Password for auth
+     * @param {string} [googleId] - Google ID for OAuth auth
+     * @param {boolean} [customer=false] - Whether user is customer or employee
+     * @returns {Promise&lt;User|null>} Authenticated user or null if failed
+     */
+    static async AuthenticateLogin(db, username = "", password = "", googleId = null, customer = false) {
+        console.log("at authenticate login customer is: " + customer);
+        
+        //googleId auth
+        let user = null;
+        if (googleId) {
+            console.log(`Authenticating Google ID `);
+            user = await User.FetchByGoogleId(db, googleId);
+            if(!user) {
+                console.log('Authentication failed for Google ID:', googleId);
+                return null;
+            }
+            return user;
+        }
+
+        //Username /password auth
+        console.log(`Authenticating login for user: ${username}`);
+        user = await User.FetchByUsername(db, username, password, customer);
+        if(!user) {
+            console.log('Authentication failed for user:', username);
+            return null;
+        }
+        return user;
+    }
+    /**
+     * Fetches a user by Google ID.
+     * Returns appropriate subclass (Employee or Customer) based on account type.
+     * 
+     * @static
+     * @async
+     * @param {Object} db - Database pool connection
+     * @param {string} googleId - Google account ID
+     * @returns {Promise&lt;Employee|Customer|null>} User instance or null if not found
+     * @throws {Error} If database pool is invalid
+     */
+    static async FetchByGoogleId(db, googleId) {
+        if (!db || typeof db.query !== 'function') {
+            throw new Error('DB pool not provided or invalid');
+        }
+        const q = 'SELECT * FROM Users WHERE googleid = $1';
+        const res = await db.query(q, [googleId]);
+        if (!res || !res.rows || res.rows.length === 0) {
+            console.log('No employee found with Google ID:', googleId);
+            
+            return null;
+        }
+        const row = res.rows[0];
+        const username = row.username ?? '';
+        const pass = row.password ?? '';
+        const email = row.email ?? '';
+        const isEmployee = row.isemployee ?? false;
+
+        if (isEmployee) {
+            return Employee.FetchByUsername(db, username, pass, email);
+        } else {
+            return Customer.FetchByUsername(db, username, pass, email);
+        }
+    }
+    /**
+     * Links a Google ID to an existing user account.
+     * 
+     * @static
+     * @async
+     * @param {Object} db - Database pool connection
+     * @param {string} username - Username to link Google ID to
+     * @param {string} googleId - Google ID to link
+     * @returns {Promise&lt;boolean>} True if link successful, false otherwise
+     * @throws {Error} If database pool is invalid
+     */
+    static async LinkGoogleIdToUser(db, username, googleId) {
+        if (!db || typeof db.query !== 'function') {
+            throw new Error('DB pool not provided or invalid');
+        }
+        const q = 'UPDATE Users SET googleid = $1 WHERE username = $2';
+        const res = await db.query(q, [googleId, username]);
+        if (res.rowCount === 0) {
+            console.log('No user found to update with username:', username);
+            return false;
+        }
+        console.log('Updated user with Google ID:', username);
+        if(res.isemployee) {
+            console.log('Linking Google ID to Employee');
+            await Employee.LinkGoogleIdToEmployee(db, username, googleId);
+        }
+        else {
+            console.log('Linking Google ID to Customer not implemented yet.');
+            //await Customer.LinkGoogleIdToCustomer(db, username, googleId);
+        }
+        return true;
+    }
+    static async UnlinkGoogleIdFromUser(db, username) {
+                if (!db || typeof db.query !== 'function') {
+                    throw new Error('DB pool not provided or invalid');
+                }
+                const q = 'UPDATE Users SET googleid = NULL WHERE username = $1';
+                const res = await db.query(q, [username]);
+                if (res.rowCount > 0) {
+                    console.log('Unlinked Google ID from user:', username);
+                    return true;
+                }
+                console.log('No user found to unlink Google ID:', username);
+                return false;
+            }
+           
+    static async UnlinkGoogleId(db, username) {
+        if (!db || typeof db.query !== 'function') {
+            throw new Error('DB pool not provided or invalid');
+        }
+        // Fetch user to determine type
+        const user = await User.FetchByUsername(db, username, undefined);
+        if (!user) {
+            console.log('No user found for unlink operation:', username);
+            return false;
+        }
+        let result = await User.UnlinkGoogleIdFromUser(db, username);
+        if (user.isEmployee) {
+            result = await Employee.UnlinkGoogleIdFromEmployee(db, username) || result;
+        }
+        // If you add a Customer.UnlinkGoogleIdFromCustomer, call it here
+        return result;
+    }
+    static async CreateCustomer(db, username, password, email, name) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                const newCustomer = new Customer(username, password, email, name, 0, '');
+                if (!newCustomer) {
+                    return reject(new Error('Failed to create customer instance'));
+                }
+                // Here you would typically insert the new customer into the database
+                let query = 'INSERT INTO Users (username, password, email, isemployee) VALUES ($1, $2, $3, $4)';
+                await db.query(query, [username, password, email, false]);
+                query = 'INSERT INTO Customers (username, name, rewardspoints, phonenumber) VALUES ($1, $2, $3, $4)';
+                await db.query(query, [username, name, 0, '']);
+                console.log('Created new customer:', username);
+                resolve(newCustomer);
+            } catch (error) {
+                console.error('Error creating customer:', error);
+                reject(error);
+            }
+        });
+    }
+}
+
+class Employee extends User {
+    constructor(username = '', password = '', email = '', employeeID = -1, name = '', role = '', wage = 0, isManager = false) {
+        super(username, password, email, true);
+
+        this.employeeID = employeeID;
+        this.name = name;
+        this.role = role;
+        this.wage = wage;
+        this.isManager = isManager;
+    }
+
+    static async FetchByUsername(db, username, password, email) {
+        if (!db || typeof db.query !== 'function') {
+            throw new Error('DB pool not provided or invalid');
+        }
+
+        const q = 'SELECT * FROM employees WHERE username = $1';
+        const res = await db.query(q, [username]);
+        if (!res || !res.rows || res.rows.length === 0) {
+            console.log('No employee found with username:', username);
+            return null;
+        }
+        // console.log('Employee query result:', res.rows);
+
+        const row = res.rows[0];
+        const employeeID = row.employeeid ?? -1;
+        const name = row.name ?? '';
+        const role = row.role ?? '';
+        const wage = row.wage ?? 0;
+        const isManager = row.ismanager ?? false;
+        const pass = row.password ?? password;
+
+        // If password is incorrect:
+        
+
+        // console.log(`Fetched Employee from DB: Username=${username}, ID=${employeeID}`);
+        if(pass === password){
+            return new Employee(username, password, email, employeeID, name, role, wage, isManager);
+        } 
+        else if(password === null || password === undefined){
+            return new Employee(username, pass, email, employeeID, name, role, wage, isManager);
+        }
+        else{
+            console.log('Incorrect password for employee:', username);
+            return null;
+        }
+    }
+
+    static async FetchAllEmployees(db) {
+        if (!db || typeof db.query !== 'function') {
+            throw new Error('DB pool not provided or invalid');
+        }
+
+        const q = 'SELECT * FROM employees';
+        const res = await db.query(q);
+        if (!res || !res.rows || res.rows.length === 0) {
+            console.log('No employees found in the database.');
+            return [];
+        }
+
+        const employees = [];
+        for (const row of res.rows) {
+            const username = row.username ?? '';
+            const pass = row.password ?? '';
+            const email = row.email ?? '';
+            const employeeID = row.employeeid ?? -1;
+            const name = row.name ?? '';
+            const role = row.role ?? '';
+            const wage = row.wage ?? 0;
+            const isManager = row.ismanager ?? false;
+
+            const employee = new Employee(username, pass, email, employeeID, name, role, wage, isManager);
+            employees.push(employee);
+
+            // console.log(`Fetched Employee from DB: Username=${username}, ID=${employeeID}`);
+        }
+
+        return employees;
+    }
+    static async LinkGoogleIdToEmployee(db, username, googleId) {
+        if (!db || typeof db.query !== 'function') {
+            throw new Error('DB pool not provided or invalid');
+        }
+        const q = 'UPDATE Employees SET googleid = $1 WHERE username = $2';
+        const res = await db.query(q, [googleId, username]);
+        if (res.rowCount === 0) {
+            console.log('No user found to update with username:', username);
+            return false;
+        }
+        console.log('Updated user with Google ID:', username);
+        return true;
+    }
+     static async UnlinkGoogleIdFromEmployee(db, username) {
+        if (!db || typeof db.query !== 'function') {
+            throw new Error('DB pool not provided or invalid');
+        }
+        const q = 'UPDATE Employees SET googleid = NULL WHERE username = $1';
+        const res = await db.query(q, [username]);
+        if (res.rowCount > 0) {
+            console.log('Unlinked Google ID from employee:', username);
+            return true;
+        }
+        console.log('No employee found to unlink Google ID:', username);
+        return false;
+    }
+}
+
+// THis entire class is deprecated but i don't want to delete it because it may break stuff
+class Customer extends User {
+    constructor(username, password, email, name, rewardsPoints, phoneNumber) {
+        super(username, password, email, false);
+
+        this.name = name;
+        this.rewardsPoints = rewardsPoints;
+        this.phoneNumber = phoneNumber;
+
+        console.log(`Customer created: ${username}`);
+    }
+
+    static async FetchByUsername(db, username, password, email) {
+        console.log("called customer fetch");
+        if (!db || typeof db.query !== 'function') {
+            throw new Error('DB pool not provided or invalid');
+        }
+
+        const q = 'SELECT * FROM customers WHERE username = $1';
+        const res = await db.query(q, [username]);
+        if (!res || !res.rows || res.rows.length === 0) {
+            console.log('No customer found with username:', username);
+            return null;
+        }
+
+        const row = res.rows[0];
+        const name = row.name ?? '';
+        const rewardsPoints = row.rewardspoints ?? 0;
+        const phoneNumber = row.phonenumber ?? '';
+
+        console.log(`Fetched Customer from DB: Username=${username}`);
+
+        return new Customer(username, password, email, name, rewardsPoints, phoneNumber);
+    }
+
+    static async FetchAllCustomers(db) {
+        if (!db || typeof db.query !== 'function') {
+            throw new Error('DB pool not provided or invalid');
+        }
+
+        const q = 'SELECT * FROM customers';
+        const res = await db.query(q);
+        if (!res || !res.rows || res.rows.length === 0) {
+            console.log('No customers found in the database.');
+            return [];
+        }
+
+        const customers = [];
+        for (const row of res.rows) {
+            const username = row.username ?? '';
+            const pass = row.password ?? '';
+            const email = row.email ?? '';
+            const name = row.name ?? '';
+            const rewardsPoints = row.rewardspoints ?? 0;
+            const phoneNumber = row.phonenumber ?? '';
+
+            const customer = new Customer(username, pass, email, name, rewardsPoints, phoneNumber);
+            customers.push(customer);
+
+            console.log(`Fetched Customer from DB: Username=${username}`);
+        }
+
+        return customers;
+    }
+}
+
+export default User;
+export { Employee, Customer };</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="CashierMainPage.html">CashierMainPage</a></li><li><a href="Manager.html">Manager</a></li><li><a href="Transaction.html">Transaction</a></li><li><a href="User.html">User</a></li></ul><h3>Global</h3><ul><li><a href="global.html#TranslationContext">TranslationContext</a></li><li><a href="global.html#buildTraySummaries">buildTraySummaries</a></li><li><a href="global.html#chatWithAI">chatWithAI</a></li><li><a href="global.html#clearOrder">clearOrder</a></li><li><a href="global.html#decodeHTMLEntities">decodeHTMLEntities</a></li><li><a href="global.html#loadOrder">loadOrder</a></li><li><a href="global.html#printHistory">printHistory</a></li><li><a href="global.html#saveOrder">saveOrder</a></li><li><a href="global.html#translateMultiple">translateMultiple</a></li><li><a href="global.html#translateText">translateText</a></li><li><a href="global.html#useTranslate">useTranslate</a></li><li><a href="global.html#useTranslatedArray">useTranslatedArray</a></li><li><a href="global.html#useTranslatedObject">useTranslatedObject</a></li><li><a href="global.html#useTranslatedText">useTranslatedText</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Tue Dec 09 2025 19:51:30 GMT-0600 (Central Standard Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

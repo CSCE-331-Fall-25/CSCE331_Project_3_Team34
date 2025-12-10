@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: Project3_Client/src/Components/SignUpModal.jsx</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: Project3_Client/src/Components/SignUpModal.jsx</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * @fileoverview SignUpModal component for customer registration.
+ * Displays sign-up form with validation for new customer accounts.
+ */
+
+import React, { useState } from 'react';
+
+/**
+ * SignUpModal component - Customer registration modal.
+ * 
+ * @param {Object} props - Component props
+ * @param {boolean} props.show - Controls modal visibility
+ * @param {Function} props.onClose - Callback when modal closes
+ * @param {Function} props.onSignUp - Callback with new user data
+ * @returns {JSX.Element|null} Sign-up modal or null if not shown
+ */
+export default function SignUpModal({ show, onClose, onSignUp }) {
+  const [customerName, setCustomerName] = useState('');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  if (!show) return null;
+
+  /**
+   * Handles customer account signup form submission.
+   * Validates input fields and sends signup request to backend.
+   * Calls onSignUp callback on successful account creation.
+   * @async
+   * @param {Event} e - Form submission event
+   */
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setErrorMessage('');
+    
+    // Validate inputs
+    if (!customerName.trim() || !username.trim() || !password.trim() || !email.trim()) {
+      setErrorMessage('Please fill in all fields');
+      return;
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      setErrorMessage('Please enter a valid email address');
+      return;
+    }
+
+    // Validate password strength
+    if (password.length &lt; 8) {
+      setErrorMessage('Password must be at least 8 characters long');
+      return;
+    }
+    setLoading(true);
+
+    try {
+      // Call the signup endpoint (you'll need to create this on the backend)
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+      const res = await fetch('/api/signup-customer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        signal: controller.signal,
+        body: JSON.stringify({
+          name: customerName.trim(),
+          username: username.trim(),
+          password: password.trim(),
+          email: email.trim()
+        })
+      });
+      clearTimeout(timeoutId);
+
+      const data = await res.json();
+
+      if (res.ok &amp;&amp; data.success) {
+        //console.log('Sign up successful for customer:', username);
+        // Call the parent callback to handle successful signup
+        if (typeof onSignUp === 'function') {
+          onSignUp();
+        }
+        handleClose();
+      } else {
+        setErrorMessage(data.error || 'Sign up failed. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error during signup:', error);
+      if (error.name === 'AbortError') {
+        setErrorMessage('Request timed out. Please try again.');
+      } else {
+        setErrorMessage('An error occurred. Please try again.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /**
+   * Closes signup modal and resets all form fields and error messages.
+   * Calls onClose callback to notify parent component.
+   */
+  const handleClose = () => {
+    setCustomerName('');
+    setUsername('');
+    setPassword('');
+    setEmail('');
+    setErrorMessage('');
+    if (typeof onClose === 'function') {
+      onClose();
+    }
+  };
+
+  return (
+    &lt;div className="modal-overlay" onClick={handleClose}>
+      &lt;div className="modal-window" onClick={(e) => e.stopPropagation()}>
+        &lt;h2 className="modal-title">Create Customer Account&lt;/h2>
+        
+        &lt;form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          &lt;input
+            type="text"
+            placeholder="Full Name"
+            id="signup-fullname"
+            aria-label="Full Name"
+            />
+          &lt;input
+            type="text"
+            placeholder="Full Name"
+            id="signup-fullname"
+            aria-label="Full Name"
+            value={customerName}
+            onChange={(e) => setCustomerName(e.target.value)}
+            className="modal-input"
+            disabled={loading}
+          />
+          &lt;input
+            type="text"
+            placeholder="Username"
+            id="signup-username"
+            aria-label="Username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            className="modal-input"
+            disabled={loading}
+          />
+          &lt;input
+            type="email"
+            placeholder="Email"
+            id="signup-email"
+            aria-label="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="modal-input"
+            disabled={loading}
+          />
+          &lt;input
+            type="password"
+            placeholder="Password"
+            id="signup-password"
+            aria-label="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="modal-input"
+            disabled={loading}
+          />           
+
+          {errorMessage &amp;&amp; (
+            &lt;div className="modal-error" style={{ color: '#dc3545', fontSize: '14px', marginBottom: '8px' }}>
+              {errorMessage}
+            &lt;/div>
+          )}
+
+          &lt;div className="modal-actions" style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+            &lt;button
+              type="button"
+              onClick={handleClose}
+              className="modal-back"
+              disabled={loading}
+            >
+              Cancel
+            &lt;/button>
+            &lt;button
+              type="submit"
+              className="modal-submit"
+              disabled={loading}
+            >
+              {loading ? 'Creating Account...' : 'Sign Up'}
+            &lt;/button>
+          &lt;/div>
+        &lt;/form>
+      &lt;/div>
+    &lt;/div>
+  );
+}
+
+SignUpModal.displayName = 'SignUpModal';
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="CashierMainPage.html">CashierMainPage</a></li><li><a href="Manager.html">Manager</a></li><li><a href="Transaction.html">Transaction</a></li><li><a href="User.html">User</a></li></ul><h3>Global</h3><ul><li><a href="global.html#TranslationContext">TranslationContext</a></li><li><a href="global.html#buildTraySummaries">buildTraySummaries</a></li><li><a href="global.html#chatWithAI">chatWithAI</a></li><li><a href="global.html#clearOrder">clearOrder</a></li><li><a href="global.html#decodeHTMLEntities">decodeHTMLEntities</a></li><li><a href="global.html#loadOrder">loadOrder</a></li><li><a href="global.html#printHistory">printHistory</a></li><li><a href="global.html#saveOrder">saveOrder</a></li><li><a href="global.html#translateMultiple">translateMultiple</a></li><li><a href="global.html#translateText">translateText</a></li><li><a href="global.html#useTranslate">useTranslate</a></li><li><a href="global.html#useTranslatedArray">useTranslatedArray</a></li><li><a href="global.html#useTranslatedObject">useTranslatedObject</a></li><li><a href="global.html#useTranslatedText">useTranslatedText</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Tue Dec 09 2025 19:51:30 GMT-0600 (Central Standard Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

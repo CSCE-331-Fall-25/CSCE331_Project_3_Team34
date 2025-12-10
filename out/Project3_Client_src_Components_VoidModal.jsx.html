@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: Project3_Client/src/Components/VoidModal.jsx</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: Project3_Client/src/Components/VoidModal.jsx</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * @fileoverview VoidModal component for voiding transactions.
+ * Allows managers to void existing transactions by transaction ID.
+ */
+
+import React, { useState } from "react";
+
+/**
+ * VoidModal component - Modal for voiding transactions.
+ * 
+ * @param {Object} props - Component props
+ * @param {boolean} props.show - Controls modal visibility
+ * @param {Function} props.onClose - Callback when modal closes
+ * @param {boolean} props.userIsManager - Whether user has manager privileges
+ * @returns {JSX.Element|null} Void modal or null if not shown
+ */
+export default function VoidModal({ show, onClose, userIsManager }) {
+    if (!show) return null;
+
+    const [transactionId, setTransactionId] = useState('');
+    const [errorMessage, setErrorMessage] = useState("");
+    const [loading, setLoading] = useState(false);
+
+    const voidTransaction = async () => {
+        console.log("we going right");
+        try {
+        const res = await fetch("/api/void-transaction", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ transactionId, userIsManager }),
+        });
+        const data = await res.json();
+        console.log(data);
+        switch (data.error) {
+          case 0:
+            setErrorMessage("Must be a manager to void orders")
+            break;
+          case 1:
+            setErrorMessage("Transaction not found");
+            break;
+          case 55:
+            setErrorMessage("Transaction " + transactionId + " voided");
+            break;
+        }
+        } catch (err) {
+            console.error("Error removing transaction:", err);
+            setErrorMessage("Failed to remove transaction");
+        }
+    }
+
+    return (
+    &lt;div className="modal-overlay" onClick={() => typeof onClose === "function" &amp;&amp; onClose()}>
+      &lt;div className="modal-window" onClick={(e) => e.stopPropagation()}>
+        &lt;h2 className="modal-title">Enter Transaction ID&lt;/h2>
+        &lt;div className="modal-error">{errorMessage}&lt;/div>
+          &lt;div className="discount-manager-section">
+            &lt;div style={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+              &lt;input
+                type="number"
+                className="modal-input"
+                value={transactionId ?? ''}
+                onChange={(e) => setTransactionId(e.target.value)}
+                placeholder="e.g. 33500"
+                disabled={loading}
+              />
+            &lt;/div>
+          &lt;/div>
+        &lt;div className="modal-actions">
+          &lt;button onClick={() => voidTransaction()} className="modal-back" disabled={loading}>
+            Void From Database
+          &lt;/button>
+          &lt;button onClick={() => typeof onClose === "function" &amp;&amp; onClose()} className="modal-back" disabled={loading}>
+            Back
+          &lt;/button>
+        &lt;/div>
+      &lt;/div>
+    &lt;/div>
+  );
+}</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="CashierMainPage.html">CashierMainPage</a></li><li><a href="Manager.html">Manager</a></li><li><a href="Transaction.html">Transaction</a></li><li><a href="User.html">User</a></li></ul><h3>Global</h3><ul><li><a href="global.html#TranslationContext">TranslationContext</a></li><li><a href="global.html#buildTraySummaries">buildTraySummaries</a></li><li><a href="global.html#chatWithAI">chatWithAI</a></li><li><a href="global.html#clearOrder">clearOrder</a></li><li><a href="global.html#decodeHTMLEntities">decodeHTMLEntities</a></li><li><a href="global.html#loadOrder">loadOrder</a></li><li><a href="global.html#printHistory">printHistory</a></li><li><a href="global.html#saveOrder">saveOrder</a></li><li><a href="global.html#translateMultiple">translateMultiple</a></li><li><a href="global.html#translateText">translateText</a></li><li><a href="global.html#useTranslate">useTranslate</a></li><li><a href="global.html#useTranslatedArray">useTranslatedArray</a></li><li><a href="global.html#useTranslatedObject">useTranslatedObject</a></li><li><a href="global.html#useTranslatedText">useTranslatedText</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Tue Dec 09 2025 19:51:30 GMT-0600 (Central Standard Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

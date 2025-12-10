@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: Project3_Client/src/pages/Login.jsx</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: Project3_Client/src/pages/Login.jsx</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * @fileoverview Login page component.
+ * Handles employee and customer authentication with username/password or Google OAuth.
+ * Manages role-based functionality and return-to redirects after login.
+ */
+
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import pandaLogo from '../assets/PandaLogo.svg';
+import GoogleLoginButton from '../Components/googleLoginButton.jsx';
+import SignUpModal from '../Components/SignUpModal.jsx';
+import { getImageForItem } from '../assets/utils/imageMapper';
+
+/**
+ * Login component - Handles user authentication and registration.
+ * Supports both traditional login and Google OAuth.
+ * Manages role-based access and session persistence.
+ * 
+ * @returns {JSX.Element} Login interface with authentication options
+ */
+export default function Login() {
+  const [employeeId, setEmployeeId] = useState('');
+  const [employeePassword, setEmployeePassword] = useState('');
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const [customer, setCustomer] = useState(false);
+  const [showSignUpModal, setShowSignUpModal] = useState(false);
+  
+  // Get returnTo and functionality from URL params or sessionStorage
+  const urlReturnTo = searchParams.get('returnTo');
+  const storedReturnTo = sessionStorage.getItem('loginReturnTo');
+  const returnTo = urlReturnTo || storedReturnTo || '/';
+  
+  // Get functionality parameter (defaults to 0, checks sessionStorage too)
+  const urlFunctionality = searchParams.get('functionality');
+  const storedFunctionality = sessionStorage.getItem('loginFunctionality');
+  const functionality = parseInt(urlFunctionality || storedFunctionality || '0');
+  
+  // Save returnTo and functionality to sessionStorage if it's in URL params
+  useEffect(() => {
+    if (urlReturnTo) {
+      sessionStorage.setItem('loginReturnTo', urlReturnTo);
+    }
+    if (searchParams.get('functionality')) {
+      sessionStorage.setItem('loginFunctionality', searchParams.get('functionality'));
+      if(searchParams.get('functionality') == 3){
+        setCustomer(true);
+      }
+    }
+  }, [urlReturnTo, searchParams]);
+
+  /**
+   * Validates user login credentials by sending to backend authentication endpoint.
+   * Supports manager override functionality and customer-specific validation.
+   * @async
+   * @param {string} userName - Username to validate
+   * @param {string} password - Password to validate
+   * @returns {Promise&lt;boolean>} True if credentials are valid, false otherwise
+   */
+  async function isValidLogin(userName, password) {
+    try {
+      const isOverride = functionality === 1; // Manager override
+
+      const res = await fetch('/api/authenticate-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ username: userName, password: password, customer: customer, isOverride: isOverride })
+      });
+      const data = await res.json().catch(() => null);
+      if (res.ok &amp;&amp; data &amp;&amp; data.success) {
+        console.log('Login successful for user:', userName);
+        return true;
+      }
+      console.log('Login failed for user:', userName, data);
+      return false;
+    } catch (error) {
+      console.error('Error during login request:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Handles form submission for manual login.
+   * Validates input and authenticates user, then navigates to appropriate page.
+   * @async
+   * @param {Event} event - Form submission event
+   */
+  async function handleLogin(event) {
+    event.preventDefault();
+    const trimmedId = employeeId ? employeeId.trim() : '';
+    const trimmedPassword = employeePassword ? employeePassword.trim() : '';
+    if (!trimmedId || !trimmedPassword) {
+      alert('Please enter both Username and Password.');
+      return;
+    }
+    console.log("Logging in with ID:", employeeId, "and Password:", employeePassword);
+
+    const ok = await isValidLogin(trimmedId, trimmedPassword);
+    if (ok) {
+        // if(typeof SucessfulLogin === "function") SucessfulLogin();
+        console.log("Navigating to: " + returnTo);
+      sessionStorage.removeItem('loginReturnTo');
+      sessionStorage.removeItem('loginFunctionality');
+      // Add success parameter based on functionality
+      const successValue = functionality === 0 ? 1 : functionality + 1;
+      const url = new URL(returnTo, window.location.origin);
+      url.searchParams.set('success', successValue.toString());
+      navigate(url.pathname + url.search, { replace: true });
+    } else {
+      //CONNOR here is where we can check functionality and see where we should return to
+      console.log("Login failed, functionality: " + functionality);
+      switch(functionality){
+        case 1:
+          alert('Invalid Login. Cannot access Manager functionality.');
+          break;
+        case 2:
+          alert('Invalid Login.');
+          return;
+        case 3:
+          alert('Invalid Login. Cannot access Customer functionality.');
+          break;
+        default:
+          alert('Invalid Login.');
+          break;
+      }
+      console.log("Navigating to: " + returnTo + " with success=0");
+      // On failure, navigate with success=0
+      const url = new URL(returnTo, window.location.origin);
+      url.searchParams.set('success', '0');
+      navigate(url.pathname + url.search, { replace: true });
+      
+    }
+  }
+
+  //called when returning from Google OAuth flow
+  /**
+   * Handles Google OAuth login callback with role-based authorization checks.
+   * Verifies user permissions based on functionality level (manager/employee/customer).
+   * @async
+   * @param {URLSearchParams} params - URL search parameters from OAuth redirect
+   * @param {string} [googleid] - Optional Google ID parameter
+   */
+  async function handleGoogleLogin(params, googleid = null) {
+    //console.log('Handling Google Login callback');
+    const isSuccess = params.get('success');
+    const returnToParam = (params.get('returnTo') || '/').replace(/^\/?/, '/');
+    const functionality = parseInt(params.get('functionality') || '0');
+    const add = params.get('add');
+    if (isSuccess === 'true') {
+      // Fetch user info from backend
+      const res = await fetch('/api/auth/me', { credentials: 'include' });
+
+      if (res.headers.get('content-type')?.includes('application/json')) {
+        const data = await res.json();
+        if(!data || !data.user) {
+          alert('Google Login Failed: No user data returned.');
+          return;
+        }
+
+        let authorized = false;
+        let redirectOverride = null;
+        // Check roles based on functionality
+        if (functionality === 1) { // Manager
+            if (data.user.isEmployee &amp;&amp; data.user.isManager) {
+                authorized = true;
+            } else if (data.user.isEmployee) {
+                authorized = true;
+                redirectOverride = '/cashier';
+            } else {
+                alert('Google Login Failed: User is not a Manager.');
+            }
+        } else if (functionality === 3) { // Customer
+             // Assuming any logged in user can be a customer, or check specific logic
+             authorized = true;
+        } else { // Default to Employee (functionality 0 or others)
+             if (data.user.isEmployee) {
+                 authorized = true;
+             } else {
+                 alert('Google Login Failed: User is not an Employee.');
+             }
+        }
+
+        if (authorized) {
+          // Proceed with your logic
+          if(add === 'true'){ 
+            await fetch('/api/add-googleid', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ username: data.user.userName, googleid: '107052280673566149562' })
+            });
+            alert('added');
+          }
+          sessionStorage.removeItem('loginReturnTo');
+          sessionStorage.removeItem('loginFunctionality');
+          
+          if (redirectOverride) {
+            navigate(redirectOverride, { replace: true });
+          } else {
+            // Set success parameter based on functionality
+            const successValue = functionality === 0 ? 1 : functionality + 1;
+            const url = new URL(returnToParam, window.location.origin);
+            url.searchParams.set('success', successValue.toString());
+            navigate(url.pathname + url.search, { replace: true });
+          }
+        } else {
+            // Not authorized, stay on login page
+            navigate('/login', { replace: true });
+        }
+      } else {
+        const text = await res.text();
+        console.error('Non-JSON response from /auth/me:', text);
+        alert('Google Login Failed: Server did not return JSON.');
+      }
+    } else if (isSuccess === 'false') {
+      // On failure, stay on login page
+      if (!window._googleLoginFailedAlerted) {
+        window._googleLoginFailedAlerted = true;
+        alert('Google Login Failed. Please try again.');
+      }
+      navigate('/login', { replace: true });
+      return;
+    }
+  }
+
+  /**
+   * Clears username and password input fields.
+   */
+  function clearInputs() {
+    setEmployeeId('');
+    setEmployeePassword('');
+  }
+
+  // Check for Google login callback
+  useEffect(() => {
+    console.log('Login: checking for Google Login callback');
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('success')) {
+      handleGoogleLogin(params);
+      // Clear the URL parameters from the address bar
+    }
+    window.history.replaceState({}, '', window.location.pathname);
+  }, []);
+
+  // Clear inputs when shown
+  useEffect(() => {
+    clearInputs();
+  }, []);
+
+  /**
+   * Updates employee ID state when username input changes.
+   * @param {Event} event - Input change event
+   */
+  function handleIdChange(event) {
+    setEmployeeId(event.target.value);
+  }
+
+  /**
+   * Updates employee password state when password input changes.
+   * @param {Event} event - Input change event
+   */
+  function handlePasswordChange(event) {
+    setEmployeePassword(event.target.value);
+  }
+
+  /**
+   * Handles customer cancellation of login, navigating back to previous page.
+   */
+  function handleCustomerBack() {
+    console.log("Customer cancelling login, navigating to: " + returnTo);
+    const url = new URL(returnTo, window.location.origin);
+    url.searchParams.set('success', '0');
+    navigate(url.pathname + url.search, { replace: true });
+  }
+
+  /**
+   * Handles successful account creation, shows confirmation alert and clears form.
+   */
+  function handleSignUpSuccess() {
+    alert('Account created successfully! You can now log in.');
+    setShowSignUpModal(false);
+    setEmployeeId('');
+    setEmployeePassword('');
+  }
+
+  return (
+    &lt;>
+      &lt;SignUpModal 
+        show={showSignUpModal}
+        onClose={() => setShowSignUpModal(false)}
+        onSignUp={handleSignUpSuccess}
+      />
+      &lt;div className="login-page-background">
+      &lt;div className="login-card">
+        &lt;img
+          className="login-logo"
+          src={pandaLogo}
+          alt="Panda Express Logo"
+        />
+        &lt;form onSubmit={handleLogin} className="login-form">
+          &lt;input
+            type="text"
+            placeholder="Username"
+            value={employeeId ?? ''}
+            onChange={handleIdChange}
+          />
+          &lt;input
+            type="password"
+            placeholder="Password"
+            value={employeePassword ?? ''}
+            onChange={handlePasswordChange}
+          />
+          &lt;button type="submit">Login&lt;/button>
+        &lt;/form>
+        {!customer &amp;&amp; 
+        &lt;GoogleLoginButton returnTo={returnTo} functionality={functionality} />
+        }
+        {customer &amp;&amp; (
+          &lt;button className="back-button" onClick={handleCustomerBack} style={{ marginTop: '10px', width: '100%', padding: '10px', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+            Back to Kiosk
+          &lt;/button>
+        )}
+        {customer &amp;&amp; (
+          &lt;button type="button" onClick={() => setShowSignUpModal(true)} style={{ marginTop: '10px', width: '100%', padding: '10px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+            Sign Up
+          &lt;/button>
+        )}
+        &lt;button className="debug-button" onClick={() => navigate("/hub")}>
+          &lt;img className='img' src={getImageForItem("debugbutton")} alt="Debug" />
+          Debugging Skip Login
+        &lt;/button>
+      &lt;/div>
+    &lt;/div>
+    &lt;/>
+  );
+}</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="CashierMainPage.html">CashierMainPage</a></li><li><a href="Manager.html">Manager</a></li><li><a href="Transaction.html">Transaction</a></li><li><a href="User.html">User</a></li></ul><h3>Global</h3><ul><li><a href="global.html#TranslationContext">TranslationContext</a></li><li><a href="global.html#buildTraySummaries">buildTraySummaries</a></li><li><a href="global.html#chatWithAI">chatWithAI</a></li><li><a href="global.html#clearOrder">clearOrder</a></li><li><a href="global.html#decodeHTMLEntities">decodeHTMLEntities</a></li><li><a href="global.html#loadOrder">loadOrder</a></li><li><a href="global.html#printHistory">printHistory</a></li><li><a href="global.html#saveOrder">saveOrder</a></li><li><a href="global.html#translateMultiple">translateMultiple</a></li><li><a href="global.html#translateText">translateText</a></li><li><a href="global.html#useTranslate">useTranslate</a></li><li><a href="global.html#useTranslatedArray">useTranslatedArray</a></li><li><a href="global.html#useTranslatedObject">useTranslatedObject</a></li><li><a href="global.html#useTranslatedText">useTranslatedText</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Tue Dec 09 2025 19:51:30 GMT-0600 (Central Standard Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

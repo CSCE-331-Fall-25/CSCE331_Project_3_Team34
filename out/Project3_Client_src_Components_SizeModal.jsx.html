@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: Project3_Client/src/Components/SizeModal.jsx</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: Project3_Client/src/Components/SizeModal.jsx</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * @fileoverview SizeModal component for item size selection.
+ * Displays available size options for items and supports multi-language translation.
+ */
+
+import React, { useContext, useEffect, useState } from "react";
+import { createPortal } from 'react-dom';
+import "../styles/Cashier/SizeModal.css";
+import { TranslationContext } from "../contexts/TranslationContext";
+
+/**
+ * SizeModal component - Modal for selecting item size.
+ * 
+ * @param {Object} props - Component props
+ * @param {Function} props.onClose - Callback when modal closes
+ * @param {Array&lt;string>} [props.sizes=[]] - Available size options
+ * @param {Function} props.onSelectSize - Callback with selected size
+ * @returns {JSX.Element} Size selection modal
+ */
+export default function SizeModal({ onClose, sizes = [], onSelectSize }) {
+    const translationContext = useContext(TranslationContext);
+    const selectedLanguage = translationContext?.selectedLanguage || 'en';
+    const [translatedTexts, setTranslatedTexts] = useState({
+        'Select Size': 'Select Size',
+        'Close': 'Close'
+    });
+    const [translatedSizes, setTranslatedSizes] = useState({});
+
+    // Translate UI texts
+    useEffect(() => {
+        if (!translationContext) return;
+
+        /**
+         * Translates UI text labels to selected language.
+         * Falls back to English if translation service fails.
+         * @async
+         */
+        const translateUITexts = async () => {
+            const uiTexts = ['Select Size', 'Close'];
+
+            if (selectedLanguage === 'en') {
+                const english = {};
+                uiTexts.forEach(text => english[text] = text);
+                setTranslatedTexts(english);
+                return;
+            }
+
+            try {
+                const translations = await translationContext.translateMultiple(uiTexts, selectedLanguage);
+                const map = {};
+                uiTexts.forEach((t, i) => { map[t] = translations[i] || t; });
+                setTranslatedTexts(map);
+            } catch (error) {
+                console.error('Failed to translate UI texts:', error);
+                const fallback = {};
+                uiTexts.forEach(text => fallback[text] = text);
+                setTranslatedTexts(fallback);
+            }
+        };
+
+        translateUITexts();
+    }, [selectedLanguage]);
+
+    // Translate size options
+    useEffect(() => {
+        if (!translationContext || sizes.length === 0) return;
+
+        /**
+         * Translates available size options to selected language.
+         * Falls back to original size names if translation fails.
+         * @async
+         */
+        const translateSizeOptions = async () => {
+            if (selectedLanguage === 'en') {
+                const english = {};
+                sizes.forEach(size => english[size] = size);
+                setTranslatedSizes(english);
+                return;
+            }
+
+            try {
+                const translations = await translationContext.translateMultiple(sizes, selectedLanguage);
+                const map = {};
+                sizes.forEach((size, i) => { map[size] = translations[i] || size; });
+                setTranslatedSizes(map);
+            } catch (error) {
+                console.error('Failed to translate sizes:', error);
+                const fallback = {};
+                sizes.forEach(size => fallback[size] = size);
+                setTranslatedSizes(fallback);
+            }
+        };
+
+        translateSizeOptions();
+    }, [sizes, selectedLanguage]);
+    if (sizes.length === 0) console.error("No sizes provided to SizeModal");
+    if (typeof onClose !== 'function') console.error("onClose is not a function");
+    if (typeof onSelectSize !== 'function') console.error("onSelectSize is not a function");
+
+    if (typeof document === 'undefined') return null;
+
+    const modal = (
+        &lt;div className="modal-overlay" onClick={() => onClose()}>
+            &lt;div className="modal-window" onClick={(e) => e.stopPropagation()}>
+                &lt;h2 className="modal-title">{translatedTexts['Select Size']}&lt;/h2>
+                &lt;div className="size-options">
+                    {sizes.map((size) => (
+                        &lt;button className={`size-button`} key={size} onClick={() => onSelectSize(size)}>
+                            {translatedSizes[size] || size}
+                        &lt;/button>
+                    ))}
+                &lt;/div>
+                &lt;div className="modal-actions">
+                    &lt;button onClick={() => onClose()} className="modal-close">
+                        {translatedTexts['Close']}
+                    &lt;/button>
+                &lt;/div>
+            &lt;/div>
+        &lt;/div>
+    );
+
+    return createPortal(modal, document.body);
+}</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="CashierMainPage.html">CashierMainPage</a></li><li><a href="Manager.html">Manager</a></li><li><a href="Transaction.html">Transaction</a></li><li><a href="User.html">User</a></li></ul><h3>Global</h3><ul><li><a href="global.html#TranslationContext">TranslationContext</a></li><li><a href="global.html#buildTraySummaries">buildTraySummaries</a></li><li><a href="global.html#chatWithAI">chatWithAI</a></li><li><a href="global.html#clearOrder">clearOrder</a></li><li><a href="global.html#decodeHTMLEntities">decodeHTMLEntities</a></li><li><a href="global.html#loadOrder">loadOrder</a></li><li><a href="global.html#printHistory">printHistory</a></li><li><a href="global.html#saveOrder">saveOrder</a></li><li><a href="global.html#translateMultiple">translateMultiple</a></li><li><a href="global.html#translateText">translateText</a></li><li><a href="global.html#useTranslate">useTranslate</a></li><li><a href="global.html#useTranslatedArray">useTranslatedArray</a></li><li><a href="global.html#useTranslatedObject">useTranslatedObject</a></li><li><a href="global.html#useTranslatedText">useTranslatedText</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Tue Dec 09 2025 19:51:30 GMT-0600 (Central Standard Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

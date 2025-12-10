@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: Project3_Client/src/pages/WeatherScreen.jsx</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: Project3_Client/src/pages/WeatherScreen.jsx</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * @fileoverview Weather screen display component.
+ * Shows weather forecast for the current location and provides navigation to the kiosk.
+ * Displays weather data fetched from the National Weather Service API.
+ */
+
+import { useState, useEffect, useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
+import '../styles/WeatherScreen.css'
+//import { motion } from "framer-motion";
+
+import { getImageForItem } from '../assets/utils/imageMapper';
+import TranslationClient from '../Components/TranslationClient';
+import { TranslationContext } from '../contexts/TranslationContext';
+import { clearOrder } from '../utils/orderPersistence';
+
+/**
+ * WeatherScreen component - Displays current weather and forecast.
+ * Fetches user location and weather data from NWS API.
+ * Auto-transitions to kiosk after user interaction.
+ * 
+ * @returns {JSX.Element} Weather display page with forecast information
+ */
+export default function WeatherScreen() {
+  const translationContext = useContext(TranslationContext);
+  const [location, setLocation] = useState(null);
+  const [weather, setWeather] = useState(null);
+  const [error, setError] = useState(null);
+  const navigate = useNavigate();
+  
+  const [weatherOn, setWeatherOn] = useState(true);
+
+  const [fadeOut, setFadeOut] = useState(false);
+
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setLocation({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          });
+        },
+        (err) => {
+          setError(err.message);
+        }
+      );
+    } else {
+      setError('Geolocation is not supported by this browser.');
+    }
+  }, []);
+
+  const fetchWeather = async () => {
+    if (!location) {
+        setError('Location not available');
+        return;
+    }
+    try {
+      setError(null);
+      setWeather(null);
+      const response = await fetch(`https://api.weather.gov/points/${location.latitude},${location.longitude}`);
+      if (!response.ok) {
+        throw new Error('Weather API request failed');
+      }
+      const data = await response.json();
+      
+      const forecastUrl = data?.properties?.forecast;
+      if (!forecastUrl) {
+        throw new Error('Forecast URL not found in point data');
+      }
+
+      const forecastResponse = await fetch(forecastUrl);
+      if (!forecastResponse.ok) {
+        throw new Error('Forecast API request failed');
+      }
+      const forecastData = await forecastResponse.json();
+      setWeather({
+        name: data?.properties?.relativeLocation?.properties?.city || 'Forecast',
+        periods: forecastData?.properties?.periods || [],
+      });
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  // Helper: map a shortForecast string to a local fallback icon (emoji or asset path)
+  const mapShortForecastToFallback = (shortForecast) => {
+    if (!shortForecast) return null;
+    const s = shortForecast.toLowerCase();
+    if (s.includes('sun') || s.includes('clear')) return new URL('../assets/weather_icons/day.svg', import.meta.url).href;
+    if (s.includes('partly') &amp;&amp; s.includes('cloud')) return new URL('../assets/weather_icons/cloudy-day-1.svg', import.meta.url).href;
+    if (s.includes('mostly') &amp;&amp; s.includes('cloud')) return new URL('../assets/weather_icons/cloudy.svg', import.meta.url).href;
+    if (s.includes('cloud') || s.includes('overcast')) return new URL('../assets/weather_icons/cloudy.svg', import.meta.url).href;
+    if (s.includes('rain') || s.includes('showers') || s.includes('sprinkles')) return new URL('../assets/weather_icons/rainy-6.svg', import.meta.url).href;
+    if (s.includes('thunder') || s.includes('t-storm')) return new URL('../assets/weather_icons/thunder.svg', import.meta.url).href;
+    if (s.includes('snow') || s.includes('sleet') || s.includes('flurr')) return new URL('../assets/weather_icons/snowy-6.svg', import.meta.url).href;
+    if (s.includes('fog') || s.includes('haze') || s.includes('mist')) return new URL('../assets/weather_icons/cloudy.svg', import.meta.url).href;
+    if (s.includes('wind') || s.includes('breezy')) return new URL('../assets/weather_icons/cloudy-day-1.svg', import.meta.url).href;
+    return new URL('../assets/weather_icons/cloudy.svg', import.meta.url).href;
+  }
+
+  useEffect(() => {
+    fetchWeather();
+  }, [location]);
+
+  function handleClick() {
+    setFadeOut(true);
+    clearOrder('kiosk'); // Clear any existing order when starting fresh from weather screen
+    setTimeout(() => navigate("/kiosk"), 350); // match CSS fadeOut time
+  }
+
+  return (
+    &lt;div
+      className={`kiosk-start-container ${fadeOut ? "fade-out" : ""}`}
+      onClick={handleClick}
+    >
+      {/* Background */}
+      &lt;img src={getImageForItem("bambooforest")} alt="background" className="kiosk-start-background" />
+      &lt;div className="kiosk-start-overlay" />
+
+      {/* Language Selector */}
+      {translationContext &amp;&amp; (
+        &lt;div className="translation-client-wrapper" onClick={(e) => e.stopPropagation()}>
+          &lt;TranslationClient />
+        &lt;/div>
+      )}
+
+      {/* Weather bubble */}
+      {weather &amp;&amp; weatherOn &amp;&amp; (
+        &lt;div className="weather-bubble-container" onClick={(e) => e.stopPropagation()}>
+        &lt;div className="weather-bubble">
+          {weather.periods?.[0] &amp;&amp;
+                (() => {
+                  const current = weather.periods[0];
+                  const icon = mapShortForecastToFallback(current.shortForecast);
+
+                  return (
+                    &lt;>
+                      &lt;div className="weatherIcon">
+                        &lt;img src={icon} alt={current.shortForecast} />
+                      &lt;/div>
+                      {/* &lt;div className="temperature">
+                        &lt;p style={{ margin: 0 }}>{current.temperature}°&lt;/p>
+                      &lt;/div> */}
+                    &lt;/>
+                  );
+                })()}
+        &lt;/div>
+      &lt;/div>
+      )}
+
+      {/* Main icon */}
+      &lt;div className="kiosk-content">
+        &lt;img src={getImageForItem("pandalogotrans")} className="kiosk-start-icon" alt="Start Icon" />
+
+        &lt;div className="tap-to-start">Tap To Start&lt;/div>
+      &lt;/div>
+    &lt;/div>
+  );
+}</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="CashierMainPage.html">CashierMainPage</a></li><li><a href="Manager.html">Manager</a></li><li><a href="Transaction.html">Transaction</a></li><li><a href="User.html">User</a></li></ul><h3>Global</h3><ul><li><a href="global.html#TranslationContext">TranslationContext</a></li><li><a href="global.html#buildTraySummaries">buildTraySummaries</a></li><li><a href="global.html#chatWithAI">chatWithAI</a></li><li><a href="global.html#clearOrder">clearOrder</a></li><li><a href="global.html#decodeHTMLEntities">decodeHTMLEntities</a></li><li><a href="global.html#loadOrder">loadOrder</a></li><li><a href="global.html#printHistory">printHistory</a></li><li><a href="global.html#saveOrder">saveOrder</a></li><li><a href="global.html#translateMultiple">translateMultiple</a></li><li><a href="global.html#translateText">translateText</a></li><li><a href="global.html#useTranslate">useTranslate</a></li><li><a href="global.html#useTranslatedArray">useTranslatedArray</a></li><li><a href="global.html#useTranslatedObject">useTranslatedObject</a></li><li><a href="global.html#useTranslatedText">useTranslatedText</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Tue Dec 09 2025 19:51:30 GMT-0600 (Central Standard Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

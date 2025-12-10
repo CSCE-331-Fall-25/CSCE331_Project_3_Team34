@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: Project3_Server/src/oAuth.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: Project3_Server/src/oAuth.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * @fileoverview OAuth 2.0 authentication module using Google.
+ * Handles Google Sign-In integration and token validation.
+ */
+
+import dotenv from 'dotenv';
+// Load .env file only if it exists (for local development)
+// In production (Render), environment variables are set directly
+dotenv.config();
+import User from './User.js';
+
+
+
+import { OAuth2Client } from 'google-auth-library';
+
+// Build redirect URI from API URL if GOOGLE_REDIRECT_URI is not explicitly set
+// Remove trailing slashes to prevent double slashes in the URL
+const apiUrl = (process.env.VITE_API_URL || 'http://localhost:8080').replace(/\/+$/, '');
+const redirectUri = process.env.GOOGLE_REDIRECT_URI || `${apiUrl}/auth/google/callback`;
+
+const client = new OAuth2Client(
+  process.env.GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_CLIENT_SECRET,
+  redirectUri
+);
+ 
+function redirectToAppWithLoginSuccess(req, res) {
+  const returnTo = req.query.returnTo || '/';
+  const functionality = req.query.functionality || '0';
+  const state = JSON.stringify({ returnTo, functionality, add: req.query.add, link: req.query.link });
+  const url = client.generateAuthUrl({
+    access_type: "offline",
+    prompt: "consent",
+    scope: ["email", "profile"],
+    state: state
+  });
+
+  // console.log('Auth URL:', url);
+  try {
+    const u = new URL(url);
+    // console.log('client_id param:', u.searchParams.get('client_id') ? 'present' : 'MISSING');
+    // console.log('redirect_uri param:', u.searchParams.get('redirect_uri'));
+  } catch (err) {
+    console.log('Could not parse auth URL for debug:', err);
+  }
+  res.redirect(url);
+}
+
+async function googleAuthCallbackHandler(req, res) {
+  const code = req.query.code;
+  const state = req.query.state ? JSON.parse(req.query.state) : {};
+
+  const { tokens } = await client.getToken(code);
+  const idToken = tokens.id_token;
+
+  // Verify the token
+  const ticket = await client.verifyIdToken({
+    idToken: idToken,
+    audience: process.env.GOOGLE_CLIENT_ID,
+  });
+
+  const payload = ticket.getPayload();
+
+  // Payload contains user info
+  const googleId = payload.sub;
+  const add = state.add === 'true' ? '&amp;add=true' : '';
+  const link = state.link === 'true';
+  const returnTo = state.returnTo || '/';
+  const functionality = state.functionality || '0';
+  const clientOrigin = process.env.CLIENT_ORIGIN || 'http://localhost:5173';
+  
+  // If in link mode, just return the googleid to frontend
+  if (link) {
+    return res.redirect(`${clientOrigin}${returnTo}?link=true&amp;googleid=${googleId}`);
+  }
+  
+  const user = await User.FetchByGoogleId(req.app.locals.dbPool, googleId);
+  if (!user) {
+    // Not found or not an employee
+    return res.redirect(`${clientOrigin}/login?success=false${add}&amp;functionality=${functionality}&amp;returnTo=${encodeURIComponent(returnTo)}`);
+  }
+  // const user = {
+  //   googleId: payload.sub,
+  //   name: payload.name,
+  //   email: payload.email,
+  //   picture: payload.picture
+  // };
+  req.session.user = user;            // store user on the server session
+  // redirect to your React app - use a safe front-end route
+  res.redirect(`${clientOrigin}/login?success=true${add}&amp;functionality=${functionality}&amp;returnTo=${encodeURIComponent(returnTo)}`); //passing login success param
+}
+
+function authMeHandler(req, res) {
+  if (req.session.user) {
+    res.json({ user: req.session.user });
+  } else {
+    res.status(401).json({ error: 'Not authenticated' });
+  }
+}
+
+function CheckIfGoogleIDExists(dbPool, googleId) {
+  return User.FetchByGoogleId(dbPool, googleId)
+    .then(user => !!user) // return true if user exists, false otherwise
+    .catch(err => {
+      console.error('Error checking Google ID existence:', err);
+      throw err;
+    });
+}
+
+async function LinkGoogleIDToUser(dbPool, username, googleId) {
+  const existingUser = await User.FetchByGoogleId(dbPool, googleId);
+  if(existingUser) {
+    console.error(`Google ID already linked to another user: ${googleId} (linked to: ${existingUser.username})`);
+    return Promise.reject(new Error(`Google ID already linked to another user: ${existingUser.username}`));
+  }
+  const success = await User.LinkGoogleIdToUser(dbPool, username, googleId)
+  return success;
+}
+
+
+async function UnlinkGoogleIDFromUser(dbPool, username) {
+  // Use User.UnlinkGoogleId to handle unlinking logic
+  return await User.UnlinkGoogleId(dbPool, username);
+}
+
+export { redirectToAppWithLoginSuccess, googleAuthCallbackHandler, authMeHandler, LinkGoogleIDToUser, UnlinkGoogleIDFromUser };</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="CashierMainPage.html">CashierMainPage</a></li><li><a href="Manager.html">Manager</a></li><li><a href="Transaction.html">Transaction</a></li><li><a href="User.html">User</a></li></ul><h3>Global</h3><ul><li><a href="global.html#TranslationContext">TranslationContext</a></li><li><a href="global.html#buildTraySummaries">buildTraySummaries</a></li><li><a href="global.html#chatWithAI">chatWithAI</a></li><li><a href="global.html#clearOrder">clearOrder</a></li><li><a href="global.html#decodeHTMLEntities">decodeHTMLEntities</a></li><li><a href="global.html#loadOrder">loadOrder</a></li><li><a href="global.html#printHistory">printHistory</a></li><li><a href="global.html#saveOrder">saveOrder</a></li><li><a href="global.html#translateMultiple">translateMultiple</a></li><li><a href="global.html#translateText">translateText</a></li><li><a href="global.html#useTranslate">useTranslate</a></li><li><a href="global.html#useTranslatedArray">useTranslatedArray</a></li><li><a href="global.html#useTranslatedObject">useTranslatedObject</a></li><li><a href="global.html#useTranslatedText">useTranslatedText</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Tue Dec 09 2025 19:51:30 GMT-0600 (Central Standard Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

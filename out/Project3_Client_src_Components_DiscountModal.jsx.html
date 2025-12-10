@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: Project3_Client/src/Components/DiscountModal.jsx</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: Project3_Client/src/Components/DiscountModal.jsx</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * @fileoverview DiscountModal component for applying discounts.
+ * Supports both discount codes and manager manual discount input.
+ */
+
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+
+/**
+ * DiscountModal component - Applies discounts to transaction.
+ * 
+ * @param {Object} props - Component props
+ * @param {boolean} props.show - Controls modal visibility
+ * @param {Function} props.onClose - Callback when modal closes
+ * @param {Function} props.onApplied - Callback with discount details
+ * @param {boolean} props.userIsManager - Whether user is a manager (enables manual entry)
+ * @returns {JSX.Element|null} Discount modal or null if not shown
+ */
+export default function DiscountModal({ show, onClose, onApplied, userIsManager: initialUserIsManager }) {
+  const navigate = useNavigate();
+  const [discountCode, setDiscountCode] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+  const [loading, setLoading] = useState(false);
+  // Manager manual inputs
+  const [managerPriceOff, setManagerPriceOff] = useState("");
+  const [managerDiscountOff, setManagerDiscountOff] = useState("");
+  // Local state for userIsManager, initialized from prop
+  const [userIsManager, setUserIsManager] = useState(initialUserIsManager);
+
+  // Sync local state with prop changes
+  useEffect(() => {
+    setUserIsManager(initialUserIsManager);
+  }, [initialUserIsManager]);
+
+  useEffect(() => {
+      console.log("userIsManager changed: " + userIsManager);
+      // Reset form when userIsManager changes
+      setDiscountCode("");
+      setErrorMessage("");
+      setManagerPriceOff("");
+      setManagerDiscountOff("");
+    }, [userIsManager]);
+
+  if (!show) return null;
+
+
+  /**
+   * Submits discount code or manager discount to server.
+   * Validates discount and applies it to transaction.
+   * 
+   * @async
+   * @returns {Promise&lt;void>}
+   */
+  const handleSubmit = async () => {
+    setLoading(true);
+    setErrorMessage("");
+    try {
+      const res = await fetch("/api/add-discount", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: 'include', // Include cookies with this request
+        body: JSON.stringify({ discountCode, priceOff: managerPriceOff, discountPer: managerDiscountOff }),
+      });
+      const data = await res.json();
+      if (data &amp;&amp; data.acceptedDiscount === 1) {
+        if (typeof onApplied === "function") {
+          onApplied({
+            discountAmount: data.discountAmount || 0,
+            priceOff: data.priceOff || 0,
+            discountPer: data.discountPer || 0,
+          });
+        }
+        if (typeof onClose === "function") onClose();
+      } else if (data &amp;&amp; data.acceptedDiscount === -1) {
+        setErrorMessage("Cannot apply discount before adding items");
+      } else {
+        setErrorMessage("Invalid discount code");
+      }
+    } catch (err) {
+      console.error("Error applying discount:", err);
+      setErrorMessage("Failed to apply discount");
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  /**
+   * Navigates to login page with manager override flag.
+   * Allows managers to gain access for discount entry.
+   * 
+   * @returns {void}
+   */
+  function OpenLoginPage() {
+    //sessionStorage.setItem('loginReturnTo', '/cashier');
+    navigate('/login?returnTo=/cashier&amp;functionality=1');
+    // setUserIsManager(true);
+  }
+
+  return (
+    &lt;div className="modal-overlay" onClick={() => typeof onClose === "function" &amp;&amp; onClose()}>
+      &lt;div className="modal-window" onClick={(e) => e.stopPropagation()}>
+        &lt;h2 className="modal-title">Enter Discount Code&lt;/h2>
+        &lt;input
+          type="text"
+          value={discountCode}
+          onChange={(e) => setDiscountCode(e.target.value)}
+          placeholder="Discount Code"
+          className="modal-input"
+          disabled={loading}
+        />
+        {/* If the user is a manager, show manual inputs for price off and discount off */}
+        {userIsManager &amp;&amp; (
+          &lt;div className="discount-manager-section">
+            &lt;h3 style={{ margin: '8px 0' }}>Manager Manual Adjustments&lt;/h3>
+            &lt;div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+              &lt;label style={{ fontWeight: 700 }}>Price Off ($):&lt;/label>
+              &lt;input
+                type="number"
+                step="0.01"
+                className="modal-input"
+                value={managerPriceOff ?? ''}
+                onChange={(e) => setManagerPriceOff(e.target.value)}
+                placeholder="e.g. 1.50"
+                disabled={loading}
+              />
+              &lt;label style={{ fontWeight: 700 }}>Discount Off (%):&lt;/label>
+              &lt;input
+                type="number"
+                step="0.01"
+                className="modal-input"
+                value={managerDiscountOff ?? ''}
+                onChange={(e) => setManagerDiscountOff(e.target.value)}
+                placeholder="e.g. 10"
+                disabled={loading}
+              />
+            &lt;/div>
+          &lt;/div>
+        )}
+        &lt;div className="modal-error">{errorMessage}&lt;/div>
+        &lt;div className="modal-actions">
+          &lt;button onClick={handleSubmit} className="modal-submit" disabled={loading}>
+            {loading ? "Applying..." : "Submit"}
+          &lt;/button>
+          &lt;button onClick={() => typeof onClose === "function" &amp;&amp; onClose()} className="modal-back" disabled={loading}>
+            Back
+          &lt;/button>
+          {!userIsManager &amp;&amp; (&lt;button onClick={() => OpenLoginPage()} className="modal-back" disabled={loading}>
+            Manager Override
+          &lt;/button>)}
+        &lt;/div>
+      &lt;/div>
+    &lt;/div>
+  );
+}
+
+DiscountModal.displayName = 'DiscountModal';
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="CashierMainPage.html">CashierMainPage</a></li><li><a href="Manager.html">Manager</a></li><li><a href="Transaction.html">Transaction</a></li><li><a href="User.html">User</a></li></ul><h3>Global</h3><ul><li><a href="global.html#TranslationContext">TranslationContext</a></li><li><a href="global.html#buildTraySummaries">buildTraySummaries</a></li><li><a href="global.html#chatWithAI">chatWithAI</a></li><li><a href="global.html#clearOrder">clearOrder</a></li><li><a href="global.html#decodeHTMLEntities">decodeHTMLEntities</a></li><li><a href="global.html#loadOrder">loadOrder</a></li><li><a href="global.html#printHistory">printHistory</a></li><li><a href="global.html#saveOrder">saveOrder</a></li><li><a href="global.html#translateMultiple">translateMultiple</a></li><li><a href="global.html#translateText">translateText</a></li><li><a href="global.html#useTranslate">useTranslate</a></li><li><a href="global.html#useTranslatedArray">useTranslatedArray</a></li><li><a href="global.html#useTranslatedObject">useTranslatedObject</a></li><li><a href="global.html#useTranslatedText">useTranslatedText</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Tue Dec 09 2025 19:51:30 GMT-0600 (Central Standard Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

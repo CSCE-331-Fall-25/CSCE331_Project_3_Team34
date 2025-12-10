@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: Project3_Server/src/Kitchen.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: Project3_Server/src/Kitchen.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * @fileoverview Kitchen display API routes.
+ * Provides endpoints for retrieving order status and managing kitchen workflow.
+ * Organizes orders into waiting, in-progress, and complete statuses.
+ */
+
+import express from 'express';
+import { pool } from './db.js';
+
+const kitchenRouter = express.Router();
+
+/**
+ * Builds formatted tray summaries for a transaction.
+ * Groups menu items by tray type and size.
+ * 
+ * @async
+ * @param {number} transactionId - Transaction ID to fetch trays for
+ * @returns {Promise&lt;Array&lt;string>>} Array of formatted tray descriptions
+ */
+async function buildTraySummaries(transactionId) {
+    const trayRows = await pool.query(
+        `SELECT trays.orderid,
+                items.name AS tray_type,
+                menu.name AS menu_item,
+                trays.size AS tray_size
+         FROM orders
+         JOIN trays ON orders.orderid = trays.orderid
+         JOIN items ON orders.itemid = items.itemid
+         JOIN menu ON trays.menuid = menu.menuid
+         WHERE orders.transactionid = $1
+         ORDER BY trays.orderid, menu.name`,
+        [transactionId]
+    );
+
+    const grouped = trayRows.rows.reduce((acc, row) => {
+        const key = `${row.orderid}-${row.tray_type}-${row.tray_size ?? ''}`;
+        if (!acc[key]) {
+            acc[key] = {
+                orderId: row.orderid,
+                trayType: row.tray_type,
+                traySize: row.tray_size,
+                menuItems: [],
+            };
+        }
+        acc[key].menuItems.push(row.menu_item);
+        return acc;
+    }, {});
+
+    return Object.values(grouped).map(tray => {
+        const itemLines = tray.menuItems.map(item => `- ${item}`).join('\n');
+        const sizeLabel = tray.traySize ? ` (${tray.traySize})` : '';
+        return `${tray.trayType}${sizeLabel}:\n${itemLines}`;
+    });
+}
+
+kitchenRouter.get('/get-not-started', async (req, res) => {
+    try {
+        const limit = parseInt(req.query.limit) || 50;
+        const offset = parseInt(req.query.offset) || 0;
+        
+        // Fetch transactions with their items
+        const transactionsResult = await pool.query(
+            'SELECT transactionid, time, stage FROM transactions WHERE stage = 4 ORDER BY time ASC LIMIT $1 OFFSET $2',
+            [limit, offset]
+        );
+        
+        // Enrich each transaction with its items
+        const enrichedTransactions = await Promise.all(
+            transactionsResult.rows.map(async (transaction) => {
+                return {
+                    ...transaction,
+                    items: await buildTraySummaries(transaction.transactionid),
+                };
+            })
+        );
+        
+        res.json(enrichedTransactions);
+    } catch (err) {
+        console.error('Error fetching not started transactions:', err);
+        res.status(500).json({ error: 'Failed to fetch not started transactions' });
+    }
+});
+
+kitchenRouter.get('/get-in-progress', async (req, res) => {
+    try {
+        const limit = parseInt(req.query.limit) || 50;
+        const offset = parseInt(req.query.offset) || 0;
+        
+        // Fetch transactions with their items
+        const transactionsResult = await pool.query(
+            'SELECT transactionid, time, stage FROM transactions WHERE stage = 3 ORDER BY time ASC LIMIT $1 OFFSET $2',
+            [limit, offset]
+        );
+        
+        // Enrich each transaction with its items
+        const enrichedTransactions = await Promise.all(
+            transactionsResult.rows.map(async (transaction) => {
+                return {
+                    ...transaction,
+                    items: await buildTraySummaries(transaction.transactionid),
+                };
+            })
+        );
+        
+        res.json(enrichedTransactions);
+    } catch (err) {
+        console.error('Error fetching in-progress transactions:', err);
+        res.status(500).json({ error: 'Failed to fetch in-progress transactions' });
+    }
+});
+
+kitchenRouter.get('/get-completed', async (req, res) => {
+    try {
+        const limit = parseInt(req.query.limit) || 50;
+        const offset = parseInt(req.query.offset) || 0;
+        
+        // Fetch transactions with their items
+        const transactionsResult = await pool.query(
+            'SELECT transactionid, time, stage FROM transactions WHERE stage = 2 ORDER BY time ASC LIMIT $1 OFFSET $2',
+            [limit, offset]
+        );
+        
+        // Enrich each transaction with its items
+        const enrichedTransactions = await Promise.all(
+            transactionsResult.rows.map(async (transaction) => {
+                return {
+                    ...transaction,
+                    items: await buildTraySummaries(transaction.transactionid),
+                };
+            })
+        );
+        
+        res.json(enrichedTransactions);
+    } catch (err) {
+        console.error('Error fetching completed transactions:', err);
+        res.status(500).json({ error: 'Failed to fetch completed transactions' });
+    }
+});
+
+kitchenRouter.post('/update-stage', async (req, res) => {
+    try {
+        const { transactionID } = req.body;
+        if (!transactionID) {
+            return res.status(400).json({ error: 'Missing transaction ID' });
+        }
+        const q = 'UPDATE transactions SET stage = stage - 1 WHERE transactionid = $1';
+        await pool.query(q, [transactionID]);
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Error updating transaction stage:', err);
+        res.status(500).json({ error: 'Failed to update transaction stage' });
+    }
+});
+
+kitchenRouter.post('/revert-stage', async (req, res) => {
+    try {
+        const { transactionID } = req.body;
+        if (!transactionID) {
+            return res.status(400).json({ error: 'Missing transaction ID' });
+        }
+        const q = 'UPDATE transactions SET stage = stage + 1 WHERE transactionid = $1';
+        await pool.query(q, [transactionID]);
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Error reverting transaction stage:', err);
+        res.status(500).json({ error: 'Failed to revert transaction stage' });
+    }
+});
+
+export default kitchenRouter;</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="CashierMainPage.html">CashierMainPage</a></li><li><a href="Manager.html">Manager</a></li><li><a href="Transaction.html">Transaction</a></li><li><a href="User.html">User</a></li></ul><h3>Global</h3><ul><li><a href="global.html#TranslationContext">TranslationContext</a></li><li><a href="global.html#buildTraySummaries">buildTraySummaries</a></li><li><a href="global.html#chatWithAI">chatWithAI</a></li><li><a href="global.html#clearOrder">clearOrder</a></li><li><a href="global.html#decodeHTMLEntities">decodeHTMLEntities</a></li><li><a href="global.html#loadOrder">loadOrder</a></li><li><a href="global.html#printHistory">printHistory</a></li><li><a href="global.html#saveOrder">saveOrder</a></li><li><a href="global.html#translateMultiple">translateMultiple</a></li><li><a href="global.html#translateText">translateText</a></li><li><a href="global.html#useTranslate">useTranslate</a></li><li><a href="global.html#useTranslatedArray">useTranslatedArray</a></li><li><a href="global.html#useTranslatedObject">useTranslatedObject</a></li><li><a href="global.html#useTranslatedText">useTranslatedText</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Tue Dec 09 2025 19:51:30 GMT-0600 (Central Standard Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

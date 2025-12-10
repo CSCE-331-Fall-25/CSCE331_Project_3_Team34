@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: Project3_Client/src/hooks/useTranslatedText.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: Project3_Client/src/hooks/useTranslatedText.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>import { useContext, useEffect, useState } from 'react';
+import { TranslationContext } from '../contexts/TranslationContext';
+
+/**
+ * Custom hook for translating UI text in components
+ * Automatically re-translates when language changes
+ * 
+ * Usage:
+ * const translatedLabel = useTranslatedText("Original text");
+ * 
+ * Or with array of texts:
+ * const [texts, setTexts] = useTranslatedArray(["Text 1", "Text 2"]);
+ */
+
+export function useTranslatedText(text) {
+  const context = useContext(TranslationContext);
+  const [translatedText, setTranslatedText] = useState(text);
+
+  useEffect(() => {
+    if (!context || !text) {
+      setTranslatedText(text);
+      return;
+    }
+
+    if (context.selectedLanguage === 'en') {
+      setTranslatedText(text);
+      return;
+    }
+
+    // Trigger translation
+    context.translate(text).then(result => {
+      setTranslatedText(result);
+    });
+  }, [text, context?.selectedLanguage]);
+
+  return translatedText;
+}
+
+/**
+ * Hook for translating multiple texts at once
+ * Returns an array of translated texts that updates when language changes
+ */
+export function useTranslatedArray(texts) {
+  const context = useContext(TranslationContext);
+  const [translatedTexts, setTranslatedTexts] = useState(texts);
+
+  useEffect(() => {
+    if (!context || !texts) {
+      setTranslatedTexts(texts);
+      return;
+    }
+
+    if (context.selectedLanguage === 'en') {
+      setTranslatedTexts(texts);
+      return;
+    }
+
+    // Translate all texts
+    if (context.translateMultiple) {
+      context.translateMultiple(texts).then(results => {
+        setTranslatedTexts(results);
+      });
+    }
+  }, [texts, context?.selectedLanguage]);
+
+  return translatedTexts;
+}
+
+/**
+ * Hook for translating object property values
+ * Useful for translating button labels, headers, etc.
+ * 
+ * Usage:
+ * const translatedObj = useTranslatedObject({
+ *   title: "Menu",
+ *   description: "Choose your items"
+ * });
+ */
+export function useTranslatedObject(obj) {
+  const context = useContext(TranslationContext);
+  const [translatedObj, setTranslatedObj] = useState(obj);
+  const [isTranslating, setIsTranslating] = useState(false);
+
+  useEffect(() => {
+    if (!context || !obj || isTranslating) {
+      return;
+    }
+
+    if (context.selectedLanguage === 'en') {
+      setTranslatedObj(obj);
+      return;
+    }
+
+    // Translate all values in the object
+    const translateObject = async () => {
+      setIsTranslating(true);
+      const keys = Object.keys(obj);
+      const values = keys.map(key => obj[key]);
+      
+      try {
+        const translatedValues = await Promise.all(
+          values.map(val => context.translate(val, context.selectedLanguage))
+        );
+        
+        const result = {};
+        keys.forEach((key, index) => {
+          result[key] = translatedValues[index];
+        });
+        
+        setTranslatedObj(result);
+      } finally {
+        setIsTranslating(false);
+      }
+    };
+
+    translateObject();
+  }, [context?.selectedLanguage]);
+
+  return translatedObj;
+}
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="CashierMainPage.html">CashierMainPage</a></li><li><a href="Manager.html">Manager</a></li><li><a href="Transaction.html">Transaction</a></li><li><a href="User.html">User</a></li></ul><h3>Global</h3><ul><li><a href="global.html#TranslationContext">TranslationContext</a></li><li><a href="global.html#buildTraySummaries">buildTraySummaries</a></li><li><a href="global.html#chatWithAI">chatWithAI</a></li><li><a href="global.html#clearOrder">clearOrder</a></li><li><a href="global.html#decodeHTMLEntities">decodeHTMLEntities</a></li><li><a href="global.html#loadOrder">loadOrder</a></li><li><a href="global.html#printHistory">printHistory</a></li><li><a href="global.html#saveOrder">saveOrder</a></li><li><a href="global.html#translateMultiple">translateMultiple</a></li><li><a href="global.html#translateText">translateText</a></li><li><a href="global.html#useTranslate">useTranslate</a></li><li><a href="global.html#useTranslatedArray">useTranslatedArray</a></li><li><a href="global.html#useTranslatedObject">useTranslatedObject</a></li><li><a href="global.html#useTranslatedText">useTranslatedText</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Tue Dec 09 2025 19:51:30 GMT-0600 (Central Standard Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

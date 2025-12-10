@@ -1,0 +1,1538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: Project3_Server/src/Manager.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: Project3_Server/src/Manager.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * @fileoverview Manager class for analytics and business operations.
+ * Provides reporting, menu management, inventory management, and employee oversight.
+ */
+
+/**
+ * Manager class - Handles manager-level operations and analytics.
+ * Provides sales reports, menu management, inventory tracking, and employee management.
+ * 
+ * @class
+ * @param {Object} [db] - Database pool for queries
+ * @param {string} [user] - Manager user identifier
+ */
+class Manager {
+    constructor(db = null, user = "Name") {
+        this.db = db;
+        this.user = user;
+    }
+
+    async GetUser() {
+        return { user: this.user };
+    }
+
+    async GetSalesData() {
+        const now = new Date();
+        const q = 'SELECT time FROM transactions WHERE time BETWEEN \'2020-01-01 10:00:00\' AND \'2021-01-01 10:00:00\' ORDER BY time ASC';
+        // const q = 'SELECT time FROM transactions WHERE time BETWEEN \'' + now.getFullYear + '-00-00 00:00:00\' AND \'' + now.getFullYear + '-00-00 00:00:00\'';
+        const data = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+        try {
+            const result = await this.db.query(q);
+            if (!result.rows || result.rows.length === 0) {
+                console.log("No transactions during this time");
+                return { sales: 0 };
+            }
+            let i = 0;
+            let month = 'Jan';
+            let rows = result.rows;
+            let counter = 0;
+            while (counter &lt; rows.length - 1 &amp;&amp; i &lt; 12) {
+                while (counter &lt; rows.length - 1 &amp;&amp; month == (rows[counter].time).toString().substring(4, 7)) {
+                    data[i] = data[i] + 1;
+                    counter++;
+                }
+                if (counter != rows.length) {
+                    i++
+                    month = (rows[counter].time).toString().substring(4, 7);
+                    data[i] = data[i] + 1;
+                    counter++;
+                }
+            }
+        } catch (err) {
+            console.log("error" + err);
+            return { sales: -1 };
+        }
+        data.pop()
+        return { sales: data };
+    }
+
+    async XReportData() {
+        const now = new Date();
+        let hour = now.getHours();
+        const hours = new Array();
+        const sales = new Array();
+        if (hour &lt; 10) {
+            console.log("Invalid start time");
+            return { hour: -1, sales: -1 };
+        }
+        if (!this.db) {
+            console.log("No database connection");
+            return { hour: -1, sales: -1 };
+        }
+        if (hour == 23) {
+            hour--;
+        }
+
+        while (hour >= 10) {
+            hours.push(hour + ":00");
+            sales.push(0);
+            hour--;
+        }
+
+        const data = [];
+        try {
+            const q = 'SELECT time FROM transactions WHERE stage = 1 ORDER BY time ASC';
+            const result = await this.db.query(q);
+            if (!result.rows || result.rows.length === 0) {
+                console.log("No transactions during this time");
+                return { hour: 0, sales: 0 };
+            }
+            for (const row of result.rows) {
+                // The time is ahead by 7 hours and I have no idea why. This weird indexing is becauce 10 is always the first hour of operation
+                if (parseInt(JSON.stringify(row.time).substring(12, 14), 10) > 8) {
+                    sales[parseInt(JSON.stringify(row.time).substring(12, 14), 10) - 17] = sales[parseInt(JSON.stringify(row.time).substring(12, 14), 10) - 17] + 1;
+                }
+                else {
+                    sales[parseInt(JSON.stringify(row.time).substring(12, 14), 10) + 7] = sales[parseInt(JSON.stringify(row.time).substring(12, 14), 10) + 7] + 1;
+                }
+            }
+
+            for (let i = 0; i &lt; hours.length; i++) {
+                data.push({ sales: sales[hours.length - i - 1], hour: hours[i] });
+            }
+        } catch (err) {
+            console.log("error");
+            return { hour: -1, sales: -1 };
+        }
+        return data;
+    }
+
+    async ZReportData() {
+        const data = await this.XReportData();
+        const q = 'UPDATE transactions SET stage = 0';
+        try {
+            await this.db.query(q);
+        }
+        catch (err) {
+            console.log("Error clearing recent flags");
+            return { hour: -1, sales: -1 };
+        }
+        return data;
+    }
+
+    async RestockReportData() {
+        const data = [];
+        try {
+            const q = 'SELECT inventoryid, items, quantity from inventory WHERE quantity &lt; minstock ORDER BY quantity ASC';
+            const result = await this.db.query(q);
+            if (!result.rows || result.rows.length === 0) {
+                console.log("No items need restocking");
+                return { itemid: 0, name: 0, quantity: 0 };
+            }
+            for (const row of result.rows) {
+                data.push({ itemid: row.inventoryid, name: row.items, quantity: row.quantity });
+            }
+        } catch (err) {
+            console.log("Error getting data");
+            return { itemid: -1, name: -1, quantity: -1 };
+        }
+        return data;
+    }
+
+    async ProductUsageReportData(startTime, endTime) {
+        const data = [];
+        const now = new Date();
+        let realStartTime = this.parseTime(startTime, true);
+        let realEndTime = this.parseTime(endTime, false);
+        let code = 0;
+        try {
+            if (!isNaN(realStartTime)) {
+                if (realStartTime == 0) {
+                    startTime = `${startTime}${now.getFullYear()}`;
+                    realStartTime = this.parseTime(startTime, true);
+                    code += 512;
+                }
+                if (realStartTime == 1) {
+                    startTime = `${startTime}-${now.getMonth() + 1}`;
+                    realStartTime = this.parseTime(startTime, true);
+                    code += 256;
+                }
+                if (realStartTime == 3) {
+                    startTime = `${startTime}-${now.getDate()}`;
+                    realStartTime = this.parseTime(startTime, true);
+                    code += 128;
+                }
+                if (realStartTime == 7) {
+                    startTime = `${startTime} 00`;
+                    realStartTime = this.parseTime(startTime, true);
+                    code += 64;
+                }
+                if (realStartTime == 15) {
+                    startTime = `${startTime}:00`;
+                    realStartTime = this.parseTime(startTime, true);
+                    code += 32;
+                }
+            }
+            if (!isNaN(realEndTime)) {
+                if (realEndTime == 0) {
+                    endTime = `${endTime}${now.getFullYear()}`;
+                    realEndTime = this.parseTime(endTime, false);
+                    code += 16;
+                }
+                if (realEndTime == 1) {
+                    endTime = `${endTime}-${now.getMonth() + 1}`;
+                    realEndTime = this.parseTime(endTime, false);
+                    code += 8;
+                }
+                if (realEndTime == 3) {
+                    endTime = `${endTime}-${now.getDate()}`;
+                    realEndTime = this.parseTime(endTime, false);
+                    code += 4;
+                }
+                if (realEndTime == 7) {
+                    endTime = `${endTime} 23`;
+                    realEndTime = this.parseTime(endTime, false);
+                    code += 2;
+                }
+                if (realEndTime == 15) {
+                    endTime = `${endTime}:59`;
+                    realEndTime = this.parseTime(endTime, false);
+                    code++;
+                }
+            }
+
+            const q = 'SELECT i.inventoryid, i.items, COUNT(inventoryitem) AS occurrence_count FROM transactions AS t INNER JOIN orders AS o ON t.transactionid = o.transactionid INNER JOIN trays AS tr ON o.orderid = tr.orderid INNER JOIN menu AS m ON tr.menuid = m.menuid, UNNEST(inventoryids) AS inventoryitem INNER JOIN inventory AS i ON i.inventoryid = inventoryitem WHERE t.time BETWEEN \'' + realStartTime + '\' AND \'' + realEndTime + '\' GROUP BY i.inventoryid, i.items ORDER BY COUNT(inventoryitem) DESC';
+            const result = await this.db.query(q);
+            if (!result.rows || result.rows.length === 0) {
+                console.log("Empty query");
+                code += 1024;
+                return { inventoryid: 0, name: 0, sales: 0, code: code };
+            }
+            for (const row of result.rows) {
+                data.push({ inventoryid: row.inventoryid, name: row.items, sales: row.occurrence_count, code: code });
+            }
+        } catch (err) {
+            console.log("Invalid input data" + err);
+            code += 2048;
+            return { inventoryid: -1, name: -1, sales: -1, code: code };
+        }
+        return data;
+    }
+
+    async SalesReportData(startTime, endTime) {
+        const data = [];
+        const now = new Date();
+        let realStartTime = this.parseTime(startTime, true);
+        let realEndTime = this.parseTime(endTime, false);
+        let code = 0;
+        try {
+            if (!isNaN(realStartTime)) {
+                if (realStartTime == 0) {
+                    startTime = `${startTime}${now.getFullYear()}`;
+                    realStartTime = this.parseTime(startTime, true);
+                    code += 512;
+                }
+                if (realStartTime == 1) {
+                    startTime = `${startTime}-${now.getMonth() + 1}`;
+                    realStartTime = this.parseTime(startTime, true);
+                    code += 256;
+                }
+                if (realStartTime == 3) {
+                    startTime = `${startTime}-${now.getDate()}`;
+                    realStartTime = this.parseTime(startTime, true);
+                    code += 128;
+                }
+                if (realStartTime == 7) {
+                    startTime = `${startTime} 00`;
+                    realStartTime = this.parseTime(startTime, true);
+                    code += 64;
+                }
+                if (realStartTime == 15) {
+                    startTime = `${startTime}:00`;
+                    realStartTime = this.parseTime(startTime, true);
+                    code += 32;
+                }
+            }
+            if (!isNaN(realEndTime)) {
+                if (realEndTime == 0) {
+                    endTime = `${endTime}${now.getFullYear()}`;
+                    realEndTime = this.parseTime(endTime, false);
+                    code += 16;
+                }
+                if (realEndTime == 1) {
+                    endTime = `${endTime}-${now.getMonth() + 1}`;
+                    realEndTime = this.parseTime(endTime, false);
+                    code += 8;
+                }
+                if (realEndTime == 3) {
+                    endTime = `${endTime}-${now.getDate()}`;
+                    realEndTime = this.parseTime(endTime, false);
+                    code += 4;
+                }
+                if (realEndTime == 7) {
+                    endTime = `${endTime} 23`;
+                    realEndTime = this.parseTime(endTime, false);
+                    code += 2;
+                }
+                if (realEndTime == 15) {
+                    endTime = `${endTime}:59`;
+                    realEndTime = this.parseTime(endTime, false);
+                    code++;
+                }
+            }
+
+            const q = 'SELECT m.menuid, m.name, COUNT(tr.menuid) AS occurrence_count FROM transactions AS t INNER JOIN orders AS o ON t.transactionid = o.transactionid INNER JOIN trays AS tr ON o.orderid = tr.orderid INNER JOIN menu AS m ON tr.menuid = m.menuid WHERE t.time BETWEEN \'' + realStartTime + '\' AND \'' + realEndTime + '\' GROUP BY m.menuid, m.name ORDER BY COUNT(tr.menuid) DESC';
+            // const q = 'SELECT m.menuid, m.name, COUNT(tr.menuid) AS occurrence_count FROM transactions AS t INNER JOIN orders AS o ON t.transactionid = o.transactionid INNER JOIN trays AS tr ON o.trayid = tr.trayid INNER JOIN menu AS m ON tr.menuid = m.menuid WHERE t.time BETWEEN \'2025-01-01 10:00:00\' AND \'2025-12-01 20:00:00\' GROUP BY m.menuid, m.name ORDER BY COUNT(tr.menuid) DESC';
+            console.log(q);
+            const result = await this.db.query(q);
+            if (!result.rows || result.rows.length === 0) {
+                console.log("Empty query");
+                code += 1024;
+                return { menuid: 0, name: 0, sales: 0, code: code };
+            }
+            for (const row of result.rows) {
+                data.push({ menuid: row.menuid, name: row.name, sales: row.occurrence_count, code: code });
+            }
+        } catch (err) {
+            console.log("Invalid input data" + err);
+            code += 2048;
+            return { menuid: -1, name: -1, sales: -1, code: code };
+        }
+        return data;
+    }
+
+    HourToSQLTime(hour) {
+        const now = new Date();
+        return `${now.getFullYear()}-${now.getMonth()}-${now.getDate()} ${hour}:00:00`;
+    }
+
+    CurrentDaySQLTime() {
+        const now = new Date();
+        return `${now.getFullYear()}-${now.getMonth()}-${now.getDate()} 00:00:00`;
+    }
+
+    parseTime(time, start) {
+        let stage = 0;
+        let year = '';
+        let month = '';
+        let day = '';
+        let hour = '';
+        let minute = '';
+        for (let i = 0; i &lt; time.length; i++) {
+            if (stage == 0) {
+                if (!isNaN(time.substring(i, i + 4), 10) &amp;&amp; parseInt(time.substring(i, i + 4), 10) > 0) {
+                    if (time.substring(i, i + 1) != " ") {
+                        year += time.substring(i, i + 1);
+                    }
+                    if (time.substring(i + 1, i + 2) != " ") {
+                        year += time.substring(i + 1, i + 2);
+                    }
+                    if (time.substring(i + 2, i + + 3) != " ") {
+                        year += time.substring(i + 2, i + 3);
+                    }
+                    if (time.substring(i + 3, i + 4) != " ") {
+                        year += time.substring(i + 3, i + 4);
+                    }
+                    while (year.length &lt; 4) {
+                        year = '0' + year;
+                    }
+                    stage++;
+                    i += 3;
+                }
+                else if (!isNaN(time.substring(i, i + 3), 10) &amp;&amp; parseInt(time.substring(i, i + 4), 10) > 0) {
+                    if (time.substring(i, i + 1) != " ") {
+                        year += time.substring(i, i + 1);
+                    }
+                    if (time.substring(i + 1, i + 2) != " ") {
+                        year += time.substring(i + 1, i + 2);
+                    }
+                    if (time.substring(i + 2, i + + 3) != " ") {
+                        year += time.substring(i + 2, i + 3);
+                    }
+                    while (year.length &lt; 4) {
+                        year = '0' + year;
+                    }
+                    stage++;
+                    i += 2;
+                }
+                else if (!isNaN(time.substring(i, i + 2), 10) &amp;&amp; parseInt(time.substring(i, i + 4), 10) > 0) {
+                    if (time.substring(i, i + 1) != " ") {
+                        year += time.substring(i, i + 1);
+                    }
+                    if (time.substring(i + 1, i + 2) != " ") {
+                        year += time.substring(i + 1, i + 2);
+                    }
+                    while (year.length &lt; 4) {
+                        year = '0' + year;
+                    }
+                    stage++;
+                    i += 1;
+                }
+                else if (!isNaN(time.substring(i, i + 1), 10) &amp;&amp; parseInt(time.substring(i, i + 4), 10) > 0) {
+                    if (time.substring(i, i + 1) != " ") {
+                        year += time.substring(i, i + 1);
+                    }
+                    while (year.length &lt; 4) {
+                        year = '0' + year;
+                    }
+                    stage++;
+                }
+            }
+            else if (stage == 1) {
+                if (!isNaN(time.substring(i, i + 2), 10) &amp;&amp; parseInt(time.substring(i, i + 2), 10) > 0 &amp;&amp; parseInt(time.substring(i, i + 2), 10) &lt;= 12) {
+                    if (time.substring(i, i + 1) != " ") {
+                        month += time.substring(i, i + 1);
+                    }
+                    if (time.substring(i + 1, i + 2) != " ") {
+                        month += time.substring(i + 1, i + 2);
+                    }
+                    while (month.length &lt; 2) {
+                        month = '0' + month;
+                    }
+                    stage += 2;
+                    i += 1;
+                }
+                else if (!isNaN(time.substring(i, i + 1), 10) &amp;&amp; parseInt(time.substring(i, i + 1), 10) > 0) {
+                    month = '0' + time.substring(i, i + 1);
+                    stage += 2;
+                }
+            }
+            else if (stage == 3) {
+                if (!isNaN(time.substring(i, i + 2), 10) &amp;&amp; parseInt(time.substring(i, i + 2), 10) > 0 &amp;&amp; parseInt(time.substring(i, i + 2), 10) &lt;= 31) {
+                    if (time.substring(i, i + 1) != " ") {
+                        day += time.substring(i, i + 1);
+                    }
+                    if (time.substring(i + 1, i + 2) != " ") {
+                        day += time.substring(i + 1, i + 2);
+                    }
+                    while (day.length &lt; 2) {
+                        day = '0' + day;
+                    }
+                    stage += 4;
+                    i += 1;
+                }
+                else if (!isNaN(time.substring(i, i + 1), 10) &amp;&amp; parseInt(time.substring(i, i + 1), 10) > 0) {
+                    day = '0' + time.substring(i, i + 1);
+                    stage += 4;
+                }
+            }
+            else if (stage == 7) {
+                if (!isNaN(time.substring(i, i + 2), 10) &amp;&amp; parseInt(time.substring(i, i + 2), 10) >= 0 &amp;&amp; parseInt(time.substring(i, i + 2), 10) &lt;= 23) {
+                    if (time.substring(i, i + 1) != " ") {
+                        hour += time.substring(i, i + 1);
+                    }
+                    if (time.substring(i + 1, i + 2) != " ") {
+                        hour += time.substring(i + 1, i + 2);
+                    }
+                    while (hour.length &lt; 2) {
+                        hour = '0' + hour;
+                    }
+                    stage += 8;
+                    i += 2;
+                }
+                else if (!isNaN(time.substring(i, i + 1), 10) &amp;&amp; parseInt(time.substring(i, i + 1), 10) >= 0) {
+                    hour = '0' + time.substring(i, i + 1);
+                    stage += 8;
+                }
+            }
+            else if (stage == 15) {
+                if (!isNaN(time.substring(i, i + 2), 10) &amp;&amp; parseInt(time.substring(i, i + 2), 10) >= 0 &amp;&amp; parseInt(time.substring(i, i + 2), 10) &lt;= 59) {
+                    if (time.substring(i, i + 1) != " ") {
+                        minute += time.substring(i, i + 1);
+                    }
+                    if (time.substring(i + 1, i + 2) != " ") {
+                        minute += time.substring(i + 1, i + 2);
+                    }
+                    while (minute.length &lt; 2) {
+                        minute = '0' + minute;
+                    }
+                    stage += 16;
+                    break;
+                }
+                else if (!isNaN(time.substring(i, i + 1), 10) &amp;&amp; parseInt(time.substring(i, i + 1), 10) >= 0) {
+                    minute = '0' + time.substring(i, i + 1);
+                    stage += 16;
+                    break;
+                }
+            }
+        }
+        if (stage != 31) {
+            return stage;
+        }
+        if (start) {
+            hour = "00";
+            minute = "00";
+        }
+        else {
+            hour = "23";
+            minute = "59";
+        }
+        return `${year}-${month}-${day} ${hour}:${minute}:00`;
+    }
+
+
+
+
+    async EmployeeData() {
+        const data = [];
+        try {
+            const q = 'SELECT * FROM employees ORDER BY employeeid ASC';
+            const result = await this.db.query(q);
+            if (!result.rows || result.rows.length === 0) {
+                console.log("Empty query");
+                return { error: 0 };
+            }
+            for (const row of result.rows) {
+                let ismanager = "no";
+                if (row.ismanager) {
+                    ismanager = "yes";
+                }
+                data.push({ employeeid: row.employeeid, name: row.name, role: row.role, wage: row.wage, ismanager: ismanager, username: row.username, email: row.email, password: row.password });
+            }
+            return data;
+        }
+        catch (err) {
+            console.log("Error getting data");
+            return { error: -1 };
+        }
+    }
+
+    async AddEmployee(employeeid, name, role, wage, isManager, username, email, password) {
+        try {
+            if (employeeid.length == 0 || employeeid == '') {
+                return { error: 1 };
+            }
+            for (let i = 0; i &lt; employeeid.length; i++) {
+                if (isNaN(employeeid.substring(i, i + 1))) {
+                    return { error: 2 };
+                }
+            }
+            let q = "SELECT * FROM employees WHERE employeeid = " + employeeid + ";";
+            let result = await this.db.query(q);
+            if (result.rows.length > 0) {
+                console.log("Employee id already exists");
+                return { error: 0 };
+            }
+            console.log( employeeid + "    " + name + "    " + role + "    " + wage + "    " + isManager + "    " + username + "    " + email + "    " + password);
+            
+            if (name.length == 0 || name == '') {
+                return { error: 3 };
+            }
+            if (role.length == 0 || role == '') {
+                return { error: 4 };
+            }
+
+            if (wage.length == 0 || wage == '') {
+                return { error: 5 };
+            }
+            let hasDecimal = false;
+            for (let i = 0; i &lt; wage.length; i++) {
+                if (isNaN(wage.substring(i, i + 1))) {
+                    if (!hasDecimal &amp;&amp; wage.substring(i, i + 1) == '.') {
+                        hasDecimal = true;
+                    }
+                    else if (hasDecimal &amp;&amp; wage.substring(i, i + 1) == '.') {
+                        return { error: 6 };
+                    }
+                    else if (!((i == 0 || i == wage.length - 1) &amp;&amp; wage.substring(i, i + 1) == '$')) {
+                        return { error: 7 };
+                    }
+                }
+            }
+
+            if (isManager.length == 0 || isManager == '') {
+                return { error: 8 };
+            }
+            if (isManager.toLowerCase() != "yes" &amp;&amp; isManager.toLowerCase() != "no" &amp;&amp; isManager.toLowerCase() != "true" &amp;&amp; isManager.toLowerCase() != "false" &amp;&amp; isManager != 1 &amp;&amp; isManager != 2) {
+                return { error: 9 };
+            }
+            if (isManager != 1 &amp;&amp; isManager != 0) {
+                isManager = isManager.toLowerCase();
+            }
+
+            if (email.length == 0 || email == '') {
+                return { error: 11 };
+            }
+            let hasAm = false;
+            hasDecimal = false;
+            for (let i = 0; i &lt; email.length; i++) {
+                if (hasAm &amp;&amp; email.substring(i, i + 1) == '@') {
+                    return { error: 12 };
+                }
+                else if (email.substring(i, i + 1) == '@') {
+                    hasAm = true;
+                }
+                else if (!hasDecimal &amp;&amp; hasAm &amp;&amp; email.substring(i, i + 1) == '.' &amp;&amp; i != email.length - 1 &amp;&amp; email.substring(i - 1, i) != '@') {
+                    hasDecimal = true;
+                }
+            }
+            if (!hasAm) {
+                return { error: 19 };
+            }
+            if (!hasDecimal) {
+                return { error: 20 };
+            }
+
+            if (username.length == 0 || username == '') {
+                return { error: 10 };
+            }
+            if (!hasDecimal) {
+                return { error: 14 };
+            }
+
+            // checking password length
+            if (password.length &lt; 16) {
+                return { error: 15 };
+            }
+
+            // checking for upper case
+            let check = false;
+            for (let i = 0; i &lt; password.length; i++) {
+                if (password.substring(i, i + 1).toUpperCase() === password.substring(i, i + 1) &amp;&amp; password.substring(i, i + 1).toUpperCase() !== password.substring(i, i + 1).toLowerCase()) {
+                    check = true;
+                }
+            }
+            if (!check) {
+                return { error: 16 }
+            }
+            
+            // checking for number
+            check = false;
+            for (let i = 0; i &lt; password.length; i++) {
+                if (!isNaN(password.substring(i, i + 1))) {
+                    check = true;
+                }
+            }
+            if (!check) {
+                return { error: 17 }
+            }
+            
+            // checking for special character
+            check = false;
+            let temp = /[!@#$%^&amp;*()_+|:"&lt;>?\-=\;',.\/"]/;
+            for (let i = 0; i &lt; password.length; i++) {
+                if (temp.test(password.substring(i, i + 1))) {
+                    check = true;
+                }
+            }
+            if (!check) {
+                return { error: 18 }
+            }
+            
+            // adding to database
+            q = "INSERT INTO employees (employeeid, name, role, wage, ismanager, username, email, password) VALUES (\'" + employeeid + "\', \'" + name + "\', \'" + role + "\', \'" + wage + "\', \'" + isManager + "\', \'" + username + "\', \'" + email + "\', \'" + password + "\')";
+            result = await this.db.query(q);
+            return { error: 55 };
+        }
+        catch (err) {
+            console.log("Error adding employee: " + err);
+            return { error: -1 };
+        }
+    }
+
+    async RemoveEmployee(employeeid, rowSelection) {
+        try {
+            if (!employeeid &amp;&amp; Object.keys(rowSelection).length === 0) {
+                return { error: 1 };
+            }
+            for (let i = 0; i &lt; employeeid.length; i++) {
+                if (isNaN(employeeid.substring(i, i + 1))) {
+                    return { error: 2 };
+                }
+            }
+            let q = "SELECT * FROM employees ORDER BY employeeid ASC";
+            let result = await this.db.query(q);
+
+            if (!result.rows || result.rows.length === 0) {
+                console.log("No employees");
+                return { error: 0 };
+            }
+
+            let numEmployees = Object.keys(rowSelection).length;
+            let idList = [];
+            if (employeeid) {
+                numEmployees = numEmployees + 1;
+            }
+            for (let j = 0; j &lt; numEmployees; j++) {
+                let updatedEmployeeid = employeeid;
+                console.log(Object.keys(rowSelection));
+                let i = Object.keys(rowSelection)[j];
+                console.log(i);
+                if (j + 1 == numEmployees &amp;&amp; employeeid != '') {
+                    q = "SELECT * FROM employees WHERE employeeid = " + employeeid;
+                    result = await this.db.query(q);
+                    if (!result.rows || result.rows.length === 0) {
+                        console.log("No employees");
+                        return { error: 1 };
+                    }
+                    updatedEmployeeid = result.rows[0].employeeid;
+                    i = 0;
+                }
+                else {
+                    console.log(result.rows[i].employeeid);
+                    updatedEmployeeid = result.rows[i].employeeid;
+                }
+                idList.push(updatedEmployeeid);
+                console.log(idList);
+            }
+            console.log(idList);
+            for (let i = 0; i &lt; idList.length; i++) {
+                console.log(idList[i]);
+                q = "DELETE FROM employees WHERE employeeid = " + idList[i];
+                result = await this.db.query(q);
+            }
+            return { error: 55 };
+        }
+        catch (err) {
+            console.log("Error removing employee: " + err);
+            return { error: -1 };
+        }
+    }
+
+    async UpdateEmployee(employeeid, name, role, wage, isManager, username, email, password, rowSelection) {
+        try {
+            if (!employeeid &amp;&amp; Object.keys(rowSelection).length === 0) {
+                return { error: 13 };
+            }
+            for (let i = 0; i &lt; employeeid.length; i++) {
+                if (isNaN(employeeid.substring(i, i + 1))) {
+                    return { error: 14 };
+                }
+            }
+            let q = "SELECT * FROM employees ORDER BY employeeid ASC";
+            let result = await this.db.query(q);
+
+            if (!result.rows || result.rows.length === 0) {
+                console.log("No employees");
+                return { error: 0 };
+            }
+
+            let numEmployees = Object.keys(rowSelection).length;
+            console.log(Object.keys(rowSelection));
+            if (employeeid) {
+                numEmployees = numEmployees + 1;
+            }
+            for (let j = 0; j &lt; numEmployees; j++) {
+                let updatedEmployeeid = employeeid;
+                let updatedName = name;
+                let updatedRole = role;
+                let updatedWage = wage;
+                let updatedIsManager = isManager;
+                let updatedUsername = username;
+                let updatedEmail = email;
+                let updatedPassword = password;
+
+                let i = 0;
+                if (j + 1 == numEmployees &amp;&amp; employeeid) {
+                    q = "SELECT * FROM employees WHERE employeeid = " + employeeid;
+                    result = await this.db.query(q);
+                    if (!result.rows || result.rows.length === 0) {
+                        console.log("No employees");
+                        return { error: 15 };
+                    }
+                    updatedEmployeeid = result.rows[0].employeeid;
+                    i = 0;
+                }
+                else {
+                    i = Object.keys(rowSelection)[j];
+                    updatedEmployeeid = result.rows[i].employeeid;
+                }
+
+                if (!name) {
+                    updatedName = result.rows[i].name;
+                }
+                if (!role) {
+                    updatedRole = result.rows[i].role;
+                }
+
+                if (!wage) {
+                    updatedWage = result.rows[i].wage;
+                }
+                else {
+                    let hasDecimal = false;
+                    for (let i = 0; i &lt; updatedWage.length; i++) {
+                        if (isNaN(updatedWage.substring(i, i + 1))) {
+                            if (!hasDecimal &amp;&amp; updatedWage.substring(i, i + 1) == '.') {
+                                hasDecimal = true;
+                            }
+                            else if (hasDecimal &amp;&amp; updatedWage.substring(i, i + 1) == '.') {
+                                return { error: 1 };
+                            }
+                            else if (!((i == 0 || i == updatedWage.length - 1) &amp;&amp; updatedWage.substring(i, i + 1) == '$')) {
+                                return { error: 2 };
+                            }
+                        }
+                    }
+                }
+
+                if (!isManager) {
+                    updatedIsManager = result.rows[i].ismanager;
+                }
+                else if (isManager.toLowerCase() != "yes" &amp;&amp; isManager.toLowerCase() != "no" &amp;&amp; isManager.toLowerCase() != "true" &amp;&amp; isManager.toLowerCase() != "false" &amp;&amp; isManager != 1 &amp;&amp; isManager != 2) {
+                    return { error: 3 };
+                }
+
+                if (!username) {
+                    updatedUsername = result.rows[i].username;
+                }
+
+                if (!email) {
+                    updatedEmail = result.rows[i].email;
+                }
+                console.log(updatedEmployeeid + "   " + updatedName + "   " + updatedRole + "   " + updatedWage + "   " + updatedIsManager + "   " + updatedUsername + "   " + updatedEmail + "    " + updatedPassword);
+                let hasAm = false;
+                let hasDecimal = false;
+                for (let i = 0; i &lt; updatedEmail.length; i++) {
+                    if (hasAm &amp;&amp; updatedEmail.substring(i, i + 1) == '@') {
+                        return { error: 5 };
+                    }
+                    else if (updatedEmail.substring(i, i + 1) == '@') {
+                        hasAm = true;
+                    }
+                    else if (!hasDecimal &amp;&amp; updatedEmail.substring(i, i + 1) == '.' &amp;&amp; i != updatedEmail.length - 1 &amp;&amp; updatedEmail.substring(i - 1, i) != '@') {
+                        hasDecimal = true;
+                    }
+                }
+                if (!hasAm) {
+                    return { error: 11 };
+                }
+                if (!hasDecimal) {
+                    return { error: 12 };
+                }
+                if (!password) {
+                    updatedPassword = result.rows[i].password;
+                }
+                else {
+                    // checking password length
+                    if (password.length &lt; 16) {
+                        return { error: 7 };
+                    }
+
+                    // checking for upper case
+                    let check = false;
+                    for (let i = 0; i &lt; password.length; i++) {
+                        if (password.substring(i, i + 1).toUpperCase() === password.substring(i, i + 1) &amp;&amp; password.substring(i, i + 1).toUpperCase() !== password.substring(i, i + 1).toLowerCase()) {
+                            check = true;
+                        }
+                    }
+                    if (!check) {
+                        return { error: 8 }
+                    }
+                    // checking for number
+                    check = false;
+                    for (let i = 0; i &lt; password.length; i++) {
+                        if (!isNaN(password.substring(i, i + 1))) {
+                            check = true;
+                        }
+                    }
+                    if (!check) {
+                        return { error: 9 }
+                    }
+                    // checking for special character
+                    check = false;
+                    let temp = /[!@#$%^&amp;*()_+|:"&lt;>?\-=\;',.\/"]/
+                    for (let i = 0; i &lt; password.length; i++) {
+                        if (temp.test(password.substring(i, i + 1))) {
+                            check = true;
+                        }
+                    }
+                    if (!check) {
+                        return { error: 10 }
+                    }
+                }
+                // adding to database
+                // console.log(updatedEmployeeid + "   " + updatedName + "   " + updatedRole + "   " + updatedWage + "   " + updatedIsManager + "   " + updatedUsername + "   " + updatedEmail + "    " + updatedPassword);
+                q = "UPDATE employees SET employeeid = \'" + updatedEmployeeid + "\', name = \'" + updatedName + "\', role = \'" + updatedRole + "\',  wage = \'" + updatedWage + "\', ismanager = \'" + updatedIsManager + "\',  username = \'" + updatedUsername + "\', email = \'" + updatedEmail + "\', password = \'" + updatedPassword + "\' WHERE employeeid = \'" + updatedEmployeeid + "\'";
+                let unUsed = await this.db.query(q);
+            }
+            return { error: 55 };
+        }
+        catch (err) {
+            console.log("Error adding employee: " + err);
+            return { error: -1 };
+        }
+    }
+
+
+    async MenuData() {
+        const data = [];
+        try {
+            const q = 'SELECT * FROM menu ORDER BY menuid ASC';
+            const result = await this.db.query(q);
+            if (!result.rows || result.rows.length === 0) {
+                console.log("Empty query");
+                return { error: 0 };
+            }
+            for (const row of result.rows) {
+                let ids = "";
+                for (const id of row.inventoryids) {
+                    ids = ids + id + ", ";
+                }
+                ids = ids.substring(0, ids.length - 2);
+                data.push({ menuid: row.menuid, name: row.name, type: row.type, calories: row.calories, allergies: row.allergies, pricemod: row.pricemod, inventoryids: ids });
+            }
+            return data;
+        }
+        catch (err) {
+            console.log("Error getting data");
+            return { error: -1 };
+        }
+    }
+
+    async AddMenu(menuid, name, type, calories, allergies, pricemod, inventoryids) {
+        try {
+            if (menuid.length == 0 || menuid == '') {
+                console.log(menuid);
+                return { error: 1 };
+            }
+            for (let i = 0; i &lt; menuid.length; i++) {
+                if (isNaN(menuid.substring(i, i + 1))) {
+                    return { error: 2 };
+                }
+            }
+            let q = "SELECT * FROM menu WHERE menuid = " + menuid + ";";
+            let result = await this.db.query(q);
+            if (result.rows.length > 0) {
+                console.log("Menu id already exists");
+                return { error: 0 };
+            }
+            console.log( menuid + "    " + name + "    " + type + "    " + pricemod + "    " + inventoryids);
+            
+            if (name.length == 0 || name == '') {
+                return { error: 3 };
+            }
+            if (type.length == 0 || type == '') {
+                return { error: 4 };
+            }
+
+            if (calories.length == 0 || calories == '') {
+                return { error: 10 };
+            }
+            for (let i = 0; i &lt; calories.length; i++) {
+                if (isNaN(calories.substring(i, i + 1))) {
+                    return { error: 11 };
+                }
+            }
+
+            if (allergies.length == 0 || allergies == '') {
+                return { error: 12 };
+            }
+            if (allergies.toLowerCase() == "none" || allergies == 0 || allergies.toLowerCase() == "n/a") {
+                allergies = "NA";
+            }
+
+            if (pricemod.length == 0 || pricemod == '') {
+                return { error: 5 };
+            }
+            let hasDecimal = false;
+            for (let i = 0; i &lt; pricemod.length; i++) {
+                if (isNaN(pricemod.substring(i, i + 1))) {
+                    if (!hasDecimal &amp;&amp; pricemod.substring(i, i + 1) == '.') {
+                        hasDecimal = true;
+                    }
+                    else if (hasDecimal &amp;&amp; pricemod.substring(i, i + 1) == '.') {
+                        return { error: 6 };
+                    }
+                    else if (!((i == 0 || i == pricemod.length - 1) &amp;&amp; pricemod.substring(i, i + 1) == '$')) {
+                        return { error: 7 };
+                    }
+                }
+            }
+
+            if (inventoryids.length == 0 || inventoryids == '') {
+                return { error: 8 };
+            }
+            if (inventoryids.substring(0, 1) == "(") {
+                inventoryids = inventoryids.substring(1, inventoryids.length);
+            }
+            if (inventoryids.substring(inventoryids.length - 1, inventoryids.length) == ")") {
+                inventoryids = inventoryids.substring(0, inventoryids.length - 1);
+            }
+            const inventoryarray = String(inventoryids).split(", ");
+            for (const inventory of inventoryarray) {
+                console.log(inventory);
+                for (let i = 0; i &lt; inventory.length; i++) {
+                    if (isNaN(inventory.substring(i, i + 1))) {
+                        return { error: 9 };
+                    }
+                }
+            }
+            inventoryids = "ARRAY[" + inventoryids + "]";
+
+            
+            // adding to database
+            q = "INSERT INTO menu (menuid, name, type, pricemod, inventoryids, calories, allergies) VALUES (\'" + menuid + "\', \'" + name + "\', \'" + type + "\', \'" + pricemod + "\', " + inventoryids + ", " + calories + ", \'" + allergies + "\')";
+            result = await this.db.query(q);
+            return { error: 55 };
+        }
+        catch (err) {
+            console.log("Error adding menu: " + err);
+            return { error: -1 };
+        }
+    }
+
+    async RemoveMenu(menuid, rowSelection) {
+        try {
+            if (!menuid &amp;&amp; Object.keys(rowSelection).length === 0) {
+                return { error: 1 };
+            }
+            for (let i = 0; i &lt; menuid.length; i++) {
+                if (isNaN(menuid.substring(i, i + 1))) {
+                    return { error: 2 };
+                }
+            }
+            let q = "SELECT * FROM menu ORDER BY menuid ASC";
+            let result = await this.db.query(q);
+
+            if (!result.rows || result.rows.length === 0) {
+                console.log("No menu items");
+                return { error: 0 };
+            }
+
+            let numMenu = Object.keys(rowSelection).length;
+            let idList = [];
+            if (menuid) {
+                numMenu = numMenu + 1;
+            }
+            for (let j = 0; j &lt; numMenu; j++) {
+                let updatedMenuid = menuid;
+                console.log(Object.keys(rowSelection));
+                let i = Object.keys(rowSelection)[j];
+                console.log(i);
+                if (j + 1 == numMenu &amp;&amp; menuid != '') {
+                    q = "SELECT * FROM menu WHERE menuid = " + menuid;
+                    result = await this.db.query(q);
+                    if (!result.rows || result.rows.length === 0) {
+                        console.log("No menu");
+                        return { error: 1 };
+                    }
+                    updatedMenuid = result.rows[0].menuid;
+                    i = 0;
+                }
+                else {
+                    console.log(result.rows[i].menuid);
+                    updatedMenuid = result.rows[i].menuid;
+                }
+                idList.push(updatedMenuid);
+                console.log(idList);
+            }
+            console.log(idList);
+            for (let i = 0; i &lt; idList.length; i++) {
+                console.log(idList[i]);
+                q = "DELETE FROM menu WHERE menuid = " + idList[i];
+                result = await this.db.query(q);
+            }
+            return { error: 55 };
+        }
+        catch (err) {
+            console.log("Error removing menu: " + err);
+            return { error: -1 };
+        }
+    }
+
+    async UpdateMenu(menuid, name, type, calories, allergies, pricemod, inventoryids, rowSelection) {
+        try {
+            if (!menuid &amp;&amp; Object.keys(rowSelection).length === 0) {
+                return { error: 1 };
+            }
+            for (let i = 0; i &lt; menuid.length; i++) {
+                if (isNaN(menuid.substring(i, i + 1))) {
+                    return { error: 2 };
+                }
+            }
+            let q = "SELECT * FROM menu ORDER BY menuid ASC";
+            let result = await this.db.query(q);
+
+            if (!result.rows || result.rows.length === 0) {
+                console.log("No menu");
+                return { error: 0 };
+            }
+
+            let numMenu = Object.keys(rowSelection).length;
+            console.log(Object.keys(rowSelection));
+            if (menuid) {
+                numMenu = numMenu + 1;
+            }
+            for (let j = 0; j &lt; numMenu; j++) {
+                let updatedMenuid = menuid;
+                let updatedName = name;
+                let updatedType = type;
+                let updatedCalories = calories;
+                let updatedAllergies = allergies;
+                let updatedPricemod = pricemod;
+                let updatedInventoryids= inventoryids;
+
+                let i = 0;
+                if (j + 1 == numMenu &amp;&amp; menuid) {
+                    q = "SELECT * FROM menu WHERE menuid = " + menuid;
+                    result = await this.db.query(q);
+                    if (!result.rows || result.rows.length === 0) {
+                        console.log("No menu");
+                        return { error: 15 };
+                    }
+                    updatedMenuid = result.rows[0].menuid;
+                    i = 0;
+                }
+                else {
+                    i = Object.keys(rowSelection)[j];
+                    updatedMenuid = result.rows[i].menuid;
+                }
+                console.log( menuid + "    " + name + "    " + type + "    " + pricemod + "    " + inventoryids);
+                
+                if (name.length == 0 || name == '') {
+                    updatedName = result.rows[i].name;
+                }
+                if (type.length == 0 || type == '') {
+                    updatedType = result.rows[i].type;
+                }
+
+                if (calories.length == 0 || calories == '') {
+                    updatedCalories = result.rows[i].calories;
+                }
+                for (let i = 0; i &lt; updatedCalories.length; i++) {
+                    if (isNaN(updatedCalories.substring(i, i + 1))) {
+                        return { error: 6 };
+                    }
+                }
+
+                if (allergies.length == 0 || allergies == '') {
+                    updatedAllergies = result.rows[i].allergies;
+                }
+                if (updatedAllergies.toLowerCase() == "none" || updatedAllergies == 0 || updatedAllergies.toLowerCase() == "n/a") {
+                    updatedAllergies = "NA";
+                }
+
+                if (pricemod.length == 0 || pricemod == '') {
+                    updatedPricemod = result.rows[i].pricemod;
+                }
+                let hasDecimal = false;
+                for (let i = 0; i &lt; pricemod.length; i++) {
+                    if (isNaN(pricemod.substring(i, i + 1))) {
+                        if (!hasDecimal &amp;&amp; pricemod.substring(i, i + 1) == '.') {
+                            hasDecimal = true;
+                        }
+                        else if (hasDecimal &amp;&amp; pricemod.substring(i, i + 1) == '.') {
+                            return { error: 3 };
+                        }
+                        else if (!((i == 0 || i == pricemod.length - 1) == '$' &amp;&amp; pricemod.substring(i, i + 1) == '$')) {
+                            return { error: 4 };
+                        }
+                    }
+                }
+
+                if (inventoryids.length == 0 || inventoryids == '') {
+                    updatedInventoryids = String(result.rows[i].inventoryids);
+                }
+                if (updatedInventoryids.substring(0, 1) == "(" || updatedInventoryids.substring(0, 1) == "[" ) {
+                    updatedInventoryids = updatedInventoryids.substring(1, updatedInventoryids.length);
+                }
+                if (updatedInventoryids.substring(updatedInventoryids.length - 1, updatedInventoryids.length) == ")" || updatedInventoryids.substring(updatedInventoryids.length - 1, updatedInventoryids.length) == "]") {
+                    updatedInventoryids = updatedInventoryids.substring(0, updatedInventoryids.length - 1);
+                }
+                let inventoryarray = updatedInventoryids.split(", ");
+                for (const inventory in inventoryarray) {
+                    for (let i = 0; i &lt; inventory.length; i++) {
+                        if (isNaN(inventory.substring(i, i + 1))) {
+                            return { error: 5 };
+                        }
+                    }
+                }
+                updatedInventoryids = "ARRAY[" + updatedInventoryids + "]";
+
+                
+                // adding to database
+                console.log(inventoryids);
+                q = "UPDATE menu SET name = \'" + updatedName + "\', type = \'" + updatedType + "\', calories = \'" + updatedCalories + "\', allergies = \'" + updatedAllergies + "\', pricemod = \'" + updatedPricemod + "\', inventoryids = " + updatedInventoryids + "WHERE menuid = " + updatedMenuid;
+                let unUsed = await this.db.query(q);
+            }
+            return { error: 55 };
+        }
+        catch (err) {
+            console.log("Error updating menu: " + err);
+            return { error: -1 };
+        }
+    }
+
+    async InventoryData() {
+        const data = [];
+        try {
+            const q = 'SELECT * FROM inventory ORDER BY inventoryid ASC';
+            const result = await this.db.query(q);
+            if (!result.rows || result.rows.length === 0) {
+                console.log("Empty query");
+                return { error: 0 };
+            }
+            for (const row of result.rows) {
+                data.push({ inventoryid: row.inventoryid, name: row.items, quantity: row.quantity, maxstock: row.maxstock, minstock: row.minstock });
+            }
+            return data;
+        }
+        catch (err) {
+            console.log("Error getting data" + err);
+            return { error: -1 };
+        }
+    }
+
+    async AddInventory(inventoryid, items, quantity, maxstock, minstock) {
+        try {
+            if (inventoryid.length == 0 || inventoryid == '') {
+                return { error: 1 };
+            }
+            for (let i = 0; i &lt; inventoryid.length; i++) {
+                if (isNaN(inventoryid.substring(i, i + 1))) {
+                    return { error: 2 };
+                }
+            }
+            let q = "SELECT * FROM inventory WHERE inventoryid = " + inventoryid + ";";
+            let result = await this.db.query(q);
+            if (result.rows.length > 0) {
+                console.log("Inventory id already exists");
+                return { error: 0 };
+            }
+            console.log(inventoryid + "    " + items + "    " + quantity + "    " + maxstock + "    " + minstock);
+            
+            if (items.length == 0 || items == '') {
+                return { error: 3 };
+            }
+
+            if (quantity.length == 0 || quantity == '') {
+                quantity = 0;
+            }
+            let hasDecimal = false;
+            for (let i = 0; i &lt; quantity.length; i++) {
+                if (isNaN(quantity.substring(i, i + 1))) {
+                    if (!hasDecimal &amp;&amp; quantity.substring(i, i + 1) == '.') {
+                        hasDecimal = true;
+                    }
+                    else if (hasDecimal &amp;&amp; quantity.substring(i, i + 1) == '.') {
+                        return { error: 6 };
+                    }
+                    else {
+                        return { error: 7 };
+                    }
+                }
+            }
+
+            if (maxstock.length == 0 || maxstock == '') {
+                maxstock = 2000;
+            }
+            hasDecimal = false;
+            for (let i = 0; i &lt; maxstock.length; i++) {
+                if (isNaN(maxstock.substring(i, i + 1))) {
+                    if (!hasDecimal &amp;&amp; maxstock.substring(i, i + 1) == '.') {
+                        hasDecimal = true;
+                    }
+                    else if (hasDecimal &amp;&amp; maxstock.substring(i, i + 1) == '.') {
+                        return { error: 8 };
+                    }
+                    else {
+                        return { error: 9 };
+                    }
+                }
+            }
+
+            if (minstock.length == 0 || minstock == '') {
+                minstock = 200;
+            }
+            hasDecimal = false;
+            for (let i = 0; i &lt; minstock.length; i++) {
+                if (isNaN(minstock.substring(i, i + 1))) {
+                    if (!hasDecimal &amp;&amp; minstock.substring(i, i + 1) == '.') {
+                        hasDecimal = true;
+                    }
+                    else if (hasDecimal &amp;&amp; minstock.substring(i, i + 1) == '.') {
+                        return { error: 10 };
+                    }
+                    else {
+                        return { error: 11 };
+                    }
+                }
+            }
+            
+            // adding to database
+            q = "INSERT INTO inventory (inventoryid, items, quantity, maxstock, minstock) VALUES (\'" + inventoryid + "\', \'" + items + "\', \'" + quantity + "\', \'" + maxstock + "\', " + minstock + ")";
+            result = await this.db.query(q);
+            return { error: 55 };
+        }
+        catch (err) {
+            console.log("Error adding inventory: " + err);
+            return { error: -1 };
+        }
+    }
+
+    async RemoveInventory(inventoryid, rowSelection) {
+        try {
+            if (!inventoryid &amp;&amp; Object.keys(rowSelection).length === 0) {
+                return { error: 1 };
+            }
+            for (let i = 0; i &lt; inventoryid.length; i++) {
+                if (isNaN(inventoryid.substring(i, i + 1))) {
+                    return { error: 2 };
+                }
+            }
+            let q = "SELECT * FROM inventory ORDER BY inventoryid ASC";
+            let result = await this.db.query(q);
+
+            if (!result.rows || result.rows.length === 0) {
+                console.log("No menu items");
+                return { error: 0 };
+            }
+
+            let numInventory = Object.keys(rowSelection).length;
+            let idList = [];
+            if (inventoryid) {
+                numInventory = numInventory + 1;
+            }
+            for (let j = 0; j &lt; numInventory; j++) {
+                let updatedInventoryid = inventoryid;
+                console.log(Object.keys(rowSelection));
+                let i = Object.keys(rowSelection)[j];
+                console.log(i);
+                if (j + 1 == numInventory &amp;&amp; inventoryid != '') {
+                    q = "SELECT * FROM inventory WHERE inventoryid = " + inventoryid;
+                    result = await this.db.query(q);
+                    if (!result.rows || result.rows.length === 0) {
+                        console.log("No inventory");
+                        return { error: 1 };
+                    }
+                    updatedInventoryid = result.rows[0].inventoryid;
+                    i = 0;
+                }
+                else {
+                    console.log(result.rows[i].inventoryid);
+                    updatedInventoryid = result.rows[i].inventoryid;
+                }
+                idList.push(updatedInventoryid);
+                console.log(idList);
+            }
+            console.log(idList);
+            for (let i = 0; i &lt; idList.length; i++) {
+                console.log(idList[i]);
+                q = "DELETE FROM inventory WHERE inventoryid = " + idList[i];
+                result = await this.db.query(q);
+            }
+            return { error: 55 };
+        }
+        catch (err) {
+            console.log("Error removing inventory: " + err);
+            return { error: -1 };
+        }
+    }
+
+    async UpdateInventory(inventoryid, items, quantity, maxstock, minstock, rowSelection) {
+        try {
+            if (!inventoryid &amp;&amp; Object.keys(rowSelection).length === 0) {
+                return { error: 1 };
+            }
+            for (let i = 0; i &lt; inventoryid.length; i++) {
+                if (isNaN(inventoryid.substring(i, i + 1))) {
+                    return { error: 2 };
+                }
+            }
+            let q = "SELECT * FROM inventory ORDER BY inventoryid ASC";
+            let result = await this.db.query(q);
+
+            if (!result.rows || result.rows.length === 0) {
+                console.log("No inventory");
+                return { error: 0 };
+            }
+
+            let numInventory = Object.keys(rowSelection).length;
+            console.log(Object.keys(rowSelection));
+            if (inventoryid) {
+                numInventory = numInventory + 1;
+            }
+            for (let j = 0; j &lt; numInventory; j++) {
+                let updatedInventoryid = inventoryid;
+                let updatedItems = items;
+                let updatedQuantity = quantity;
+                let updatedMaxstock = maxstock;
+                let updatedMinstock = minstock;
+
+                let i = 0;
+                if (j + 1 == numInventory &amp;&amp; inventoryid) {
+                    q = "SELECT * FROM inventory WHERE inventoryid = " + inventoryid;
+                    result = await this.db.query(q);
+                    if (!result.rows || result.rows.length === 0) {
+                        console.log("No inventory");
+                        return { error: 15 };
+                    }
+                    updatedInventoryid = result.rows[0].inventoryid;
+                    i = 0;
+                }
+                else {
+                    i = Object.keys(rowSelection)[j];
+                    updatedInventoryid = result.rows[i].inventoryid;
+                }
+                console.log(inventoryid + "    " + items + "    " + quantity + "    " + maxstock + "    " + minstock);
+                
+                if (items.length == 0 || items == '') {
+                    updatedItems = result.rows[i].items;
+                }
+
+                if (quantity.length == 0 || quantity == '') {
+                    updatedQuantity = result.rows[i].quantity;
+                }
+                else {
+                    let hasDecimal = false;
+                    for (let i = 0; i &lt; quantity.length; i++) {
+                        if (isNaN(quantity.substring(i, i + 1))) {
+                            if (!hasDecimal &amp;&amp; quantity.substring(i, i + 1) == '.') {
+                                hasDecimal = true;
+                            }
+                            else if (hasDecimal &amp;&amp; quantity.substring(i, i + 1) == '.') {
+                                return { error: 3 };
+                            }
+                            else {
+                                return { error: 4 };
+                            }
+                        }
+                    }
+                }
+
+                if (maxstock.length == 0 || maxstock == '') {
+                    updatedMaxstock = result.rows[i].maxstock;
+                }
+                else {
+                    let hasDecimal = false;
+                    for (let i = 0; i &lt; maxstock.length; i++) {
+                        if (isNaN(maxstock.substring(i, i + 1))) {
+                            if (!hasDecimal &amp;&amp; maxstock.substring(i, i + 1) == '.') {
+                                hasDecimal = true;
+                            }
+                            else if (hasDecimal &amp;&amp; maxstock.substring(i, i + 1) == '.') {
+                                return { error: 5 };
+                            }
+                            else {
+                                return { error: 6 };
+                            }
+                        }
+                    }
+                }
+
+                if (Number(updatedQuantity) > Number(updatedMaxstock)) {
+                    updatedQuantity = updatedMaxstock;
+                }
+
+                if (minstock.length == 0 || minstock == '') {
+                    updatedMinstock = result.rows[i].minstock;
+                }
+                else {
+                    let hasDecimal = false;
+                    for (let i = 0; i &lt; minstock.length; i++) {
+                        if (isNaN(minstock.substring(i, i + 1))) {
+                            if (!hasDecimal &amp;&amp; minstock.substring(i, i + 1) == '.') {
+                                hasDecimal = true;
+                            }
+                            else if (hasDecimal &amp;&amp; minstock.substring(i, i + 1) == '.') {
+                                return { error: 7 };
+                            }
+                            else {
+                                return { error: 8 };
+                            }
+                        }
+                    }
+                }
+                q = "UPDATE inventory SET items = \'" + updatedItems + "\', quantity = \'" + updatedQuantity + "\', maxstock = \'" + updatedMaxstock + "\', minstock = " + updatedMinstock + "WHERE inventoryid = " + updatedInventoryid;
+                let unUsed = await this.db.query(q);
+            }
+            return { error: 55 };
+        }
+        catch (err) {
+            console.log("Error adding inventory: " + err);
+            return { error: -1 };
+        }
+    }
+
+    async getMenuIds(menuId, rowSelection) {
+        let data = [];
+        let q = "SELECT menuid, name FROM menu ORDER BY menuid ASC;";
+        let result = await this.db.query(q);
+        let isThere = false;
+        if (menuId) {
+            for (const row of result.rows) {
+                if (row.menuid == menuId) {
+                    isThere = true;
+                    data.push(row.name);
+                }
+            }
+            if (!isThere) {
+                return { error: 2 };
+            }
+        }
+        let i = 0;
+        let index = 0;
+        console.log(Object.keys(rowSelection));
+        for (const row of result.rows) {
+            console.log(row);
+            if (Object.keys(rowSelection).length == index) {
+                break;
+            }
+            console.log(Object.keys(rowSelection)[index] + "   " +  i);
+            if (Object.keys(rowSelection)[index] == i) {
+                data.push(row.name);
+                index++;
+            }
+            i++;
+        }
+        console.log(data);
+        console.log(data.length);
+        if (data.length == 0) {
+            return { error: 3 };
+        }
+        return { ids: data, error: 55 };
+    }
+}
+
+export { Manager };
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="CashierMainPage.html">CashierMainPage</a></li><li><a href="Manager.html">Manager</a></li><li><a href="Transaction.html">Transaction</a></li><li><a href="User.html">User</a></li></ul><h3>Global</h3><ul><li><a href="global.html#TranslationContext">TranslationContext</a></li><li><a href="global.html#buildTraySummaries">buildTraySummaries</a></li><li><a href="global.html#chatWithAI">chatWithAI</a></li><li><a href="global.html#clearOrder">clearOrder</a></li><li><a href="global.html#decodeHTMLEntities">decodeHTMLEntities</a></li><li><a href="global.html#loadOrder">loadOrder</a></li><li><a href="global.html#printHistory">printHistory</a></li><li><a href="global.html#saveOrder">saveOrder</a></li><li><a href="global.html#translateMultiple">translateMultiple</a></li><li><a href="global.html#translateText">translateText</a></li><li><a href="global.html#useTranslate">useTranslate</a></li><li><a href="global.html#useTranslatedArray">useTranslatedArray</a></li><li><a href="global.html#useTranslatedObject">useTranslatedObject</a></li><li><a href="global.html#useTranslatedText">useTranslatedText</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Tue Dec 09 2025 19:51:30 GMT-0600 (Central Standard Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

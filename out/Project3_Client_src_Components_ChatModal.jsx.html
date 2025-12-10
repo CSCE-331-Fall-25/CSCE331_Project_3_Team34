@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: Project3_Client/src/Components/ChatModal.jsx</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: Project3_Client/src/Components/ChatModal.jsx</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * @fileoverview ChatModal component for AI chatbot interaction.
+ * Provides a conversational interface with Bob Ross Panda AI assistant.
+ * Allows customers to get menu recommendations and order assistance.
+ */
+
+import { useState, useEffect, useRef } from "react";
+import pandaLogo from "../assets/PandaLogo.svg"; // translucent logo
+
+/**
+ * ChatModal component - AI chatbot interface.
+ * 
+ * @param {Object} props - Component props
+ * @param {Function} props.onClose - Callback when modal closes
+ * @param {Function} props.onAddOrder - Callback when user adds items from chat
+ * @returns {JSX.Element} Chat modal with AI conversation interface
+ */
+export default function ChatModal({ onClose, onAddOrder }) {
+  
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState("");
+
+  const messagesEndRef = useRef(null);
+
+  useEffect(() => {
+    setMessages([
+      {
+        role: "ai",
+        text:  &lt;span>Welcome to Panda Express, I am Bob Ross Panda! Please let me know how can I assist you today!&lt;/span>
+      }
+    ]);
+  }, []);
+
+  
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  /**
+   * Fetches AI response from backend for user prompt.
+   * 
+   * @async
+   * @param {string} prompt_text - User's message to AI
+   * @returns {Promise&lt;string>} AI response text
+   */
+  async function fetchAIResponse(prompt_text) {
+    try {
+      const response = await fetch('/api/ask-gen-ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt_text })
+      });
+      const data = await response.json();
+      if (data.success) {
+        return data.response_text;
+      } else {
+        return "I apologize, but I am unable to process your request at the moment. " + (data.error || "Please try again later.");
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      return "Error fetching AI response.";
+    }
+  }
+
+
+  /**
+   * Sends user message to AI and processes response.
+   * Parses JSON commands from AI for order addition.
+   * 
+   * @async
+   * @returns {Promise&lt;void>}
+   */
+  const sendMessage = async () => {
+    if (!input.trim()) return;
+
+    // Add user message
+    setMessages(prev => [
+      ...prev,
+      { role: "user", text: input }
+    ]);
+
+    // Show thinking message
+    setMessages(prev => [
+      ...prev,
+      { role: "ai", text: "Panda AI is thinking..." }
+    ]);
+
+    setInput("");
+
+    // Fetch AI response
+    let aiReply = await fetchAIResponse(input);
+
+    // Check for JSON block (Markdown format)
+    let jsonMatch = aiReply.match(/```json\n([\s\S]*?)\n```/);
+    let jsonString = jsonMatch ? jsonMatch[1] : null;
+    let matchSource = jsonMatch ? jsonMatch[0] : null;
+
+    // Fallback: Check for raw JSON if Markdown is missing
+    if (!jsonString) {
+        // Match either "add_order" or "add_orders"
+        const rawMatch = aiReply.match(/(\{[\s\S]*"action":\s*"add_orders?"[\s\S]*\})/);
+        if (rawMatch) {
+            jsonString = rawMatch[1];
+            matchSource = rawMatch[0];
+        }
+    }
+
+    if (jsonString) {
+        try {
+            const command = JSON.parse(jsonString);
+            if (command.action === "add_order" &amp;&amp; onAddOrder) {
+                // Legacy support or single item
+                onAddOrder([command.order]);
+                aiReply = aiReply.replace(matchSource, "").trim();
+                aiReply += "\n\n(Order added to cart)";
+            } else if (command.action === "add_orders" &amp;&amp; onAddOrder) {
+                // New support for multiple items
+                onAddOrder(command.orders);
+                aiReply = aiReply.replace(matchSource, "").trim();
+                aiReply += "\n\n(Orders added to cart)";
+            }
+        } catch (e) {
+            console.error("Failed to parse AI command", e);
+        }
+    }
+
+    // Remove thinking message and add AI reply
+    setMessages(prev => [
+      ...prev.filter(msg => msg.text !== "Panda AI is thinking..."),
+      { role: "ai", text: aiReply }
+    ]);
+  };
+
+  return (
+    &lt;div className="modal-overlay" onClick={onClose}>
+      {/* Stop clicks inside modal from closing */}
+      &lt;div className="chat-modal" onClick={(e) => e.stopPropagation()}>
+
+        {/* HEADER */}
+        &lt;div className="chat-header">
+          &lt;span>Panda AI Assistant&lt;/span>
+          &lt;button className="close-btn" onClick={onClose}>×&lt;/button>
+        &lt;/div>
+
+        {/* MESSAGES */}
+        &lt;div className={`chat-messages ${messages.length === 0 ? "empty" : ""}`}>
+          
+          {/* Empty State Text */}
+          {messages.length === 0 &amp;&amp; (
+            &lt;div className="chat-watermark">
+              &lt;p>Ask Panda AI anything&lt;/p>
+            &lt;/div>
+          )}
+
+          {messages.map((msg, index) => (
+            &lt;div key={index} className={`chat-message ${msg.role}`}>
+              {msg.text}
+            &lt;/div>
+          ))}
+
+          &lt;div ref={messagesEndRef} />
+        &lt;/div>
+
+        {/* INPUT */}
+        &lt;div className="chat-input-area">
+          &lt;input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Type your question…"
+            onKeyDown={(e) => e.key === "Enter" &amp;&amp; sendMessage()}
+          />
+          &lt;button onClick={sendMessage}>Send&lt;/button>
+        &lt;/div>
+
+      &lt;/div>
+    &lt;/div>
+  );
+}
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="CashierMainPage.html">CashierMainPage</a></li><li><a href="Manager.html">Manager</a></li><li><a href="Transaction.html">Transaction</a></li><li><a href="User.html">User</a></li></ul><h3>Global</h3><ul><li><a href="global.html#TranslationContext">TranslationContext</a></li><li><a href="global.html#buildTraySummaries">buildTraySummaries</a></li><li><a href="global.html#chatWithAI">chatWithAI</a></li><li><a href="global.html#clearOrder">clearOrder</a></li><li><a href="global.html#decodeHTMLEntities">decodeHTMLEntities</a></li><li><a href="global.html#loadOrder">loadOrder</a></li><li><a href="global.html#printHistory">printHistory</a></li><li><a href="global.html#saveOrder">saveOrder</a></li><li><a href="global.html#translateMultiple">translateMultiple</a></li><li><a href="global.html#translateText">translateText</a></li><li><a href="global.html#useTranslate">useTranslate</a></li><li><a href="global.html#useTranslatedArray">useTranslatedArray</a></li><li><a href="global.html#useTranslatedObject">useTranslatedObject</a></li><li><a href="global.html#useTranslatedText">useTranslatedText</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Tue Dec 09 2025 19:51:30 GMT-0600 (Central Standard Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

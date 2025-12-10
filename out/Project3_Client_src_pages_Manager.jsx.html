@@ -1,0 +1,1798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: Project3_Client/src/pages/Manager.jsx</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: Project3_Client/src/pages/Manager.jsx</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * @fileoverview Manager dashboard for business analytics and operations.
+ * Provides reports, revenue charts, menu management, inventory management, and employee management.
+ * Includes transaction history and filtering capabilities.
+ */
+
+import React from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import "../styles/Manager/Manager.css";
+import { flexRender, getCoreRowModel, getPaginationRowModel, useReactTable } from '@tanstack/react-table'
+import { Line } from "react-chartjs-2";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+} from "chart.js";
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend
+);
+
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import SignOutButton from "../Components/SignOut.jsx";
+
+/**
+ * Manager component - Dashboard for manager operations.
+ * Provides analytics, reports, menu/inventory management, and employee oversight.
+ * 
+ * @returns {JSX.Element} Manager dashboard interface
+ */
+export default function Manager() {
+
+  //Reports
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [employeeName, setEmployeeName] = useState("Missing");
+  
+  // Managment modals
+  const [showEmployeeModal, setShowEmployeeModal] = useState(false);
+  const [showInventoryModal, setShowInventoryModal] = useState(false);
+  const [showMenuModal, setShowMenuModal] = useState(false);
+
+  // Router navigation
+  const navigate = useNavigate();
+
+  /**
+   * Navigates user back to login page by going to root path.
+   */
+  const handleSignOut = () => navigate('/');
+
+  //modal to confirm sign out
+  const [showSignOutModal, setShowSignOutModal] = useState(false);
+
+  const [salesData, setSalesData] = useState({
+    labels: [
+      "January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December",
+    ],
+    datasets: [
+      {
+        data: Array(12).fill(0),
+        borderColor: "red",
+        backgroundColor: "red",
+      },
+    ],
+  });
+
+  const options = {
+    responsive: true,
+    plugins: {
+      legend: {
+        display: false,
+      },
+      title: {
+        display: true,
+        text: 'This Years Sales',
+      },
+    },
+  };
+
+  /**
+   * Fetches current authenticated user information from the backend.
+   * Retrieves username and employee status using session credentials.
+   * @async
+   */
+  const getUser = async () => {
+    console.log("Getting user");
+    // include credentials so session cookie is sent with the request
+    const response = await fetch("/api/get-user", { credentials: 'include' });
+    if (!response.ok) {
+      console.log("Error in function call");
+      setErrorLabel("Failed to connect to backend");
+      setEmployeeName("Missing, Error" );
+    }
+    else if (response == null) {
+      console.log("Error getting data");
+      setErrorLabel("Failed to connect to backend");
+      setEmployeeName("Missing, Error response null");
+    }
+    else {
+      const newData = await response.json();
+      console.log(newData);
+      // `newData.user` is an object { username, isEmployee } — store the username string
+      const username = newData &amp;&amp; newData.user &amp;&amp; newData.user.username ? newData.user.username : null;
+      setEmployeeName(username);
+    }
+  }
+
+  /**
+   * Fetches monthly sales data from the backend.
+   * Updates the sales chart with data for all 12 months.
+   * @async
+   */
+  const getSalesData = async () => {
+    console.log("Getting Sales Data");
+    const response = await fetch("/api/get-sales-data");
+    if (!response.ok) {
+      console.log("Error in function call");
+      setErrorLabel("Failed to connect to backend");
+    }
+    else if (response == null) {
+      console.log("Error getting data");
+      setErrorLabel("Failed to connect to backend");
+    }
+    else {
+      const newData = await response.json();
+      console.log(newData);
+      const newSalesData = newData.sales;
+      console.log(newSalesData);
+      setSalesData((prev) => ({
+      ...prev,
+      datasets: [
+        {
+          ...prev.datasets[0],
+          data: newSalesData, // array from backend
+        },
+      ],
+    }));
+    }
+  }
+
+  useEffect(() => {
+    getUser();
+    getSalesData();
+  }, []);
+
+  /* ---------------------- Reports Variables and Funtions Start --------------------- */
+  const date = new Date();
+  const [tableData, setTableData] = useState([]);
+  const [tableColumns, setTableColumns] = useState([]);
+  const data = useMemo(() => tableData, [tableData]);
+  const columns = useMemo(() => tableColumns, [tableColumns]);
+  const coreRowModel = useMemo(() => getCoreRowModel(), []);
+  const [rowSelection, setRowSelection] = useState({});
+  const [labelValue, setLabel] = useState('');
+
+// const table = useReactTable({
+//     data,
+//     columns,
+//     state: {
+//       rowSelection,
+//     },
+//     onRowSelectionChange: setRowSelection,
+//     enableRowSelection: true,           // 🔥 REQUIRED
+//     getCoreRowModel: getCoreRowModel(),
+//     getPaginationRowModel: getPaginationRowModel(),
+//   });
+
+  const table = useReactTable({ data, columns, state: {rowSelection}, getCoreRowModel: coreRowModel, onRowSelectionChange: setRowSelection, enableRowSelection: true});
+  const [startTime, setStartTime] = useState(new Date());
+  const [endTime, setEndTime] = useState(new Date());
+
+  /**
+   * Generates X Report showing hourly sales data for the current day.
+   * X Reports do not clear transaction data. Displays results in table format.
+   * @async
+   */
+  const generateXReport = async () => {
+    console.log("X");
+    const response = await fetch("/api/x-report-data");
+    if (!response.ok) {
+      console.log("Error in function call");
+      setErrorLabel("Failed to connect to backend");
+    }
+    else if (response == null) {
+      console.log("Error getting data");
+      setErrorLabel("Failed to connect to backend");
+    }
+    else {
+      const newData = await response.json();
+      setTableColumns([{ accessorKey: "hour", header: "Hour", cell: info => info.getValue() },
+      { accessorKey: "sales", header: "Sales", cell: info => info.getValue() }]);
+      console.log(JSON.stringify(newData));
+      if (newData.length == null &amp;&amp; newData.sales == 0) {
+        setLabel('No transactions today or Z-Report cleared data');
+      }
+      else {
+        setLabel('');
+      }
+      setTableData(Array.isArray(newData) ? newData.slice() : [newData]);
+    }
+  }
+
+  /**
+   * Generates Z Report showing hourly sales data and clears accumulated transaction data.
+   * Z Reports permanently clear daily transaction records after reporting. Displays results in table format.
+   * @async
+   */
+  const generateZReport = async () => {
+    console.log("Z");
+    const response = await fetch("/api/z-report-data");
+    if (!response.ok) {
+      console.log("Error in function call");
+      setErrorLabel("Failed to connect to backend");
+    }
+    else if (response == null) {
+      console.log("Error getting data");
+      setErrorLabel("Failed to connect to backend");
+    }
+    else {
+      const newData = await response.json();
+      setTableColumns([{ accessorKey: "hour", header: "Hour", cell: info => info.getValue() },
+      { accessorKey: "sales", header: "Sales", cell: info => info.getValue() }]);
+      console.log(JSON.stringify(newData));
+      if (newData.length == null &amp;&amp; newData.sales == 0) {
+        setLabel('No transactions today');
+      }
+      else {
+        setLabel('');
+      }
+      setTableData(Array.isArray(newData) ? newData.slice() : [newData]);
+    }
+  }
+
+  /**
+   * Generates Restock Report showing inventory items below minimum stock levels.
+   * Displays item ID, name, and current quantity in table format.
+   * @async
+   */
+  const generateRestockReport = async () => {
+    console.log("restock")
+    const response = await fetch("/api/restock-report-data");
+    if (!response.ok) {
+      console.log("Error in function call");
+      setLabel('Error getting data');
+    }
+    else if (response == null) {
+      console.log("Error getting data");
+      setLabel('Error getting data');
+    }
+    else {
+      const newData = await response.json();
+      setTableColumns([{ accessorKey: "itemid", header: "ID", cell: info => info.getValue() },
+      { accessorKey: "name", header: "Name", cell: info => info.getValue() },
+      { accessorKey: "quantity", header: "Quantity", cell: info => info.getValue() }]);
+      console.log(JSON.stringify(newData));
+      if (newData.length == null &amp;&amp; newData.itemid == 0) {
+        setLabel('All items above minimum stock');
+      }
+      else {
+        setLabel('');
+      }
+      setTableData(Array.isArray(newData) ? newData.slice() : [newData]);
+    }
+  }
+
+  /**
+   * Generates Sales Report for menu items within a specified date/time range.
+   * Displays item ID, name, and quantity sold. Includes error status codes in label.
+   * @async
+   */
+  const generateSalesReport = async () => {
+    console.log("sales")
+    const response = await fetch("/api/sales-report-data", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ startTime, endTime }),
+    });
+    if (!response.ok) {
+      console.log("Error in function call");
+      setErrorLabel("Failed to connect to backend");
+    }
+    else if (response == null) {
+      console.log("Error getting data");
+      setErrorLabel("Failed to connect to backend");
+    }
+    else {
+      const newData = await response.json();
+      setTableColumns([{ accessorKey: "menuid", header: "ID", cell: info => info.getValue() },
+      { accessorKey: "name", header: "Name", cell: info => info.getValue() },
+      { accessorKey: "sales", header: "Sales", cell: info => info.getValue() }]);
+      let code = 0;
+      if (newData.length == null) {
+        code = newData.code;
+      }
+      else {
+        code = newData[0].code;
+      }
+      console.log(JSON.stringify(newData));
+      let label = '';
+      if ((code >> 12) &amp; 1 == 1) {
+        label = 'Error connecting to backend';
+      }
+      else if ((code >> 11) &amp; 1 == 1) {
+        label = 'Error completing query';
+      }
+      else {
+        if ((code >> 10) &amp; 1 == 1) {
+          label = 'No data found for given time range';
+        }
+        if ((code >> 9) &amp; 1 == 1) {
+          if (label == '') {
+            label += 'cannot find start year, using current year';
+          }
+          else {
+            label += ', cannot find start year, using current year';
+          }
+        }
+        else if ((code >> 8) &amp; 1 == 1) {
+          if (label == '') {
+            label += 'cannot find start month, using current month';
+          }
+          else {
+            label += ', cannot find start month, using current month';
+          }
+        }
+        else if ((code >> 7) &amp; 1 == 1) {
+          if (label == '') {
+            label += 'cannot find start day, using current day';
+          }
+          else {
+            label += ', cannot find start day, using current day';
+          }
+        }
+        if ((code >> 4) &amp; 1 == 1) {
+          if (label == '') {
+            label += 'cannot find end year, using current year';
+          }
+          else {
+            label += ', cannot find end year, using current year';
+          }
+        }
+        else if ((code >> 3) &amp; 1 == 1) {
+          if (label == '') {
+            label += 'cannot find end month, using current month';
+          }
+          else {
+            label += ', cannot find end month, using current month';
+          }
+        }
+        else if ((code >> 2) &amp; 1 == 1) {
+          if (label == '') {
+            label += 'cannot find end day, using current day';
+          }
+          else {
+            label += ', cannot find end day, using current day';
+          }
+        }
+      }
+      setLabel(label);
+      setTableData(Array.isArray(newData) ? newData.slice() : [newData]);
+    }
+  }
+
+  /**
+   * Generates Product Usage Report for inventory items within a specified date/time range.
+   * Displays item ID, name, and quantity used. Includes error status codes in label.
+   * @async
+   */
+  const generateProductUsageReport = async () => {
+    console.log("product usage")
+    const response = await fetch("/api/product-usage-report-data", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ startTime, endTime }),
+    });
+    if (!response.ok) {
+      console.log("Error in function call");
+      setErrorLabel("Failed to connect to backend");
+    }
+    else if (response == null) {
+      console.log("Error getting data");
+      setErrorLabel("Failed to connect to backend");
+    }
+    else {
+      const newData = await response.json();
+      setTableColumns([{ accessorKey: "inventoryid", header: "ID", cell: info => info.getValue() },
+      { accessorKey: "name", header: "Name", cell: info => info.getValue() },
+      { accessorKey: "sales", header: "Sales", cell: info => info.getValue() }]);
+      let code = 0;
+      if (newData.length == null) {
+        code = newData.code;
+      }
+      else {
+        code = newData[0].code;
+      }
+      console.log(JSON.stringify(newData));
+      let label = '';
+      if ((code >> 12) &amp; 1 == 1) {
+        label = 'Error connecting to backend';
+      }
+      else if ((code >> 11) &amp; 1 == 1) {
+        label = 'Error completing query';
+      }
+      else {
+        if ((code >> 10) &amp; 1 == 1) {
+          label = 'No data found for given time range';
+        }
+        if ((code >> 9) &amp; 1 == 1) {
+          if (label == '') {
+            label += 'cannot find start year, using current year';
+          }
+          else {
+            label += ', cannot find start year, using current year';
+          }
+        }
+        else if ((code >> 8) &amp; 1 == 1) {
+          if (label == '') {
+            label += 'cannot find start month, using current month';
+          }
+          else {
+            label += ', cannot find start month, using current month';
+          }
+        }
+        else if ((code >> 7) &amp; 1 == 1) {
+          if (label == '') {
+            label += 'cannot find start day, using current day';
+          }
+          else {
+            label += ', cannot find start day, using current day';
+          }
+        }
+        if ((code >> 4) &amp; 1 == 1) {
+          if (label == '') {
+            label += 'cannot find end year, using current year';
+          }
+          else {
+            label += ', cannot find end year, using current year';
+          }
+        }
+        else if ((code >> 3) &amp; 1 == 1) {
+          if (label == '') {
+            label += 'cannot find end month, using current month';
+          }
+          else {
+            label += ', cannot find end month, using current month';
+          }
+        }
+        else if ((code >> 2) &amp; 1 == 1) {
+          if (label == '') {
+            label += 'cannot find end day, using current day';
+          }
+          else {
+            label += ', cannot find end day, using current day';
+          }
+        }
+      }
+      setLabel(label);
+      setTableData(Array.isArray(newData) ? newData.slice() : [newData]);
+    }
+  }
+
+  /**
+   * Closes the report modal by setting show state to false.
+   * @async
+   */
+  const handleShowReportModal = async () => {
+    setShowReportModal(false);
+  }
+  /* ---------------------- Reports Variables and Funtions End ------------------------ */
+
+
+
+  /* ---------------------- Employee Variables and Funtions Start --------------------- */
+  const [employeeId, setEmployeeId] = useState('');
+  const [employeeNewName, setEmployeeNewName] = useState('');
+  const [employeeRole, setEmployeeRole] = useState('');
+  const [employeeWage, setEmployeeWage] = useState('');
+  const [employeeIsManager, setEmployeeIsManager] = useState('');
+  const [employeeUsername, setEmployeeUsername] = useState('');
+  const [employeeEmail, setEmployeeEmail] = useState('');
+  const [employeePassword, setEmployeePassword] = useState('');
+  const [errorLabel, setErrorLabel] = useState(() => '');
+
+
+  /**
+   * Fetches all employee data from the backend and populates employee table.
+   * Sets table columns and rows for display.
+   * @async
+   */
+  const getEmployeeData = async () => {
+    console.log("employee data");
+    const response = await fetch("/api/employee-data");
+    if (!response.ok) {
+      console.log("Error in function call");
+      setErrorLabel("Failed to connect to backend");
+    }
+    else if (response == null) {
+      console.log("Error getting data");
+      setErrorLabel("Failed to connect to backend");
+    }
+    else {
+      const newData = await response.json();
+      setTableColumns([{ accessorKey: "employeeid", header: "Employee ID", cell: info => info.getValue() },
+      { accessorKey: "name", header: "Name", cell: info => info.getValue() },
+      { accessorKey: "role", header: "Role", cell: info => info.getValue() },
+      { accessorKey: "wage", header: "Wage", cell: info => info.getValue() },
+      { accessorKey: "ismanager", header: "Manager?", cell: info => info.getValue() },
+      { accessorKey: "email", header: "Email", cell: info => info.getValue() },
+      { accessorKey: "username", header: "Username", cell: info => info.getValue() },
+      { accessorKey: "password", header: "Password", cell: info => info.getValue() }]);
+      console.log(JSON.stringify(newData));
+      if (newData.error == 0) {
+        setErrorLabel('No Employees');
+      }
+      setTableData(Array.isArray(newData) ? newData.slice() : [newData]);
+      table.setPageSize(newData.length + 1);
+    }
+  }
+
+  /**
+   * Adds a new employee to the system with provided credentials and details.
+   * Validates input and returns error codes for various validation failures.
+   * @async
+   */
+  const addEmployee = async () => {
+    console.log("add employee");
+    const response = await fetch("/api/add-employee", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ employeeId, employeeNewName, employeeRole, employeeWage, employeeIsManager, employeeUsername, employeeEmail, employeePassword }),
+    });
+    if (!response.ok) {
+      console.log("Error in function call");
+      setErrorLabel("Failed to connect to backend");
+    }
+    else if (response == null) {
+      console.log("Error getting data");
+      setErrorLabel("Failed to connect to backend");
+    }
+    else {
+      const newData = await response.json();
+      console.log(JSON.stringify(newData));
+      console.log(newData.error);
+      getEmployeeData();
+      switch (newData.error) {
+        case -2:
+          setErrorLabel("Failed to connect to backend");
+          break;
+        case -1:
+          setErrorLabel("Error adding employee");
+          break;
+        case 0:
+          setErrorLabel("Employee already exists");
+          break;
+        case 1:
+          setErrorLabel("Employee ID not found");
+          break;
+        case 2:
+          setErrorLabel("Non-number character found in Employee ID");
+          break;
+        case 3:
+          setErrorLabel("Name not found");
+          break;
+        case 4:
+          setErrorLabel("Role not found");
+          break;
+        case 5:
+          setErrorLabel("Wage not found");
+          break;
+        case 6:
+          setErrorLabel("Multiple decimals found in wage");
+          break;
+        case 7:
+          setErrorLabel("Invalid character found in wage");
+          break;
+        case 8:
+          setErrorLabel("Manager privileges not found");
+          break;
+        case 9:
+          setErrorLabel("Failes to parse manager privileges, please enter \"yes\" or \"no\"");
+          break;
+        case 10:
+          setErrorLabel("Username not found");
+          break;
+        case 11:
+          setErrorLabel("Email not found");
+          break;
+        case 12:
+          setErrorLabel("Multiple \"@\" found in email");
+          break;
+        case 13:
+          setErrorLabel("Dot found before \"@\" in email");
+          break;
+        case 14:
+          setErrorLabel("Dot not found or only at end of email");
+          break;
+        case 15:
+          setErrorLabel("Password not strong enough, must be at least 16 characters");
+          break;
+        case 16:
+          setErrorLabel("Password not strong enough, upper case character not found");
+          break;
+        case 17:
+          setErrorLabel("Password not strong enough, number not found");
+          break;
+        case 18:
+          setErrorLabel("Password not strong enough, special character not found");
+          break;
+        case 19:
+          setErrorLabel("\"@\" not found in email");
+          break;
+        case 20:
+          setErrorLabel("Dot not found, at end of email, or immediately following \'@\'");
+          break;
+        case 55:
+          setErrorLabel("");
+          break;
+      }
+    }
+  }
+
+  /**
+   * Removes selected employee(s) from the system by employee ID.
+   * Refreshes employee table after deletion.
+   * @async
+   */
+  const removeEmployee = async () => {
+    console.log("Removing Employee");
+    const response = await fetch("/api/remove-employee", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ employeeId, rowSelection }),
+    });
+    if (!response.ok) {
+      console.log("Error in function call");
+      setErrorLabel("Failed to connect to backend");
+    }
+    else if (response == null) {
+      console.log("Error getting data");
+      setErrorLabel("Failed to connect to backend");
+    }
+    else {
+      const newData = await response.json();
+      console.log(newData);
+      getEmployeeData();
+      setRowSelection([]);
+      if (newData.error == -2) {
+        setErrorLabel("Failed to connect to backend");
+      }
+      else if (newData.error == -1) {
+        setErrorLabel("Error removing employee");
+      }
+      else if (newData.error == 0) {
+        setErrorLabel("Employee not found");
+      }
+      else if (newData.error == 1) {
+        setErrorLabel("Employee ID not found");
+      }
+      else if (newData.error == 2) {
+        setErrorLabel("Non-numeric character found in Employee ID");
+      }
+      else {
+        setErrorLabel("");
+      }
+    }
+  }
+
+  /**
+   * Updates employee information including name, role, wage, and credentials.
+   * Validates input and returns error codes for various validation failures.
+   * @async
+   */
+  const updateEmployee = async () => {
+    console.log("update employee");
+    console.log(rowSelection);
+    const response = await fetch("/api/update-employee", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ employeeId, employeeNewName, employeeRole, employeeWage, employeeIsManager, employeeUsername, employeeEmail, employeePassword, rowSelection }),
+    });
+    if (!response.ok) {
+      console.log("Error in function call");
+      setErrorLabel("Failed to connect to backend");
+    }
+    else if (response == null) {
+      console.log("Error getting data");
+      setErrorLabel("Failed to connect to backend");
+    }
+    else {
+      const newData = await response.json();
+      console.log(newData);
+      getEmployeeData();
+      switch (newData.error) {
+        case -2:
+          setErrorLabel("Failed to connect to backend");
+          break;
+        case -1:
+          setErrorLabel("Error updating employee");
+          break;
+        case 0:
+          setErrorLabel("Employee not found");
+          break;
+        case 1:
+          setErrorLabel("Multiple decimals found in wage");
+          break;
+        case 2:
+          setErrorLabel("Invalid character found in wage");
+          break;
+        case 3:
+          setErrorLabel("Failes to parse manager privileges, please enter \"yes\" or \"no\"");
+          break;
+        case 4:
+          setErrorLabel("Multiple \"@\" found in email");
+          break;
+        case 5:
+          setErrorLabel("Dot found before \"@\" in email");
+          break;
+        case 6:
+          setErrorLabel("Dot not found or only at end of email");
+          break;
+        case 7:
+          setErrorLabel("Password not strong enough, must be at least 16 characters");
+          break;
+        case 8:
+          setErrorLabel("Password not strong enough, upper case character not found");
+          break;
+        case 9:
+          setErrorLabel("Password not strong enough, number not found");
+          break;
+        case 10:
+          setErrorLabel("Password not strong enough, special character not found");
+          break;
+        case 11:
+          setErrorLabel("\"@\" not found in email");
+          break;
+        case 12:
+          setErrorLabel("Dot not found, at end of email, or immediately following \'@\'");
+          break;
+        case 13:
+          setErrorLabel("No employees selected");
+          break;
+        case 14:
+          setErrorLabel("Non-numeric character found in Employee id");
+          break;
+        case 15:
+          setErrorLabel("Employee id not found");
+          break;
+        case 55:
+          setErrorLabel("");
+          break;
+      }
+    }
+  }
+  /* ---------------------- Employee Variables and Funtions End ----------------------- */
+
+
+
+  /* ---------------------- Menu Variables and Funtions Start ------------------------- */
+  const [menuId, setMenuId] = useState('');
+  const [menuName, setMenuName] = useState('');
+  const [menuType, setMenuType] = useState('');
+  const [menuCalories, setMenuCalories] = useState('');
+  const [menuAllergies, setMenuAllergies] = useState('');
+  const [menuPriceMod, setMenuPriceMod] = useState('');
+  const [menuInventoryIds, setMenuInventoryIds] = useState('');
+  const [showImageDownloadModal, setShowImageDownloadModal] = useState(false);
+
+  /**
+   * Fetches all menu items data from the backend and populates menu table.
+   * Sets table columns with item details including price modifiers and inventory IDs.
+   * @async
+   */
+  const getMenuData = async () => {
+    console.log("menu data");
+    const response = await fetch("/api/menu-data");
+    if (!response.ok) {
+      console.log("Error in function call");
+      setErrorLabel("Failed to connect to backend");
+    }
+    else if (response == null) {
+      console.log("Error getting data");
+      setErrorLabel("Failed to connect to backend");
+    }
+    else {
+      const newData = await response.json();
+      setTableColumns([{ accessorKey: "menuid", header: "Menu ID", cell: info => info.getValue() },
+      { accessorKey: "name", header: "Name", cell: info => info.getValue() },
+      { accessorKey: "type", header: "Type", cell: info => info.getValue() },
+      { accessorKey: "calories", header: "Calories", cell: info => info.getValue() },
+      { accessorKey: "allergies", header: "Allergies", cell: info => info.getValue() },
+      { accessorKey: "pricemod", header: "Price Modifier", cell: info => info.getValue() },
+      { accessorKey: "inventoryids", header: "Inventory ID's", cell: info => info.getValue() }]);
+      console.log(JSON.stringify(newData));
+      if (newData.error == -2) {
+        setErrorLabel("Failed to connect to backend");
+      }
+      else if (newData.error == -1) {
+        setErrorLabel("Error removing menu item");
+      }
+      else if (newData.error == 0) {
+        setErrorLabel("No menu item");
+      }
+      setTableData(Array.isArray(newData) ? newData.slice() : [newData]);
+    }
+  }
+
+  /**
+   * Adds a new menu item to the system with specified details and inventory associations.
+   * Validates input including price modifier, calories, and inventory IDs.
+   * @async
+   */
+  const addMenu = async () => {
+    console.log("add menu");
+    const response = await fetch("/api/add-menu", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ menuId, menuName, menuType, menuCalories, menuAllergies, menuPriceMod, menuInventoryIds }),
+    });
+    if (!response.ok) {
+      console.log("Error in function call");
+      setErrorLabel("Failed to connect to backend");
+    }
+    else if (response == null) {
+      console.log("Error getting data");
+      setErrorLabel("Failed to connect to backend");
+    }
+    else {
+      const newData = await response.json();
+      console.log(JSON.stringify(newData));
+      console.log(newData.error);
+      setReplace(false);
+      getMenuData();
+      switch (newData.error) {
+        case -2:
+          setErrorLabel("Failed to connect to backend");
+          break;
+        case -1:
+          setErrorLabel("Error adding menu item");
+          break;
+        case 0:
+          setErrorLabel("Menu ID already exists");
+          break;
+        case 1:
+          setErrorLabel("Menu ID not found");
+          break;
+        case 2:
+          setErrorLabel("Non-numeric character found in Menu ID");
+          break;
+        case 3:
+          setErrorLabel("Name not found");
+          break;
+        case 4:
+          setErrorLabel("Type not found");
+          break;
+        case 5:
+          setErrorLabel("Price Modifier not found");
+          break;
+        case 6:
+          setErrorLabel("Multiple decimals found in price modifier");
+          break;
+        case 7:
+          setErrorLabel("Non-numeric character found in price modifier");
+          break;
+        case 8:
+          setErrorLabel("Inventory IDs not found");
+          break;
+        case 9:
+          setErrorLabel("Illegal character found in inventory IDs");
+          break;
+        case 10:
+          setErrorLabel("Calories not found");
+          break;
+        case 11:
+          setErrorLabel("Non-numeric character found in calories");
+          break;
+        case 12:
+          setErrorLabel("Allergies not found");
+          break;
+        case 55:
+          setErrorLabel("");
+          setShowImageDownloadModal(true);
+          break;
+      }
+    }
+  }
+
+  /**
+   * Removes selected menu item(s) from the system by menu ID.
+   * Refreshes menu table after deletion.
+   * @async
+   */
+  const removeMenu = async () => {
+    console.log("Removing Menu");
+    const response = await fetch("/api/remove-menu", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ menuId, rowSelection }),
+    });
+    if (!response.ok) {
+      console.log("Error in function call");
+      setErrorLabel("Failed to connect to backend");
+    }
+    else if (response == null) {
+      console.log("Error getting data");
+      setErrorLabel("Failed to connect to backend");
+    }
+    else {
+      const newData = await response.json();
+      console.log(newData);
+      setRowSelection([]);
+      getMenuData();
+      if (newData.error == -2) {
+        setErrorLabel("Failed to connect to backend");
+      }
+      else if (newData.error == -1) {
+        setErrorLabel("Error removing menu item");
+      }
+      else if (newData.error == 0) {
+        setErrorLabel("Menu item not found");
+      }
+      else if (newData.error == 1) {
+        setErrorLabel("Menu ID not found");
+      }
+      else if (newData.error == 2) {
+        setErrorLabel("Non-numeric character found in Menu ID");
+      }
+      else {
+        setErrorLabel("");
+      }
+    }
+  }
+
+  /**
+   * Updates menu item information including name, type, calories, price modifier, and inventory associations.
+   * Validates input changes and returns error codes for validation failures.
+   * @async
+   */
+  const updateMenu = async () => {
+    console.log("update menu");
+    const response = await fetch("/api/update-menu", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ menuId, menuName, menuType, menuCalories, menuAllergies, menuPriceMod, menuInventoryIds, rowSelection }),
+    });
+    if (!response.ok) {
+      console.log("Error in function call");
+      setErrorLabel("Failed to connect to backend");
+    }
+    else if (response == null) {
+      console.log("Error getting data");
+      setErrorLabel("Failed to connect to backend");
+    }
+    else {
+      const newData = await response.json();
+      console.log(newData);
+      
+      getMenuData();
+      switch (newData.error) {
+        case -2:
+          setErrorLabel("Failed to connect to backend");
+          break;
+        case -1:
+          setErrorLabel("Error updating menu item");
+          break;
+        case 0:
+          setErrorLabel("Menu item doesn't exit");
+          break;
+        case 1:
+          setErrorLabel("Menu ID not found");
+          break;
+        case 2:
+          setErrorLabel("Non-numeric character found in Menu ID");
+          break;
+        case 3:
+          setErrorLabel("Multiple decimals found in price modifier");
+          break;
+        case 4:
+          setErrorLabel("Non-numeric character found in price modifier");
+          break;
+        case 5:
+          setErrorLabel("Illegal character found in inventory IDs");
+          break;
+        case 6:
+          setErrorLabel("Non-numeric character found in calories");
+          break;
+        case 15:
+          setErrorLabel("Menu id not found");
+          break;
+        case 55:
+          setErrorLabel("");
+          break;
+        setReplace(true);
+        setShowImageDownloadModal(true);
+      }
+    }
+  }
+  /* ---------------------- Menu Variables and Funtions End --------------------------- */
+
+
+
+
+  /* ---------------------- Inventory Variables and Funtions Start -------------------- */
+  const [inventoryId, setInventoryId] = useState('');
+  const [inventoryItems, setInventoryItems] = useState('');
+  const [inventoryQuantity, setInventoryQuantity] = useState('');
+  const [inventoryMaxStock, setInventoryMaxStock] = useState('');
+  const [inventoryMinStock, setInventoryMinStock] = useState('');
+
+  /**
+   * Fetches all inventory items data from the backend and populates inventory table.
+   * Sets table columns with item details including quantity and stock levels.
+   * @async
+   */
+  const getInventoryData = async () => {
+    console.log("inventory data");
+    const response = await fetch("/api/inventory-data");
+    if (!response.ok) {
+      console.log("Error in function call");
+      setErrorLabel("Failed to connect to backend");
+    }
+    else if (response == null) {
+      console.log("Error getting data");
+      setErrorLabel("Failed to connect to backend");
+    }
+    else {
+      const newData = await response.json();
+      //console.log(newData.stringify);
+      setTableColumns([{ accessorKey: "inventoryid", header: "Inventory ID", cell: info => info.getValue() },
+      { accessorKey: "name", header: "Name", cell: info => info.getValue() },
+      { accessorKey: "quantity", header: "Quantity", cell: info => info.getValue() },
+      { accessorKey: "minstock", header: "Minimum Stock", cell: info => info.getValue() },
+      { accessorKey: "maxstock", header: "Maximum Stock", cell: info => info.getValue() }]);
+      console.log(JSON.stringify(newData));
+      if (newData.error == -2) {
+        setErrorLabel("Failed to connect to backend");
+      }
+      else if (newData.error == -1) {
+        setErrorLabel("Error getting inventory items");
+      }
+      else if (newData.error == 0) {
+        setErrorLabel("No inventory items");
+      }
+      setTableData(Array.isArray(newData) ? newData.slice() : [newData]);
+    }
+  }
+
+  /**
+   * Adds a new inventory item to the system with specified quantity and stock levels.
+   * Validates input including quantity, minimum and maximum stock values.
+   * @async
+   */
+  const addInventory = async () => {
+    console.log("add inventory");
+    const response = await fetch("/api/add-inventory", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ inventoryId, inventoryItems, inventoryQuantity, inventoryMaxStock, inventoryMinStock }),
+    });
+    if (!response.ok) {
+      console.log("Error in function call");
+      setErrorLabel("Failed to connect to backend");
+    }
+    else if (response == null) {
+      console.log("Error getting data");
+      setErrorLabel("Failed to connect to backend");
+    }
+    else {
+      const newData = await response.json();
+      console.log(JSON.stringify(newData));
+      console.log(newData.error);
+      getInventoryData();
+      switch (newData.error) {
+        case -2:
+          setErrorLabel("Failed to connect to backend");
+          break;
+        case -1:
+          setErrorLabel("Error adding inventory item");
+          break;
+        case 0:
+          setErrorLabel("Inventory ID already exists");
+          break;
+        case 1:
+          setErrorLabel("Inventory ID not found");
+          break;
+        case 2:
+          setErrorLabel("Non-numeric character found in Inventory ID");
+          break;
+        case 3:
+          setErrorLabel("Name not found");
+          break;
+        case 6:
+          setErrorLabel("Multiple decimals found in quantity");
+          break;
+        case 7:
+          setErrorLabel("Non-numeric character found in quantity");
+          break;
+        case 8:
+          setErrorLabel("Multiple decimals found in maxstock");
+          break;
+        case 9:
+          setErrorLabel("Non-numeric character found in maxstock");
+          break;
+        case 10:
+          setErrorLabel("Multiple decimals found in minstock");
+          break;
+        case 11:
+          setErrorLabel("Non-numeric character found in minstock");
+          break;
+        case 55:
+          setErrorLabel("");
+          break;
+      }
+    }
+  }
+
+  /**
+   * Removes selected inventory item(s) from the system by inventory ID.
+   * Refreshes inventory table after deletion.
+   * @async
+   */
+  const removeInventory = async () => {
+    console.log("Removing Inventory");
+    const response = await fetch("/api/remove-inventory", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ inventoryId, rowSelection }),
+    });
+    if (!response.ok) {
+      console.log("Error in function call");
+      setErrorLabel("Failed to connect to backend");
+    }
+    else if (response == null) {
+      console.log("Error getting data");
+      setErrorLabel("Failed to connect to backend");
+    }
+    else {
+      const newData = await response.json();
+      console.log(newData);
+      getInventoryData();
+      setRowSelection([]);
+      if (newData.error == -2) {
+        setErrorLabel("Failed to connect to backend");
+      }
+      else if (newData.error == -1) {
+        setErrorLabel("Error removing inventory item");
+      }
+      else if (newData.error == 0) {
+        setErrorLabel("Inventory item not found");
+      }
+      else if (newData.error == 1) {
+        setErrorLabel("Inventory ID not found");
+      }
+      else if (newData.error == 2) {
+        setErrorLabel("Non-numeric character found in Inventory ID");
+      }
+      else {
+        setErrorLabel("");
+      }
+    }
+  }
+
+  /**
+   * Updates inventory item information including quantity and stock level constraints.
+   * Validates input changes and returns error codes for validation failures.
+   * @async
+   */
+  const updateInventory = async () => {
+    console.log("update inventory");
+    let response = await fetch("/api/update-inventory", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ inventoryId, inventoryItems, inventoryQuantity, inventoryMaxStock, inventoryMinStock, rowSelection }),
+    });
+    if (!response.ok) {
+      console.log("Error in function call");
+      setErrorLabel("Failed to connect to backend");
+    }
+    else if (response == null) {
+      console.log("Error getting data");
+      setErrorLabel("Failed to connect to backend");
+    }
+    else {
+      const newData = await response.json();
+      console.log(newData);
+      getInventoryData();
+      switch (newData.error) {
+        case -2:
+          setErrorLabel("Failed to connect to backend");
+          break;
+        case -1:
+          setErrorLabel("Error updating inventory item");
+          break;
+        case 0:
+          setErrorLabel("Inventory item doesn't exit");
+          break;
+        case 1:
+          setErrorLabel("Inventory ID not found");
+          break;
+        case 2:
+          setErrorLabel("Non-numeric character found in Inventory ID");
+          break;
+        case 3:
+          setErrorLabel("Multiple decimals found in quantity");
+          break;
+        case 4:
+          setErrorLabel("Non-numeric character found in quantity");
+          break;
+        case 5:
+          setErrorLabel("Multiple decimals found in maxstock");
+          break;
+        case 6:
+          setErrorLabel("Non-numeric character found in maxstock");
+          break;
+        case 7:
+          setErrorLabel("Multiple decimals found in minstock");
+          break;
+        case 8:
+          setErrorLabel("Non-numeric character found in minstock");
+          break;
+        case 15:
+          setErrorLabel("Inventory id not found")
+        case 55:
+          setErrorLabel("");
+          break;
+      }
+    }
+  }
+  /* ---------------------- Inventory Variables and Funtions End ---------------------- */
+  const [file, setFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState('');
+  const [replace, setReplace] = useState(false);
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+      setMessage('File not found');      }
+    };
+  }, [previewUrl]);
+
+  /**
+   * Handles file selection from input element.
+   * Validates that selected file is a PNG image and creates preview URL.
+   * @param {Event} e - File input change event
+   */
+  function handleSelectFile(e) {
+    const f = e.target.files &amp;&amp; e.target.files[0];
+    if (!f) {
+      setMessage('File not found');
+      return;
+    }
+    if (f.type !== 'image/png') {
+      setMessage('Only PNG files are allowed.');
+      return;
+    }
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    setFile(f);
+    setPreviewUrl(URL.createObjectURL(f));
+    setMessage('');
+  }
+
+  /**
+   * Handles file drop event for drag-and-drop upload.
+   * Validates that dropped file is a PNG image and creates preview URL.
+   * @param {DragEvent} e - Drag and drop event
+   */
+  function handleDrop(e) {
+    e.preventDefault();
+    const f = e.dataTransfer.files &amp;&amp; e.dataTransfer.files[0];
+    if (!f) {
+      return;
+    }
+    if (f.type !== 'image/png') {
+      setMessage('Only PNG files are allowed.');
+      return;
+    }
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    setFile(f);
+    setPreviewUrl(URL.createObjectURL(f));
+    setMessage('');
+  }
+
+  /**
+   * Handles drag over event to allow drop zone visual feedback.
+   * Prevents default browser behavior.
+   * @param {DragEvent} e - Drag over event
+   */
+  function handleDragOver(e) {
+    e.preventDefault();
+  }
+
+  /**
+   * Uploads selected PNG image file to backend for menu or inventory item.
+   * Processes image and associates with appropriate item based on context.
+   * @async
+   */
+  async function handleUpload() {
+    if (!file) {
+      setMessage('Please select a PNG first.');
+      return;
+    }
+    setLoading(true);
+    setMessage('');
+    try {
+      let ids = [];
+      
+      const response = await fetch("/api/get-menu-ids", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ menuId, rowSelection }),
+      });
+      if(!response.ok) {
+        setMessage('Failed to fetch menu IDs');
+        setLoading(false);
+        return;
+      }
+      let resp = await response.json();
+      console.log(resp + "aasfbsdbstenb");
+      switch (resp.error) {
+        case 2:
+          setMessage('Menu Id not found');
+          return;
+        case 3:
+          setMessage('No menu items found to update');
+        //   break;
+        // case 55:
+        //   setMessage('Upload successful');
+          return;
+      }
+      for (let row of resp.ids) {
+        console.log(row + "aafgafg");
+        ids.push(row);
+      }
+
+      console.log(ids);
+      let uploadErrors = [];
+      for (let name of ids) {
+        console.log(name);
+        const form = new FormData();
+        form.append('menuId', name);
+        form.append('file', file);
+        form.append('replace', replace);
+        
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          body: form,
+        });
+        
+        if (!res.ok) {
+          uploadErrors.push(`Failed to upload image for menu ID ${name}`);
+        }
+      }
+      
+      if (uploadErrors.length > 0) {
+        setMessage(`Upload completed with errors: ${uploadErrors.join(', ')}`);
+      } else {
+        setMessage('All images uploaded successfully');
+      }
+    } catch (err) {
+      console.error(err);
+      setMessage('Upload failed: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  /**
+   * Clears the selected file and resets the file upload UI.
+   * Revokes the preview URL and clears input field.
+   */
+  function handleClear() {
+    setFile(null);
+    setPreviewUrl(null);
+    setMessage('');
+    if (inputRef.current) inputRef.current.value = null;
+  }
+
+  /**
+   * Closes the image download modal dialog.
+   */
+  function onClose() {
+    setShowImageDownloadModal(false);
+  }
+
+
+  return (
+    &lt;div className = "manager-page-container">
+      {showReportModal &amp;&amp;(
+          &lt;div className="modal-overlay">
+            &lt;div className="modal-content">
+              &lt;h2>Reports&lt;/h2>
+              &lt;label style={{ textAlign: 'center', color: 'red', display: 'block' }}>{labelValue}&lt;/label>
+
+                &lt;div className="table-container">
+                  {columns.length > 0 &amp;&amp; data.length > 0 &amp;&amp; (
+                    &lt;table>
+                      &lt;thead>
+                        {table.getHeaderGroups().map((hg) => (
+                          &lt;tr key={hg.id}>
+                            {hg.headers.map((header) => (
+                              &lt;th key={header.id} className = "tableHeader">
+                                {flexRender(header.column.columnDef.header, header.getContext())}
+                              &lt;/th>
+                            ))}
+                          &lt;/tr>
+                        ))}
+                      &lt;/thead>
+                      &lt;tbody>
+                        {table.getRowModel().rows.map((row) => (
+                          &lt;tr key={row.id}>
+                            {row.getVisibleCells().map((cell) => (
+                              &lt;td key={cell.id} className="tableRow">
+                                {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                              &lt;/td>
+                            ))}
+                          &lt;/tr>
+                        ))}
+                      &lt;/tbody>
+                    &lt;/table>
+                  )}
+                &lt;/div>
+
+              &lt;div className= "report-buttons-container">
+                {/* Set up reports based on reports.jsx implemetation */}
+                &lt;button className="report-button" onClick={() => generateXReport()}>X-Report&lt;/button>
+                &lt;button className="report-button" onClick={() => generateZReport()}>Z-Report&lt;/button>
+                &lt;button className="report-button" onClick={() => generateProductUsageReport()}>Product Usage Chart&lt;/button>
+                &lt;button className="report-button" onClick={() => generateRestockReport()}>Restock Report&lt;/button>
+                &lt;button className="report-button" onClick={() => generateSalesReport()}>Sales Report&lt;/button>
+              &lt;/div>
+              &lt;div className= "report-times-container">
+                {/* &lt;Calendar value={startTime} onChange={(e) => setStartTime(e.value as Date)} appendTo={null} inputClassName="rc-input" panelClassName="rc-panel" pt={{panel: { className: "rc-panel" }}}/>
+                &lt;Calendar value={endTime} onChange={(e) => setEndTime(e.value as Date)} appendTo={null} inputClassName="rc-input" panelClassName="rc-panel" unstyled /> */}
+                &lt;DatePicker selected={startTime} onChange={(date) => setStartTime(date)} />
+                &lt;DatePicker selected={endTime} onChange={(date) => setEndTime(date)} />
+              &lt;/div>
+              &lt;div className= "back-container">
+                &lt;button className="back-button" onClick={handleShowReportModal}>Close&lt;/button>
+              &lt;/div>
+            &lt;/div>
+          &lt;/div>
+        )
+      }
+      {/* This is for all update stuff EX: adding/removing an item from menu, inventory, employee management
+      I want it to be stored in a selectable table that can be clicked on to edit/remove entries
+      For adding I want either 1 of 2 things, a text area to add an entry OR click add, opens a small modal with the text fields to be filled */}
+      {showEmployeeModal &amp;&amp;(
+          &lt;div className="modal-overlay">
+            &lt;div className="modal-content">
+              {/* managmentType defines what screen to open and what is going to be updated, use this variable to change funtionality on react */}
+              &lt;h2>Employee Management&lt;/h2>
+              &lt;label style={{ textAlign: 'center', color: 'red', display: 'block' }}>{errorLabel}&lt;/label>
+                &lt;div className="employeeTableContainer">
+                  {columns.length > 0 &amp;&amp; data.length > 0 &amp;&amp; (
+                    &lt;table>
+                      &lt;thead>
+                        {table.getHeaderGroups().map((hg) => (
+                          &lt;tr key={hg.id} className="row">
+                            {hg.headers.map((header) => (
+                              &lt;th key={header.id} className = "tableHeader">
+                                {flexRender(header.column.columnDef.header, header.getContext())}
+                              &lt;/th>
+                            ))}
+                          &lt;/tr>
+                        ))}
+                      &lt;/thead>
+                      &lt;tbody>
+                        {table.getRowModel().rows.map((row) => (
+                          &lt;tr key={row.id} onClick={() => row.toggleSelected()} className={row.getIsSelected() ? "selected" : ""} style={{ cursor: "pointer" }}>
+                            {row.getVisibleCells().map((cell) => (
+                              &lt;td key={cell.id} className="tableRow">
+                                {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                              &lt;/td>
+                            ))}
+                          &lt;/tr>
+                        ))}
+                      &lt;/tbody>
+                    &lt;/table>
+                  )}
+                &lt;/div>
+              &lt;label style={{ textAlign: 'center', color: 'black', display: 'block' }}>Select rows or type ID&lt;/label>
+              &lt;div className= "management-buttons-container">
+                &lt;button className="button" onClick={() => addEmployee()}>Add &lt;/button>
+                &lt;button className="button" onClick={() => removeEmployee()}>Remove &lt;/button>
+                &lt;button className="button" onClick={() => updateEmployee()}>Update &lt;/button>
+                &lt;button className="button" onClick={() => setShowEmployeeModal(false)}>Close&lt;/button>
+              &lt;/div>
+              &lt;div className= "text-box-container">
+                &lt;input className="textbox" type="text" placeholder="ID" value={employeeId ?? ''} onChange={(e) => setEmployeeId(e.target.value)}/>
+                &lt;input className="textbox" type="text" placeholder="Name" value={employeeNewName ?? ''} onChange={(e) => setEmployeeNewName(e.target.value)}/>
+                &lt;input className="textbox" type="text" placeholder="Role" value={employeeRole ?? ''} onChange={(e) => setEmployeeRole(e.target.value)}/>
+                &lt;input className="textbox" type="text" placeholder="Wage" value={employeeWage ?? ''} onChange={(e) => setEmployeeWage(e.target.value)}/>
+                &lt;input className="textbox" type="text" placeholder="Manager? (yes, no)" value={employeeIsManager ?? ''} onChange={(e) => setEmployeeIsManager(e.target.value)}/>
+                &lt;input className="textbox" type="text" placeholder="Email" value={employeeEmail ?? ''} onChange={(e) => setEmployeeEmail(e.target.value)}/>
+                &lt;input className="textbox" type="text" placeholder="Username" value={employeeUsername ?? ''} onChange={(e) => setEmployeeUsername(e.target.value)}/>
+                &lt;input className="textbox" type="text" placeholder="Password" value={employeePassword ?? ''} onChange={(e) => setEmployeePassword(e.target.value)}/>
+              &lt;/div>
+            &lt;/div>
+          &lt;/div>
+        )
+      }
+      {showMenuModal &amp;&amp;(
+          &lt;div className="modal-overlay">
+
+          {showImageDownloadModal &amp;&amp; (
+            &lt;div className="modal-overlay">
+              &lt;div className="modal-box">
+                &lt;div className="modal-header">
+                  &lt;h3>Upload Menu Item Image (.png)&lt;/h3>
+                  &lt;button
+                    className="close-btn"
+                    onClick={() => { handleClear(); onClose(); }}
+                    aria-label="Close"
+                  >
+                    ✕
+                  &lt;/button>
+                &lt;/div>
+                &lt;div className="modal-grid">
+                  &lt;div
+                    className="dropzone"
+                    onClick={() => inputRef.current?.click()}
+                    onDrop={handleDrop}
+                    onDragOver={handleDragOver}
+                    role="button"
+                  >
+                    {previewUrl ? (
+                      &lt;img src={previewUrl} alt="preview" className="preview-img" />
+                    ) : (
+                      &lt;div>
+                        &lt;p>Drag &amp; drop a PNG here&lt;/p>
+                        &lt;p>or&lt;/p>
+
+                        {/* Hidden input triggers on whole-box click */}
+                        &lt;input
+                          ref={inputRef}
+                          onChange={handleSelectFile}
+                          accept="image/png"
+                          type="file"
+                          style={{ display: 'none' }}
+                        />
+
+                        &lt;p className="text-sm text-gray-600">Select File&lt;/p>
+                      &lt;/div>
+                    )}
+                  &lt;/div>
+                  &lt;div className="info-panel">
+                    &lt;div>
+                      &lt;p className="label">Selected file: {file ? `${file.name}` : 'No file selected'}&lt;/p>
+                      {message &amp;&amp; (
+                        &lt;div className="error-box">{message}&lt;/div>
+                      )}
+                    &lt;/div>
+
+                    &lt;div className="btn-row">
+                    &lt;button
+                    className="btn btn-upload"
+                    onClick={handleUpload}
+                    disabled={loading}
+                    >
+                    {loading ? 'Uploading...' : 'Upload'}
+                    &lt;/button>
+                    &lt;button
+                    className="btn btn-clear"
+                    onClick={handleClear}
+                    disabled={loading}
+                    >
+                    Clear
+                    &lt;/button>
+                    &lt;button
+                    className="btn btn-close"
+                    onClick={() => { handleClear(); setShowImageDownloadModal(false); }}
+                    >
+                    Close
+                    &lt;/button>
+                  &lt;/div>
+                &lt;/div>
+              &lt;/div>
+            &lt;/div>
+          &lt;/div>
+          )}
+
+            &lt;div className="modal-content">
+              {/* managmentType defines what screen to open and what is going to be updated, use this variable to change funtionality on react */}
+              &lt;h2>Menu Management&lt;/h2>
+              &lt;label style={{ textAlign: 'center', color: 'red', display: 'block' }}>{errorLabel}&lt;/label>
+                &lt;div className="employeeTableContainer">
+                  {columns.length > 0 &amp;&amp; data.length > 0 &amp;&amp; (
+                    &lt;table>
+                      &lt;thead>
+                        {table.getHeaderGroups().map((hg) => (
+                          &lt;tr key={hg.id} className="row">
+                            {hg.headers.map((header) => (
+                              &lt;th key={header.id} className = "tableHeader">
+                                {flexRender(header.column.columnDef.header, header.getContext())}
+                              &lt;/th>
+                            ))}
+                          &lt;/tr>
+                        ))}
+                      &lt;/thead>
+                      &lt;tbody>
+                        {table.getRowModel().rows.map((row) => (
+                          &lt;tr key={row.id} onClick={() => row.toggleSelected()} className={row.getIsSelected() ? "selected" : ""} style={{ cursor: "pointer" }}>
+                            {row.getVisibleCells().map((cell) => (
+                              &lt;td key={cell.id} className="tableRow">
+                                {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                              &lt;/td>
+                            ))}
+                          &lt;/tr>
+                        ))}
+                      &lt;/tbody>
+                    &lt;/table>
+                  )}
+                &lt;/div>
+              &lt;label style={{ textAlign: 'center', color: 'black', display: 'block' }}>Select rows or type ID&lt;/label>
+              &lt;div className= "management-buttons-container">
+                &lt;button className="button" onClick={() => addMenu()}>Add &lt;/button>
+                &lt;button className="button" onClick={() => removeMenu()}>Remove &lt;/button>
+                &lt;button className="button" onClick={() => updateMenu()}>Update &lt;/button>
+                &lt;button className="button" onClick={() => setShowMenuModal(false)}>Close&lt;/button>
+              &lt;/div>
+              &lt;div className= "text-box-container">
+                &lt;input className="textbox" type="text" placeholder="ID" value={menuId ?? ''} onChange={(e) => setMenuId(e.target.value)}/>
+                &lt;input className="textbox" type="text" placeholder="Name" value={menuName ?? ''} onChange={(e) => setMenuName(e.target.value)}/>
+                &lt;input className="textbox" type="text" placeholder="Type" value={menuType ?? ''} onChange={(e) => setMenuType(e.target.value)}/>
+                &lt;input className="textbox" type="text" placeholder="Calories" value={menuCalories ?? ''} onChange={(e) => setMenuCalories(e.target.value)}/>
+                &lt;input className="textbox" type="text" placeholder="Allergies: Nuts, Dairy, ect." value={menuAllergies ?? ''} onChange={(e) => setMenuAllergies(e.target.value)}/>
+                &lt;input className="textbox" type="text" placeholder="Price Modifier" value={menuPriceMod ?? ''} onChange={(e) => setMenuPriceMod(e.target.value)}/>
+                &lt;input className="textbox" type="text" placeholder="Inventory IDs: 1, 2, ect." value={menuInventoryIds ?? ''} onChange={(e) => setMenuInventoryIds(e.target.value)}/>
+              &lt;/div>
+            &lt;/div>
+          &lt;/div>
+        )
+      }
+      {showInventoryModal &amp;&amp;(
+          &lt;div className="modal-overlay">
+            &lt;div className="modal-content">
+              {/* managmentType defines what screen to open and what is going to be updated, use this variable to change funtionality on react */}
+              &lt;h2>Inventory Management&lt;/h2>
+              &lt;label style={{ textAlign: 'center', color: 'red', display: 'block' }}>{errorLabel}&lt;/label>
+                &lt;div className="employeeTableContainer">
+                  {columns.length > 0 &amp;&amp; data.length > 0 &amp;&amp; (
+                    &lt;table>
+                      &lt;thead>
+                        {table.getHeaderGroups().map((hg) => (
+                          &lt;tr key={hg.id}>
+                            {hg.headers.map((header) => (
+                              &lt;th key={header.id} className = "tableHeader">
+                                {flexRender(header.column.columnDef.header, header.getContext())}
+                              &lt;/th>
+                            ))}
+                          &lt;/tr>
+                        ))}
+                      &lt;/thead>
+                      &lt;tbody>
+                        {table.getRowModel().rows.map((row) => (
+                          &lt;tr key={row.id} onClick={() => row.toggleSelected()} className={row.getIsSelected() ? "selected" : ""} style={{ cursor: "pointer" }}>
+                            {row.getVisibleCells().map((cell) => (
+                              &lt;td key={cell.id} className="tableRow">
+                                {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                              &lt;/td>
+                            ))}
+                          &lt;/tr>
+                        ))}
+                      &lt;/tbody>
+                    &lt;/table>
+                  )}
+                &lt;/div>
+              &lt;label style={{ textAlign: 'center', color: 'black', display: 'block' }}>Select rows or type ID&lt;/label>
+              &lt;div className= "management-buttons-container">
+                {/* &lt;button className="button" onClick={() => updateQuantity(true)}>Add Stock&lt;/button>
+                &lt;button className="button" onClick={() => updateQuantity(false)}>Remove Stock &lt;/button> */}
+                &lt;button className="button" onClick={() => addInventory()}>Add &lt;/button>
+                &lt;button className="button" onClick={() => removeInventory()}>Remove &lt;/button>
+                &lt;button className="button" onClick={() => updateInventory()}>Update &lt;/button>
+                &lt;button className="button" onClick={() => setShowInventoryModal(false)}>Close&lt;/button>
+              &lt;/div>
+              &lt;div className= "menu-text-box-container">
+                &lt;input className="textbox" type="text" placeholder="ID" value={inventoryId ?? ''} onChange={(e) => setInventoryId(e.target.value)}/>
+                &lt;input className="textbox" type="text" placeholder="Name" value={inventoryItems ?? ''} onChange={(e) => setInventoryItems(e.target.value)}/>
+                &lt;input className="textbox" type="text" placeholder="Quantity" value={inventoryQuantity ?? ''} onChange={(e) => setInventoryQuantity(e.target.value)}/>
+                &lt;input className="textbox" type="text" placeholder="Minimum Stock" value={inventoryMinStock ?? ''} onChange={(e) => setInventoryMinStock(e.target.value)}/>
+                &lt;input className="textbox" type="text" placeholder="Maximum Stock" value={inventoryMaxStock ?? ''} onChange={(e) => setInventoryMaxStock(e.target.value)}/>
+              &lt;/div>
+            &lt;/div>
+          &lt;/div>
+        )
+      }
+      {showSignOutModal &amp;&amp; (
+        &lt;SignOutButton onClose={() => setShowSignOutModal(false)} />
+      )}
+      &lt;div className = "manager-subheader">&lt;h1>Welcome, {employeeName === null ? "missing" : employeeName}!&lt;/h1>&lt;/div>
+
+      &lt;div className = "manager-buttons-container">
+        &lt;button className = "button manager-button" onClick={() => {setShowReportModal(true); generateXReport(); setLabel("");}}>View Reports&lt;/button>
+        &lt;button className = "button manager-button" onClick={()=> {
+            setShowInventoryModal(true);
+            setErrorLabel("");
+            setRowSelection([]);
+            getInventoryData();}
+          }
+        >
+          Manage Inventory
+        &lt;/button>
+        &lt;button className = "button manager-button"onClick={()=> {
+            setShowEmployeeModal(true);
+            setErrorLabel("");
+            setRowSelection([]);
+            getEmployeeData();}
+          }
+        >
+          Manage Employees
+        &lt;/button>
+        &lt;button className = "button manager-button"onClick={()=> {
+            setShowMenuModal(true);
+            setErrorLabel("");
+            setRowSelection([]);
+            getMenuData();}
+          }
+        >
+          Manage Menu
+        &lt;/button>
+        &lt;button className = "button manager-button" onClick={() => setShowSignOutModal(true)}>Sign Out&lt;/button>
+      &lt;/div>
+      &lt;div className="line-chart">
+        &lt;Line data={salesData} options={options}/>
+      &lt;/div>
+    &lt;/div>
+  );
+}</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="CashierMainPage.html">CashierMainPage</a></li><li><a href="Manager.html">Manager</a></li><li><a href="Transaction.html">Transaction</a></li><li><a href="User.html">User</a></li></ul><h3>Global</h3><ul><li><a href="global.html#TranslationContext">TranslationContext</a></li><li><a href="global.html#buildTraySummaries">buildTraySummaries</a></li><li><a href="global.html#chatWithAI">chatWithAI</a></li><li><a href="global.html#clearOrder">clearOrder</a></li><li><a href="global.html#decodeHTMLEntities">decodeHTMLEntities</a></li><li><a href="global.html#loadOrder">loadOrder</a></li><li><a href="global.html#printHistory">printHistory</a></li><li><a href="global.html#saveOrder">saveOrder</a></li><li><a href="global.html#translateMultiple">translateMultiple</a></li><li><a href="global.html#translateText">translateText</a></li><li><a href="global.html#useTranslate">useTranslate</a></li><li><a href="global.html#useTranslatedArray">useTranslatedArray</a></li><li><a href="global.html#useTranslatedObject">useTranslatedObject</a></li><li><a href="global.html#useTranslatedText">useTranslatedText</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Tue Dec 09 2025 19:51:30 GMT-0600 (Central Standard Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

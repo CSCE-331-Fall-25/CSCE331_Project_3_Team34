@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: Project3_Server/src/Item.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: Project3_Server/src/Item.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * @fileoverview Item and Menu model classes for database operations.
+ * Handles menu items and menu modifier items with database persistence.
+ */
+
+/**
+ * Item class - Represents a menu item with pricing and composition.
+ * Supports database loading and retrieval operations.
+ * 
+ * @class
+ * @param {number} itemID - Unique item identifier
+ * @param {string} [name] - Item name
+ * @param {number} [price] - Item price
+ * @param {number} [numberOfSides] - Number of sides available
+ * @param {number} [numberOfEntrees] - Number of entrees available
+ * @param {string} [inventoryIDs] - Comma-separated inventory IDs
+ * @param {string} [type] - Item type category
+ * @param {number} [numSideL] - Number of large sides
+ * @param {number} [numEntresL] - Number of large entrees
+ */
+// ES module Item with DB loader
+class Item {
+    // constructor supports placeholders or full DB-provided values
+    constructor(itemID, name = null, price = null, numberOfSides = null, numberOfEntrees = null, inventoryIDs = null, type = null, numSideL = null, numEntresL = null) {
+        // Updates instance variables with parameters
+        this.itemID = itemID;
+        this.name = name || `item-${itemID}`;
+        this.price = (price !== null &amp;&amp; price !== undefined) ? Number(price) : 9.99;
+        this.numberOfEntrees = (numberOfEntrees !== null &amp;&amp; numberOfEntrees !== undefined) ? Number(numberOfEntrees) : 3;
+        this.numberOfSides = (numberOfSides !== null &amp;&amp; numberOfSides !== undefined) ? Number(numberOfSides) : 2;
+        this.itemType = type || null;
+        this.inventoryIDs = inventoryIDs || '';
+        this.numSideLarge = (numSideL !== null &amp;&amp; numSideL !== undefined) ? Number(numSideL) : 0;
+        this.numEntreeLarge = (numEntresL !== null &amp;&amp; numEntresL !== undefined) ? Number(numEntresL) : 0;
+    }
+
+    /**
+     * Fetches a single item from the database by name.
+     * 
+     * @static
+     * @async
+     * @param {Object} db - Database pool connection
+     * @param {string} buttonId - Item name to search for
+     * @returns {Promise&lt;Item|null>} Item instance or null if not found
+     * @throws {Error} If database pool is invalid
+     */
+    static async fetchByName(db, buttonId) {
+        // Checks if the database exists
+        if (!db || typeof db.query !== 'function') {
+            throw new Error('DB pool not provided or invalid');
+        }
+
+        // Creates the query
+        const q = 'SELECT * FROM items WHERE name = $1';
+        const res = await db.query(q, [buttonId]);
+
+        // If the query didn't return enough information
+        if (!res || !res.rows || res.rows.length === 0) return null;
+        
+        // Isolate the queries first result
+        const row = res.rows[0];
+
+        // Obtain the row values
+        const itemName = row.name ?? buttonId;
+        const itemPrice = row.price ?? null;
+        const numEntrees = row.numentrees ?? null;
+        const numSides = row.numsides ?? null;
+        const itemId = row.itemid ?? buttonId;
+        const type = row.type ?? '';
+        const numSideL = row.numlargesides ?? 0;
+        const numEntresL = row.numlargeentrees ?? 0;
+        const invIDs = row.inventoryids ?? '';
+
+        //console.log(`Fetched Item from DB: ID=${itemId}, Name=${itemName}, Price=${itemPrice}, Type=${type}`);
+
+        return new Item(itemId, itemName, itemPrice, numSides, numEntrees, invIDs, type, numSideL, numEntresL);
+    }
+
+    /**
+     * Fetches all items from the database.
+     * 
+     * @static
+     * @async
+     * @param {Object} db - Database pool connection
+     * @returns {Promise&lt;Array&lt;Item>>} Array of all Item instances
+     * @throws {Error} If database pool is invalid
+     */
+    static async fetchAllItems(db) {
+        // Checks if the database exists
+        if (!db || typeof db.query !== 'function') {
+            throw new Error('DB pool not provided or invalid');
+        }
+
+        // Creates the query
+        const q = 'SELECT * FROM items';
+        const res = await db.query(q);
+        if (!res || !res.rows || res.rows.length === 0) return [];
+        const items = [];
+        
+        // Loop through each element of the result and create Item instances
+        for (const row of res.rows) {
+            const itemName = row.name ?? `item-${row.itemid}`;
+            const itemPrice = row.price ?? null;
+            const numEntrees = row.numentrees ?? null;
+            const numSides = row.numsides ?? null;
+            const itemId = row.itemid ?? -1;
+            const type = row.type ?? '';
+            const numSideL = row.numlargesides ?? 0;
+            const numEntresL = row.numlargeentrees ?? 0;
+            const invIDs = row.inventoryids ?? '';
+            //console.log(`Fetched Item from DB: ID=${itemId}, Name=${itemName}, Price=${itemPrice}`);
+            items.push(new Item(itemId, itemName, itemPrice, numSides, numEntrees, invIDs, type, numSideL, numEntresL));
+        }
+
+        return items;
+    } 
+}
+
+class Menu {
+    // constructor supports placeholders or full DB-provided values
+    constructor(menuid, name = null, type = null, pricemod = null, inventoryids = null) {
+        // Updates instance variables with parameters
+        this.menuid = menuid;
+        this.name = name || `menu-${menuid}`;
+        this.type = type || null;
+        this.pricemod = (pricemod !== null &amp;&amp; pricemod !== undefined) ? Number(pricemod) : 0;
+        this.inventoryids = inventoryids || '';
+    }
+
+    // Load menu item by Name (buttonId) using a pg Pool-like db
+    static async fetchByName(db, buttonId) {
+        // Checks if the database exists
+        if (!db || typeof db.query !== 'function') {
+            throw new Error('DB pool not provided or invalid');
+        }
+
+        // Creates the query
+        const q = 'SELECT * FROM menu WHERE name = $1';
+        const res = await db.query(q, [buttonId]);
+
+        // If the query didn't return enough information
+        if (!res || !res.rows || res.rows.length === 0) return null;
+        
+        // Isolate the queries first result
+        const row = res.rows[0];
+
+        // Obtain the row values
+        const menuID = row.menuid ?? buttonId;
+        const menuName = row.name ?? `menu-${menuID}`;
+        const type = row.type ?? '';
+        const priceMod = row.pricemod ?? 0;
+        const invIDs = row.inventoryids ?? '';
+
+        //console.log(`Fetched Menu from DB: ID=${menuID}, Name=${menuName}, Price=${priceMod}`);
+
+        return new Menu(menuID, menuName, type, priceMod, invIDs);
+    }
+
+    // Load menu items by type using a pg Pool-like db
+    /**
+     * Fetches menu items by type from the database.
+     * 
+     * @static
+     * @async
+     * @param {Object} db - Database pool connection
+     * @param {string} type - Menu item type to filter by
+     * @returns {Promise&lt;Array&lt;Menu>>} Array of Menu instances matching the type
+     * @throws {Error} If database pool is invalid
+     */
+    static async fetchByType(db, type) {
+        // Checks if the database exists
+        if (!db || typeof db.query !== 'function') {
+            throw new Error('DB pool not provided or invalid');
+        }
+        // Case-insensitive query: match type regardless of capitalization
+        const q = 'SELECT * FROM menu WHERE LOWER(type) = LOWER($1)';
+        const res = await db.query(q, [type]);
+
+        // If the query returned no rows, return an empty array (client expects an array)
+        if (!res || !res.rows || res.rows.length === 0) return [];
+
+        // Loop through each element of the result and create Menu instances
+        const menus = [];
+        for (const row of res.rows) {
+            const menuID = row.menuid ?? -1;
+            const menuName = row.name ?? `menu-${menuID}`;
+            const rowType = row.type ?? '';
+            const priceMod = row.pricemod ?? 0;
+            const invIDs = row.inventoryids ?? '';
+
+            menus.push(new Menu(menuID, menuName, rowType, priceMod, invIDs));
+        }
+
+        //console.log(`Fetched ${menus.length} Menus of type=${type} from DB`);
+
+        return menus;
+    }
+
+    static async fetchAllMenus(db) {
+        // Checks if the database exists
+        if (!db || typeof db.query !== 'function') {
+            throw new Error('DB pool not provided or invalid');
+        }
+
+        // Creates the query
+        const q = 'SELECT * FROM menu';
+        const res = await db.query(q);
+        if (!res || !res.rows || res.rows.length === 0) return [];
+
+        // Loop through each element of the result and create Menu instances
+        const menus = [];
+        for (const row of res.rows) {
+            const menuID = row.menuid ?? -1;
+            const menuName = row.name ?? `menu-${menuID}`;
+            const type = row.type ?? '';
+            const priceMod = row.pricemod ?? 0;
+            const invIDs = row.inventoryids ?? '';
+            //console.log(`Fetched Menu from DB: ID=${menuID}, Name=${menuName}, Price=${priceMod}`);
+            menus.push(new Menu(menuID, menuName, type, priceMod, invIDs));
+        }
+        return menus;
+    }
+}
+
+export default Item;
+export { Menu };</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="CashierMainPage.html">CashierMainPage</a></li><li><a href="Manager.html">Manager</a></li><li><a href="Transaction.html">Transaction</a></li><li><a href="User.html">User</a></li></ul><h3>Global</h3><ul><li><a href="global.html#TranslationContext">TranslationContext</a></li><li><a href="global.html#buildTraySummaries">buildTraySummaries</a></li><li><a href="global.html#chatWithAI">chatWithAI</a></li><li><a href="global.html#clearOrder">clearOrder</a></li><li><a href="global.html#decodeHTMLEntities">decodeHTMLEntities</a></li><li><a href="global.html#loadOrder">loadOrder</a></li><li><a href="global.html#printHistory">printHistory</a></li><li><a href="global.html#saveOrder">saveOrder</a></li><li><a href="global.html#translateMultiple">translateMultiple</a></li><li><a href="global.html#translateText">translateText</a></li><li><a href="global.html#useTranslate">useTranslate</a></li><li><a href="global.html#useTranslatedArray">useTranslatedArray</a></li><li><a href="global.html#useTranslatedObject">useTranslatedObject</a></li><li><a href="global.html#useTranslatedText">useTranslatedText</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Tue Dec 09 2025 19:51:30 GMT-0600 (Central Standard Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

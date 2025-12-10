@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: Project3_Client/src/pages/MealAttributes.jsx</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: Project3_Client/src/pages/MealAttributes.jsx</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * @fileoverview Meal customization component for bowls/platters.
+ * Allows users to select entrees and sides for their meal.
+ */
+
+import "../styles/MealAttributes.css";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+
+/**
+ * MealAttributes component - Customizes meal entrees and sides.
+ * 
+ * @param {Object} props - Component props
+ * @param {string} [props.itemType="bowl"] - Type of meal item (bowl, platter, etc.)
+ * @param {number} [props.numEntree=3] - Number of entrees to select
+ * @param {number} [props.numSides=2] - Number of sides to select
+ * @returns {JSX.Element} Meal customization interface
+ */
+export default function MealAttributes({itemType = "bowl", numEntree = 3, numSides = 2}) {
+
+  const navigate = useNavigate();
+
+  //Items (this should be pulled from the database)
+  /**
+   * Constructor for food item objects with meal details.
+   * @param {string} name - Name of the food item
+   * @param {number} cost - Price of the item
+   * @param {number} calories - Calorie count for the item
+   * @param {boolean} premium - Whether item is premium priced
+   * @param {number} ID - Item database ID
+   * @param {string} type - Item type (entree, side, etc.)
+   */
+  function foodItem(name, cost, calories, premium, ID, type) {
+    this.name = name;
+    this.cost = cost;
+    this.calories = calories;
+    this.premium = premium;
+    this.ID = ID;
+    this.type = type;
+  } 
+
+  const [entreeList, setEntreeList] = useState(() => Array(numEntree).fill(null));
+  const [sideList, setSideList] = useState(() => Array(numSides).fill(null));
+  const [indexEntree, setIndexEntree] = useState(0);
+  const [indexSide, setIndexSide] = useState(0); 
+
+  //const items = ["Orange Chicken", "Teriyaki Chicken", "Beijing Beef", "Honey Walnut Shrimp", "Black Pepper Steak", "Sesame Chicken", "Butter Chicken", "Black Pepper Angus Beef"];
+  const items = [];
+  
+  const items_sides = [];
+  const items_entrees = [];
+
+  // TODO: Use for loop to populate this list, USE DATABASE!!!!
+  items.push(new foodItem("Orange Chicken", 0.0, 400, true, 67, "entree"))
+  items.push(new foodItem("Teriyaki Chicken", 0.0, 400, true, 68, "entree"))
+  items.push(new foodItem("Butter Chicken", 0.0, 400, true, 67, "entree"))
+  items.push(new foodItem("Bejing Beef", 0.0, 400, true, 68, "entree"))
+  items.push(new foodItem("Black Pepper Angus Beef", 0.0, 400, true, 67, "entree"))
+  items.push(new foodItem("String Bean Chicken", 0.0, 400, true, 68, "entree"))
+
+  items.push(new foodItem("Fried Rice", 0.0, 400, true, 69, "side"))
+  items.push(new foodItem("Chow Mein", 0.0, 400, true, 70, "side"))
+
+  for (let i = 0; i &lt; items.length; i++) {
+    if (items.at(i).type == "entree") {
+      items_entrees.push(items.at(i));
+    } else {
+      items_sides.push(items.at(i));
+    }
+  }
+
+  const finished = (indexEntree === numEntree) &amp;&amp; (indexSide === numSides);
+
+  // TODO: Replace these with actual React state or backend calls
+  const [transactionItems, setTransactionItems] = useState([]);
+  /**
+   * Handles item selection, fetches cost and associated items from backend.
+   * Adds purchased item and its entrees/sides to transaction.
+   * @param {Event} e - Click event from item button
+   */
+  const handleChooseItem = (e) => {
+    //console.log("Item Button ID: " + e.target.id);
+  fetch("http://localhost:8080/api/buy-item", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ itemID: e.target.id }),
+     
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          console.log("Item bought:", e.target.id);
+          setTransactionItems((prev) => [
+            ...prev,
+            { cost: data.cost, item: data.item, type: "main" },
+            ...data.entrees.map((entree) => ({ item: entree, type: "entree" })),
+            ...data.side.map((side) => ({ item: side, type: "side" }))
+          ]);
+          setCurrCost((prev) => prev + data.cost);
+        }
+        //console.log("Cost is: ", data.cost)
+      });
+  };
+  
+  //const handleViewReports = () => console.log("View reports");
+  
+  const rows = [];
+  for (let i = 0; i &lt; items.length; i += 4) {
+    rows.push(items.slice(i, i + 4));
+  /**
+   * Completes meal attribute selection when all required items are chosen.
+   * Sends meal composition to backend and navigates to cashier.
+   */
+  const handleFinishSelection = () => {
+    if (finished) {
+      fetch("http://localhost:5000/api/buy-item", { // create item!
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ entreeList, sideList }),
+      })
+
+      console.log("The Item is a " + itemType + " and it contains: ");
+      entreeList.forEach((e) => console.log(e ? e.name : "empty"));
+      sideList.forEach((e) => console.log(e ? e.name : "empty"));
+
+      navigate("/Cashier");
+    }
+    else {
+      console.log("Finish Adding Items!");
+    }
+  };
+
+  /**
+   * Adds selected entree to meal if slots remain available.
+   * Updates entree list state and increments entree index.
+   * @param {Object} item - Food item object to add
+   */
+  const selectEntree = (item) => {
+    const updated = [...entreeList];
+    let updatedIndex = indexEntree;
+    if (indexEntree &lt; numEntree) {
+      updated[indexEntree] = item;
+      updatedIndex = indexEntree + 1; 
+        
+      setEntreeList(updated);
+      setIndexEntree(indexEntree + 1)
+
+      console.log("Item Added: " + item.name);
+    } else {
+      console.log("No more slots")
+    }
+
+    console.log("Current Entree List and index: ")
+    updated.forEach((e) => console.log(e ? e.name : "empty"));
+    console.log("Slots Left: " + updatedIndex + "/" + numEntree);
+  }
+
+  /**
+   * Adds selected side to meal if slots remain available.
+   * Updates side list state and increments side index.
+   * @param {Object} item - Food item object to add
+   */
+  const selectSide = (item) => {
+    const updated_side = [...sideList];
+    let updated_sideIndex = indexSide;
+    if (indexSide &lt; numSides) {
+      updated_side[indexSide] = item;
+      updated_sideIndex = indexSide + 1;
+      setSideList(updated_side);
+      setIndexSide(indexSide + 1)
+
+      console.log("Item Added: " + item.name);
+    } else {
+      console.log("No more slots")
+    }
+
+    console.log("Current Side List and index: ")
+    updated_side.forEach((e) => console.log(e ? e.name : "empty"));
+    console.log("Slots Left: " + updated_sideIndex + "/" + numSides);
+  }
+
+  /**
+   * Removes item from entree or side list at specified index.
+   * Compacts array and adjusts selection index accordingly.
+   * @param {number} i - Index of item to remove
+   * @param {string} type - Type of item ('entree' or 'side')
+   */
+  const removeIndex = (i, type) => {
+    if (type === "entree") {
+      const updated = [...entreeList];
+      updated[i] = null; 
+
+      const compact = updated.filter(x => x !== null);
+
+      while (compact.length &lt; numSides) {
+        compact.push(null);
+      }
+
+      setEntreeList(compact);
+      setIndexEntree(Math.max(indexEntree - 1, 0));
+    } else if (type === "side") {
+      const updated = [...sideList];      
+      updated[i] = null; // remove the selected item
+
+      const compact = updated.filter(x => x !== null);
+
+      while (compact.length &lt; numSides) {
+        compact.push(null);
+      }
+
+      setSideList(compact);
+      setIndexSide(Math.max(indexSide - 1, 0));
+    }
+    
+  };
+
+  
+  const rows_entree = [];
+  for (let i = 0; i &lt; items_entrees.length; i += 5) {
+    rows_entree.push(items_entrees.slice(i, i + 5));
+  }
+
+  const rows_side = [];
+  for (let i = 0; i &lt; items_sides.length; i += 5) {
+    rows_side.push(items_sides.slice(i, i + 5));
+  }
+
+  return (
+    &lt;div className="p-4 space-y-3 container">
+
+      &lt;div className="main-layout">
+        &lt;div className="menu-wrapper">
+          &lt;div className="section section-entrees">
+
+            &lt;h3 className="section-title">Entrees:&lt;/h3>
+
+            {rows_entree.map((row, rowIndex) => (
+              &lt;div key={rowIndex} className={`menu-row ${rowIndex > 0 ? 'spaced' : ''}`}>
+                {row.map((item, itemIndex) => (
+                  &lt;button
+                    key={itemIndex}
+                    id={item.name}
+                    className="buy-button"
+                    //onClick={() => console.log("The item is: " + item.name + " and it costs this much: " + item.cost)}
+                    onClick={() => selectEntree(item)}
+                  >
+                    {item.name}
+                  &lt;/button>
+                ))}
+              &lt;/div>
+            ))}
+
+          &lt;/div>   
+
+          &lt;div className="section section-sides"> 
+
+            &lt;h3 className="section-title">Sides:&lt;/h3>
+
+              {rows_side.map((row, rowIndex) => (
+                &lt;div key={rowIndex} className={`menu-row ${rowIndex > 0 ? 'spaced' : ''}`}>
+                  {row.map((item, itemIndex) => (
+                    &lt;button
+                      key={itemIndex}
+                      id={item.name}
+                      className="buy-button"
+                      //onClick={() => console.log("The item is: " + item.name + " and it costs this much: " + item.cost)}
+                      onClick={() => selectSide(item)}
+                    >
+                      {item.name}
+                    &lt;/button>
+                  ))}
+                &lt;/div>
+              ))}    
+            &lt;/div>
+          &lt;/div>
+        &lt;/div>
+
+        &lt;div className="selected-panel">
+            &lt;div className="selected-group">
+              &lt;h3 className="section-title">Selected Entrees&lt;/h3>
+              {Array.from({ length: numEntree }).map((_, i) => (
+                &lt;button
+                  key={i}
+                  className="selected-button"
+                  onClick={() => removeIndex(i, "entree")}
+                >
+                  {entreeList[i] ? entreeList[i].name : "NONE"}
+                &lt;/button>
+              ))}
+            &lt;/div>
+
+            
+            &lt;div className="selected-group">
+              &lt;h3 className="section-title">Selected Sides&lt;/h3>
+              {Array.from({ length: numSides }).map((_, i) => (
+                &lt;button
+                  key={i}
+                  className="selected-button"
+                  onClick={() => removeIndex(i, "side")}
+                >
+                  {sideList[i] ? sideList[i].name : "NONE"}
+                &lt;/button>
+              ))}
+            &lt;/div>
+      &lt;/div>
+
+      &lt;button
+        className="continue-button"
+        onClick={handleFinishSelection}
+      >
+        Continue
+      &lt;/button>
+    &lt;/div> 
+
+    
+  );
+  }
+}
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="CashierMainPage.html">CashierMainPage</a></li><li><a href="Manager.html">Manager</a></li><li><a href="Transaction.html">Transaction</a></li><li><a href="User.html">User</a></li></ul><h3>Global</h3><ul><li><a href="global.html#TranslationContext">TranslationContext</a></li><li><a href="global.html#buildTraySummaries">buildTraySummaries</a></li><li><a href="global.html#chatWithAI">chatWithAI</a></li><li><a href="global.html#clearOrder">clearOrder</a></li><li><a href="global.html#decodeHTMLEntities">decodeHTMLEntities</a></li><li><a href="global.html#loadOrder">loadOrder</a></li><li><a href="global.html#printHistory">printHistory</a></li><li><a href="global.html#saveOrder">saveOrder</a></li><li><a href="global.html#translateMultiple">translateMultiple</a></li><li><a href="global.html#translateText">translateText</a></li><li><a href="global.html#useTranslate">useTranslate</a></li><li><a href="global.html#useTranslatedArray">useTranslatedArray</a></li><li><a href="global.html#useTranslatedObject">useTranslatedObject</a></li><li><a href="global.html#useTranslatedText">useTranslatedText</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Tue Dec 09 2025 19:51:30 GMT-0600 (Central Standard Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

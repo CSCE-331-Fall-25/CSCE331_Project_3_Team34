@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: Project3_Client/src/pages/Hub.jsx</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: Project3_Client/src/pages/Hub.jsx</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * @fileoverview Hub page for selecting application functionality.
+ * Entry point after login, provides navigation to different interfaces (cashier, kiosk, kitchen, manager).
+ * Handles Google OAuth linking for returning users.
+ */
+
+import { data, Link, useNavigate } from "react-router-dom";
+import "../styles/Hub.css";
+import SignOutButton from "../Components/SignOut";
+import React, { useEffect, useState } from "react";
+import bobRoss from "../assets/bob-ross.png";
+
+/**
+ * Hub component - Central navigation hub after login.
+ * Provides access to different application modules based on user role.
+ * Handles Google OAuth account linking.
+ * 
+ * @returns {JSX.Element} Hub navigation interface
+ */
+export default function Hub() {
+  const [pendingLink, setPendingLink] = useState(false);
+
+  /**
+   * Requests full-screen mode for the document element.
+   */
+  const goFullscreen = () => {
+    document.documentElement.requestFullscreen();
+  };
+
+  useEffect(() => {
+    // Check if returning from Google OAuth with googleid
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('link') === 'true' &amp;&amp; params.get('googleid')) {
+      // Remove link/googleid from URL immediately to prevent double execution
+      window.history.replaceState({}, document.title, '/hub');
+      const googleId = params.get('googleid');
+      
+      // Get current user and link the Google ID
+      fetch('/api/auth/me', {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include'
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.user) {
+          const username = data.user.username;
+          if (!username) {
+            alert('Error: Could not find username in session.');
+            return;
+          }
+          
+          // Link Google ID to current user
+          fetch('/api/link-googleid', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ username: username, googleid: googleId })
+          })
+          .then(response => response.json())
+          .then(linkData => {
+            if (linkData.success) {
+              alert('Google ID linked successfully!');
+            } else {
+              alert('Failed to link Google ID.');
+            }
+          })
+          .catch(error => {
+            console.error('Error linking Google ID:', error);
+            alert('Error linking Google ID.');
+          });
+        } else {
+          alert('No authenticated user. Please log in first.');
+        }
+      })
+      .catch(error => {
+        console.error('Error fetching authenticated user:', error);
+        alert('Error fetching authenticated user.');
+      });
+    }
+  }, []);
+
+  /**
+   * Initiates Google OAuth flow to link a Google account to the current user.
+   * Verifies user is logged in before redirecting to OAuth endpoint.
+   */
+  const handleLinkGoogleId = () => {
+    // Step 1: Check if user is logged in
+    fetch('/api/auth/me', {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include'
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.user) {
+        // Step 2: User is logged in, redirect to Google OAuth
+        const apiUrl = (import.meta.env.VITE_API_URL || 'http://localhost:8080').replace(/\/+$/, ''); // Remove trailing slashes
+        window.location.href = `${apiUrl}/auth/google?returnTo=${encodeURIComponent('/hub')}&amp;link=true`;
+      } else {
+        alert('Please log in first before linking a Google account.');
+      }
+    })
+    .catch(error => {
+      console.error('Error checking authentication:', error);
+      alert('Error checking authentication.');
+    });
+  };
+
+  /**
+   * Unlinks the associated Google account from the current user.
+   * Verifies user is logged in before unlinking.
+   */
+  const handleUnlinkGoogleId = () => {
+    // Step 1: Check if user is logged in
+    fetch('/api/auth/me', {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include'
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.user) {
+        const username = data.user.username;
+        if (!username) {
+          alert('No username found in session.');
+          return;
+        }
+        // Step 2: Unlink Google ID for current user
+        fetch('/api/unlink-googleid', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ username })
+        })
+        .then(response => response.json())
+        .then(unlinkData => {
+          if (unlinkData.success) {
+            alert('Google ID unlinked successfully!');
+          } else {
+            alert('Failed to unlink Google ID.');
+          }
+        })
+        .catch(error => {
+          console.error('Error unlinking Google ID:', error);
+          alert('Error unlinking Google ID.');
+        });
+      } else {
+        alert('Please log in first before unlinking a Google account.');
+      }
+    })
+    .catch(error => {
+      console.error('Error checking authentication:', error);
+      alert('Error checking authentication.');
+    });
+  };
+
+  return (
+    &lt;div className="hub-wrapper">
+      &lt;img src={bobRoss} alt="Bob Ross Panda" className="hub-hero-image" />
+      &lt;div className="home-grid">
+        &lt;Link to="/weather">&lt;button onClick={goFullscreen}>Kiosk&lt;/button>&lt;/Link>
+        &lt;Link to="/cashier">&lt;button>Cashier&lt;/button>&lt;/Link>
+        &lt;Link to="/manager">&lt;button>Manager&lt;/button>&lt;/Link>
+        &lt;Link to="/menu">&lt;button>Menu&lt;/button>&lt;/Link>
+        &lt;Link to="/kitchen">&lt;button>Kitchen&lt;/button>&lt;/Link>
+        &lt;button className="google-btn" onClick={handleLinkGoogleId}>Link Google ID&lt;/button>
+        &lt;button className="google-btn" onClick={handleUnlinkGoogleId}>Unlink Google ID&lt;/button>
+      &lt;/div>
+    &lt;/div>
+  );
+}</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="CashierMainPage.html">CashierMainPage</a></li><li><a href="Manager.html">Manager</a></li><li><a href="Transaction.html">Transaction</a></li><li><a href="User.html">User</a></li></ul><h3>Global</h3><ul><li><a href="global.html#TranslationContext">TranslationContext</a></li><li><a href="global.html#buildTraySummaries">buildTraySummaries</a></li><li><a href="global.html#chatWithAI">chatWithAI</a></li><li><a href="global.html#clearOrder">clearOrder</a></li><li><a href="global.html#decodeHTMLEntities">decodeHTMLEntities</a></li><li><a href="global.html#loadOrder">loadOrder</a></li><li><a href="global.html#printHistory">printHistory</a></li><li><a href="global.html#saveOrder">saveOrder</a></li><li><a href="global.html#translateMultiple">translateMultiple</a></li><li><a href="global.html#translateText">translateText</a></li><li><a href="global.html#useTranslate">useTranslate</a></li><li><a href="global.html#useTranslatedArray">useTranslatedArray</a></li><li><a href="global.html#useTranslatedObject">useTranslatedObject</a></li><li><a href="global.html#useTranslatedText">useTranslatedText</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Tue Dec 09 2025 19:51:30 GMT-0600 (Central Standard Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

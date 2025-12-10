@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: Project3_Server/src/index.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: Project3_Server/src/index.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * @fileoverview Main server application entry point.
+ * Initializes Express server with routes for kiosk, cashier, kitchen, manager, and authentication.
+ * Manages database connections, sessions, and API endpoints.
+ */
+
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
+import { pool, setPool } from "./db.js";
+import CashierMainPage from "./MainPage.js";
+import User, {Employee, Customer} from "./User.js";
+import { Manager } from "./Manager.js";
+import Item, { Menu } from "./Item.js";
+import session from "express-session";
+import cookieParser from "cookie-parser";
+import * as oAuth from "./oAuth.js";
+import { translateText } from "./Translation.js";
+
+// Kiosk router file is named `Kiosk.js` (capital K). Use the exact filename so imports work
+// on case-sensitive filesystems (e.g. Linux used by many CI/CD hosts).
+import kioskRouter from "./Kiosk.js";
+import kitchenRouter from "./Kitchen.js";
+
+import {chatWithAI} from "./GenAI.js";
+
+
+
+
+
+
+
+
+// Load .env file only if it exists (for local development)
+// In production (Render), environment variables are set directly
+dotenv.config();
+
+const app = express();
+app.locals.dbPool = pool;
+// Configure CORS and sessions so client (Vite) can communicate with backend and receive cookies
+const clientOrigin = process.env.CLIENT_ORIGIN || "http://localhost:5173";
+const sessionPrefab = session({
+  secret: process.env.SESSION_SECRET || 'default_secret', // TODO: change to strong secret in production
+  resave: false,
+  saveUninitialized: true,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    maxAge: 60 * 60 * 1000 // 1 hour
+  }
+});
+
+app.use(cors({ origin: clientOrigin, credentials: true }));
+app.use(express.json());
+
+app.use(cookieParser());
+app.use(sessionPrefab);
+
+// a map to hold session-scoped main page instances
+const sessionMap = new Map();
+
+function getMainPageForSession(req) {
+  // ensure sessions exist
+  if (!req.session) return mainPage; // fallback to global mainPage if sessions unavailable
+  const sessionID = req.session.id;
+  if (!sessionMap.has(sessionID)) {
+    console.log(`[DEBUG] Session ${sessionID} not found in map. Creating new page.`);
+    const user = new User("tempUser", "tempPass", "temp@gmail.com");
+    const mp = new CashierMainPage(user, pool);
+    sessionMap.set(sessionID, mp);
+    req.session.initialized = true;
+    console.log(`Initialized new session: ${sessionID}`);
+  } else {
+    // console.log(`Using existing session: ${sessionID}`);
+  }
+  return sessionMap.get(sessionID);
+}
+app.post('/api/ask-gen-ai', async (req, res) => {
+  //console.log("Received GenAI request with prompt:", req.body.prompt_text);
+  let currUser = req.session?.user ?? null;
+  if(!currUser){
+    currUser = new User("TestUser", "TestPassword", "");
+    //currUser = "Does not exist";
+    console.error("No user in session");
+    //return res.status(401).json({ success: false, error: 'Not authenticated' });
+  } 
+  
+  // Initialize history if not present
+  if (!req.session.history) {
+    req.session.history = [];
+  }
+  
+  let prompt = req.body.prompt_text;
+  //console.log(`GenAI request from user: ${currUser.username}, prompt: ${prompt}`);
+
+  let menuContext = null;
+  try {
+      const menuRes = await pool.query("SELECT name, type FROM menu");
+      const itemsRes = await pool.query("SELECT name, type, price, numentrees, numsides FROM items WHERE type IN ('meal', 'entree', 'side', 'drink', 'appetizer')");
+      menuContext = {
+          menu: menuRes.rows,
+          items: itemsRes.rows
+      };
+  } catch (e) {
+      console.error("Failed to fetch menu context", e);
+  }
+
+  try {
+    const response = await chatWithAI(currUser.username, prompt, req.session.history, menuContext);
+    res.json({ success: true, response_text: response });
+  } catch (err) {
+    console.error('Error communicating with GenAI:', err);
+    if (err.status === 429 || (err.message &amp;&amp; err.message.includes('429'))) {
+      return res.status(429).json({ success: false, error: 'AI service is currently busy (Quota Exceeded). Please try again in a minute.' });
+    }
+    res.status(500).json({ success: false, error: 'Failed to get response from GenAI' });
+  }
+});
+// API endpoint to authenticate login
+app.post('/api/authenticate-login', async (req, res) => {
+  try{
+    const { username, password, customer = false, isOverride = false } = req.body;
+    console.log("at authenticate customer is: " + customer);
+    const user = await User.AuthenticateLogin(pool, username, password,null, customer);
+    if(!user) {
+        return res.status(401).json({ success: false, error: 'Invalid username or password' });
+    }
+
+    const oldSessionId = req.session.id;
+    const existingPage = sessionMap.get(oldSessionId);
+    
+    if (isOverride &amp;&amp; existingPage) {
+        console.log(`[DEBUG] Found existing page for session ${oldSessionId}. Orders: ${existingPage.currTransaction?.orders?.length}`);
+    } else {
+        console.log(`[DEBUG] No existing page found for session ${oldSessionId} (isOverride: ${isOverride})`);
+    }
+
+    // set user on session and regenerate to prevent fixation
+    //req.session.user = { username: user.username, isEmployee: user.isEmployee };
+    req.session.regenerate((err) => {
+      if(err) {
+        console.error('Session regeneration error:', err);
+        return res.status(500).json({ success: false, error: 'Internal server error' });
+      }
+      req.session.user = { username: user.username, isEmployee: user.isEmployee };
+      try {
+        console.log("overRide is: " + isOverride); 
+        if (isOverride &amp;&amp; existingPage) {
+          console.log(`Transferring order from Session ${oldSessionId} to ${req.session.id}`);
+          
+          // A. Update the owner of the page to the new Manager
+          existingPage.user = user; 
+          
+          // Update the transaction's employee reference
+          if (existingPage.currTransaction) {
+              existingPage.currTransaction.employee = user;
+          }
+
+          // B. Link the EXISTING page to the NEW Session ID
+          sessionMap.set(req.session.id, existingPage);
+          
+          // C. Clean up the old reference
+          sessionMap.delete(oldSessionId);
+          
+          console.log(`[DEBUG] Transfer complete. New session ${req.session.id} has ${sessionMap.get(req.session.id).currTransaction?.orders?.length} orders.`);
+        } else {
+            // Normal Login: Create a brand new empty page
+            sessionMap.set(req.session.id, new CashierMainPage(user, pool));
+        }
+      } catch (e) {
+        console.error('Failed to create session main page:', e);
+      }
+      return res.json({ success: true });
+    });
+  }
+  catch(err){
+      console.error('Error during authentication:', err);
+      return res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+app.post('/api/logout', (req,res)=>{
+  if (req.session) console.log(`Session ${req.session.id} logged out and resources cleared.`);
+  if (req.session) sessionMap.delete(req.session.id);
+  if (req.session) {
+    req.session.destroy(err => {
+      res.clearCookie('connect.sid');
+      return res.json({ success: !err });
+    });
+  } else {
+    return res.json({ success: true });
+  }
+});
+app.use(express.json());
+
+//gets the current signed in user for this session
+app.get('/api/get-user', async (req, res) => {
+  const currUser = req.session?.user ?? null;
+  if(!currUser) return res.status(401).json({ success: false, error: 'Not authenticated' });
+  if(currUser.isEmployee){
+    console.log("Current User is Employee:", currUser);
+    //fetch full user data from DB
+    const userData = await Employee.FetchByUsername(pool, currUser.username, null, null);
+    currUser.isManager = userData ? userData.isManager : false;
+    console.log("Current User is Manager:", currUser.isManager);
+    return res.json({ success: true, user: currUser, isManager: currUser.isManager  });
+  }
+  console.log("Current User not Employee:", currUser);
+  res.json({ success: true, user: currUser });
+
+});
+
+app.get("/auth/google", (req, res) => {
+ oAuth.redirectToAppWithLoginSuccess(req, res);
+});
+
+app.get("/auth/google/callback", async (req, res) => {
+  oAuth.googleAuthCallbackHandler(req, res);
+});
+
+
+app.get('/api/auth/me', (req, res) => {
+  //console.log('Received /auth/me request');
+  try {
+    oAuth.authMeHandler(req, res);
+  } catch (err) {
+    console.error('Error in /auth/me:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+
+app.post('/api/link-googleid', async (req, res) => {
+  const { username, googleid } = req.body;
+  try {
+    console.log(`Linking Google ID ${googleid} to user ${username}`);
+    const success = await oAuth.LinkGoogleIDToUser(req.app.locals.dbPool, username, googleid);
+    res.json({ success });
+  } catch (err) {
+    console.error('Error linking Google ID to user:', err);
+    res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
+});
+
+// Unlink Google ID from both Users and Employees tables
+app.post('/api/unlink-googleid', async (req, res) => {
+  const { username } = req.body;
+  try {
+    const success = await oAuth.UnlinkGoogleIDFromUser(req.app.locals.dbPool, username);
+    res.json({ success });
+  } catch (err) {
+    console.error('Error unlinking Google ID:', err);
+    res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+  }
+});
+app.post('/api/signup-customer', async (req, res) => {
+  try {
+    const { name, username, password, email } = req.body;
+    const existingUser = await Customer.FetchByUsername(pool, username);
+    if (existingUser) {
+      return res.status(400).json({ success: false, error: 'Username already exists' });
+    }
+    const newCustomerInstance = await User.CreateCustomer(req.app.locals.dbPool, username, password, email, name);
+    const newCustomer = await Customer.FetchByUsername(pool, username);
+    if (!newCustomer) {
+      return res.status(500).json({ success: false, error: 'Failed to create customer' });
+    }
+    console.log('Customer signed up successfully:', username);
+    return res.json({ success: true });
+
+  }
+  catch (err) {
+    console.error('Error during customer signup:', err);
+    return res.status(500).json({ success: false, error: 'Internal server error when signing up customer' });
+  }
+});
+
+// Example: create a test user and main page instance (pass the pool so it has DB access)
+const user = new User("testUser", "password123", "bob@gmail.com");
+const mainPage = new CashierMainPage(user, pool);
+const manager = new Manager(pool, "testUser");
+
+
+app.use('/api/kiosk', kioskRouter);
+app.use('/api/kitchen', kitchenRouter);
+
+// API endpoint to fetch menus by type
+app.post('/api/fetch-menus-by-type', async (req, res) => {
+  try {
+    const { type } = req.body;
+    if (!type) {
+      return res.status(400).json({ error: 'Type is required' });
+    }
+    const menus = await Menu.fetchByType(pool, type);
+    res.json(menus.map(menu => ({
+      menuID: menu.menuid,
+      menuName: menu.name,
+      type: menu.type,
+      priceMod: menu.pricemod,
+      inventoryIDs: menu.inventoryids
+      // Add this line when calories added to DB
+      // calories: menu.calories
+    })));
+  } catch (err) {
+    console.error('Error fetching menus by type:', err);
+    res.status(500).json({ error: 'Failed to fetch menus' });
+  }
+});
+
+app.post('/api/fetch-all-items', async (req, res) => {
+  try {
+    const items = await Item.fetchAllItems(pool);
+    res.json(items.map(item => ({
+      itmeID: item.itemid,
+      itemName: item.name, 
+      itemPrice: item.price, 
+      numSides: item.numsides, 
+      numEntrees: item.numentrees, 
+      invIDs: item.inventoryids, 
+      type: item.type
+    })));
+  } catch (err) {
+    console.error('Error fetching items by type:', err);
+    res.status(500).json({ error: 'Failed to fetch items' });
+  }
+});
+
+// API endpoint to buy an item
+app.post('/api/buy-item', async (req, res) => {
+  try {
+    let mainPage = getMainPageForSession(req);
+    let result;
+    if (req.body &amp;&amp; req.body.itemID) {
+      result = await mainPage.BuyItemButton(req.body.itemID, req.body.entreeList, req.body.sideList, req.body.size);
+    } else {
+      result = await mainPage.BuyItemButton();
+    }
+    res.json({ success: true, ...result });
+  } catch (err) {
+    console.error('Error in /api/buy-item:', err);
+    res.status(500).json({ success: false, error: String(err) });
+  }
+});
+
+// API endpoint to update an existing item in the current transaction
+app.post('/api/update-item', async (req, res) => {
+  try {
+    let mainPage = getMainPageForSession(req);
+    const { itemIndex, itemID, entreeList, sideList, size } = req.body;
+    
+    if (itemIndex === null || itemIndex === undefined) {
+      return res.status(400).json({ success: false, error: "itemIndex is required" });
+    }
+    
+    // Remove the old item
+    const removeResult = mainPage.RemoveItemByIndex(itemIndex);
+    if (!removeResult.success) {
+      return res.status(400).json({ success: false, error: removeResult.error });
+    }
+    
+    // Add the new item
+    let result;
+    if (itemID) {
+      result = await mainPage.BuyItemButton(itemID, entreeList, sideList, size);
+    } else {
+      result = await mainPage.BuyItemButton();
+    }
+    res.json({ success: true, ...result });
+  } catch (err) {
+    console.error('Error in /api/update-item:', err);
+    res.status(500).json({ success: false, error: String(err) });
+  }
+});
+
+// API endpoint to add a discount
+app.post('/api/add-discount', async (req, res) => {
+  const mainPage = getMainPageForSession(req);
+  
+  let result = { acceptedDiscount: false };
+  try {
+    if(!(req.body.discountCode || req.body.priceOff || req.body.discountPer)) {
+      error('No discount data provided');
+    }
+    result = await mainPage.AddDiscount(req.body.discountCode, req.body.priceOff, req.body.discountPer);
+    console.log('Discount result:', result);
+    
+    res.json({
+      success: result.acceptedDiscount,
+      acceptedDiscount: result.acceptedDiscount,
+      discountPer: result.discountPer || 0,
+      priceOff: result.priceOff || 0,
+      discountAmount: result.discountAmount || 0 
+    });
+  } catch (err) {
+    console.error('Error applying discount:', err);
+    res.status(500).json({ 
+      success: false, 
+      acceptedDiscount: false, 
+      error: 'Failed to apply discount' 
+    });
+  }
+});
+
+// API endpoint to clear the transaction
+app.delete('/api/clear-transaction', (req, res) => {
+  const mainPage = getMainPageForSession(req);
+  mainPage.ClearTransaction();
+  res.json({ success: true });
+});
+// API endpoint to purchase the transaction
+app.post('/api/purchase', async (req, res) => {
+  const mainPage = getMainPageForSession(req);
+  try {
+    const transactionId = await mainPage.PurchaseTransaction();
+    res.json({ success: true, transactionId });
+  } catch (err) {
+    console.error('Purchase failed:', err);
+    res.status(500).json({ success: false, error: 'Failed to complete purchase' });
+  }
+});
+
+// Simple route
+app.get("/api/users", async (req, res) => {
+  try {
+    const result = await pool.query("SELECT * FROM employees");
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Database query failed" });
+  }
+});
+
+// API endpoint to get current state
+app.get("/api/current-state", (req, res) => {
+  const mainPage = getMainPageForSession(req);
+  let result = mainPage.GetCurrentState();
+  res.json(result);
+});
+// API endpoint to remove an item by index
+app.post('/api/remove-item', (req, res) => {
+  const { index } = req.body;
+  const mainPage = getMainPageForSession(req);
+  let result = mainPage.RemoveItemByIndex(index);
+  res.json({ success: true, ...result });
+});
+// Lightweight health endpoint for tests and readiness checks
+app.get('/api/health', (req, res) => {
+  res.json({ ok: true });
+});
+
+// Translation endpoint for supporting multiple languages in the kiosk
+app.post('/api/translate', async (req, res) => {
+  try {
+    const { text, targetLanguage } = req.body;
+
+    if (!text || !targetLanguage) {
+      return res.status(400).json({ 
+        error: 'Missing required fields: text and targetLanguage' 
+      });
+    }
+
+    const translatedText = await translateText(text, targetLanguage);
+    res.json({ translatedText });
+  } catch (error) {
+    console.error('Translation API error:', error);
+    res.status(500).json({ 
+      error: 'Translation service error',
+      message: error.message 
+    });
+  }
+});
+
+app.post('/api/void-transaction', async (req, res) => {
+  const { transactionId, userIsManager } = req.body;
+  const mainPage = getMainPageForSession(req);
+  res.json(await mainPage.VoidTransaction(transactionId, userIsManager));
+});
+
+
+// ------------------------------------- Manager API Endpoints Start --------------------------------------
+app.post('/api/x-report-data', async (req, res) => {
+  try {
+    //console.log("request recieved");
+    res.json(await manager.XReportData());
+  } catch (err) {
+    console.error('Error getting data');
+    res.json({  hour: -1, sales: -1 });
+  }
+});
+
+app.get('/api/x-report-data', async (req, res) => {
+  try {
+    //console.log("request recieved");
+    res.json(await manager.XReportData());
+  } catch (err) {
+    console.error('Error getting data');
+    res.json({ hour: -1, sales: -1 });
+  }
+});
+
+app.get('/api/z-report-data', async (req, res) => {
+  try {
+    //console.log("request recieved");
+    res.json(await manager.ZReportData());
+  } catch (err) {
+    console.error('Error getting data');
+    res.json({ hour: -1, sales: -1 });
+  }
+});
+
+app.post('/api/sales-report-data', async (req, res) => {
+  try {
+    //console.log("request recieved");
+    const { startTime, endTime } = req.body;
+    res.json(await manager.SalesReportData(startTime, endTime));
+  } catch (err) {
+    console.error('Error getting data' + err);
+    res.json({ menuid: -1, name: -1, sales: -1, code: 4096 });
+  }
+});
+
+app.post('/api/product-usage-report-data', async (req, res) => {
+  try {
+    //console.log("request recieved");
+    const { startTime, endTime } = req.body;
+    res.json(await manager.ProductUsageReportData(startTime, endTime));
+  } catch (err) {
+    console.error('Error getting data' + err);
+    res.json({ inventoryid: -1, name: -1, sales: -1, code: 4096 });
+  }
+});
+
+app.get('/api/restock-report-data', async (req, res) => {
+  try {
+    //console.log("request recieved");
+    res.json(await manager.RestockReportData());
+  } catch (err) {
+    console.error('Invalid input data');
+    res.json({ itemid: -1, name: -1, quantity: -1 });
+  }
+});
+
+app.get('/api/employee-data', async (req, res) => {
+  try {
+    //console.log("request recieved");
+    res.json(await manager.EmployeeData());
+  } catch (err) {
+    console.error('Invalid input data');
+    res.json({ error: -2 });
+  }
+});
+
+app.post('/api/add-employee', async (req, res) => {
+  try {
+    //console.log("request recieved");
+    const { employeeId, employeeNewName, employeeRole, employeeWage, employeeIsManager, employeeUsername, employeeEmail, employeePassword } = req.body;
+    res.json(await manager.AddEmployee(employeeId, employeeNewName, employeeRole, employeeWage, employeeIsManager, employeeUsername, employeeEmail, employeePassword));
+  } catch (err) {
+    console.error('Error getting data' + err);
+    res.json({ error: -2 });
+  }
+});
+
+app.post('/api/remove-employee', async (req, res) => {
+  try {
+   // console.log("request recieved");
+    const { employeeId, rowSelection } = req.body;
+    res.json(await manager.RemoveEmployee(employeeId, rowSelection));
+  } catch (err) {
+    console.error('Error getting data' + err);
+    res.json({ error: -2 });
+  }
+});
+
+app.post('/api/update-employee', async (req, res) => {
+  try {
+   // console.log("request recieved");
+    const { employeeId, employeeNewName, employeeRole, employeeWage, employeeIsManager, employeeUsername, employeeEmail, employeePassword, rowSelection } = req.body;
+    res.json(await manager.UpdateEmployee(employeeId, employeeNewName, employeeRole, employeeWage, employeeIsManager, employeeUsername, employeeEmail, employeePassword, rowSelection));
+  } catch (err) {
+    console.error('Error getting data' + err);
+    res.json({ error: -2 });
+  }
+});
+
+app.get('/api/menu-data', async (req, res) => {
+  try {
+   // console.log("request recieved");
+    res.json(await manager.MenuData());
+  } catch (err) {
+    console.error('Invalid input data');
+    res.json({ error: -2 });
+  }
+});
+
+app.post('/api/add-menu', async (req, res) => {
+  try {
+   // console.log("request recieved");
+    const { menuId, menuName, menuType, menuCalories, menuAllergies, menuPriceMod, menuInventoryIds } = req.body;
+    res.json(await manager.AddMenu(menuId, menuName, menuType, menuCalories, menuAllergies, menuPriceMod, menuInventoryIds));
+  } catch (err) {
+    console.error('Error getting data' + err);
+    res.json({ error: -2 });
+  }
+});
+
+app.post('/api/remove-menu', async (req, res) => {
+  try {
+   // console.log("request recieved");
+    const { menuId, rowSelection } = req.body;
+    res.json(await manager.RemoveMenu(menuId, rowSelection));
+  } catch (err) {
+    console.error('Error getting data' + err);
+    res.json({ error: -2 });
+  }
+});
+
+app.post('/api/update-menu', async (req, res) => {
+  try {
+   // console.log("request recieved");
+    const { menuId, menuName, menuType, menuCalories, menuAllergies, menuPriceMod, menuInventoryIds, rowSelection } = req.body;
+    res.json(await manager.UpdateMenu(menuId, menuName, menuType, menuCalories, menuAllergies, menuPriceMod, menuInventoryIds, rowSelection));
+  } catch (err) {
+    console.error('Error getting data' + err);
+    res.json({ error: -2 });
+  }
+});
+
+
+app.get('/api/inventory-data', async (req, res) => {
+  try {
+   // console.log("request recieved");
+    res.json(await manager.InventoryData());
+  } catch (err) {
+    console.error('Invalid input data');
+    res.json({ error: -2 });
+  }
+});
+
+app.post('/api/add-inventory', async (req, res) => {
+  try {
+   // console.log("request recieved");
+    const { inventoryId, inventoryItems, inventoryQuantity, inventoryMaxStock, inventoryMinStock } = req.body;
+    res.json(await manager.AddInventory(inventoryId, inventoryItems, inventoryQuantity, inventoryMaxStock, inventoryMinStock));
+  } catch (err) {
+    console.error('Error getting data' + err);
+    res.json({ error: -2 });
+  }
+});
+
+app.post('/api/remove-inventory', async (req, res) => {
+  try {
+   // console.log("request recieved");
+    const { inventoryId, rowSelection } = req.body;
+    res.json(await manager.RemoveInventory(inventoryId, rowSelection));
+  } catch (err) {
+    console.error('Error getting data' + err);
+    res.json({ error: -2 });
+  }
+});
+
+app.post('/api/update-inventory', async (req, res) => {
+  try {
+   // console.log("request recieved");
+    const { inventoryId, inventoryItems, inventoryQuantity, inventoryMaxStock, inventoryMinStock, rowSelection } = req.body;
+    res.json(await manager.UpdateInventory(inventoryId, inventoryItems, inventoryQuantity, inventoryMaxStock, inventoryMinStock, rowSelection));
+  } catch (err) {
+    console.error('Error getting data' + err);
+    res.json({ error: -2 });
+  }
+});
+
+
+
+app.post('/api/get-menu-ids', async (req, res) => {
+  try {
+   // console.log("request recieved");
+    const {  menuId, rowSelection } = req.body;
+    res.json(await manager.getMenuIds(menuId, rowSelection));
+    // console.log(res.json());
+  } catch (err) {
+    console.error('Error getting data' + err);
+    res.json({ error: -2 });
+  }
+});
+
+
+
+app.get('/api/get-sales-data', async (req, res) => {
+  try {
+   // console.log("request recieved");
+    res.json(await manager.GetSalesData());
+  } catch (err) {
+    console.error('Invalid input data' + err);
+    res.json({ error: -2 });
+  }
+});
+
+import { fileURLToPath } from 'url';
+import { handleFileUpload } from './Upload.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+app.use('/assets', express.static(path.join(__dirname, 'assets')));
+
+app.post('/api/upload', handleFileUpload);
+// ------------------------------------- Manager API Endpoints End ------------------------------------
+
+
+import path from "path";
+
+
+// ✅ Serve React build folder (adjust if you used CRA instead of Vite)
+app.use(express.static(path.join(__dirname, "../../Project3_Client/dist")));
+
+// ✅ For any non-API route, serve index.html so React handles client-side routing (Express 5+ best practice)
+app.use((req, res, next) => {
+  if (req.path.startsWith("/api")) return next(); // skip API routes
+  res.sendFile(path.join(__dirname, "../../Project3_Client/dist/index.html"));
+});
+
+const PORT = process.env.PORT || 8080;
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
+}
+
+export default app;</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="CashierMainPage.html">CashierMainPage</a></li><li><a href="Manager.html">Manager</a></li><li><a href="Transaction.html">Transaction</a></li><li><a href="User.html">User</a></li></ul><h3>Global</h3><ul><li><a href="global.html#TranslationContext">TranslationContext</a></li><li><a href="global.html#buildTraySummaries">buildTraySummaries</a></li><li><a href="global.html#chatWithAI">chatWithAI</a></li><li><a href="global.html#clearOrder">clearOrder</a></li><li><a href="global.html#decodeHTMLEntities">decodeHTMLEntities</a></li><li><a href="global.html#loadOrder">loadOrder</a></li><li><a href="global.html#printHistory">printHistory</a></li><li><a href="global.html#saveOrder">saveOrder</a></li><li><a href="global.html#translateMultiple">translateMultiple</a></li><li><a href="global.html#translateText">translateText</a></li><li><a href="global.html#useTranslate">useTranslate</a></li><li><a href="global.html#useTranslatedArray">useTranslatedArray</a></li><li><a href="global.html#useTranslatedObject">useTranslatedObject</a></li><li><a href="global.html#useTranslatedText">useTranslatedText</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Tue Dec 09 2025 19:51:30 GMT-0600 (Central Standard Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

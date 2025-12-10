@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: Project3_Server/src/Translation.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: Project3_Server/src/Translation.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * @fileoverview Translation module using Google Translate API.
+ * Provides server-side text translation functionality for multi-language support.
+ */
+
+import fetch from 'node-fetch';
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+dotenv.config({ path: path.join(__dirname, '.env') });
+
+// Get the translation API key from .env file
+const translateKey = process.env.translateKey;
+
+if (!translateKey) {
+  console.warn('Warning: translateKey not found in .env file. Translation service will be unavailable.');
+}
+
+/**
+ * Translate text to a target language using Google Translate API
+ * @param {string} text - Text to translate
+ * @param {string} targetLanguage - Target language code (e.g., 'es', 'fr', 'de')
+ * @returns {Promise&lt;string>} - Translated text
+ */
+export async function translateText(text, targetLanguage) {
+  if (!text) {
+    return text;
+  }
+
+  // If target is English or not specified, return original text
+  if (targetLanguage === 'en' || !targetLanguage) {
+    return text;
+  }
+
+  if (!translateKey) {
+    console.warn('Translation service is not available - API key missing');
+    return text;
+  }
+
+  console.log('🔑 API Key loaded:', translateKey ? `${translateKey.substring(0, 10)}...` : 'MISSING');
+  console.log('📝 Translating:', text.substring(0, 50), 'to', targetLanguage);
+
+  try {
+    // Google Translate API v2 requires the API key as a URL parameter
+    const url = `https://translation.googleapis.com/language/translate/v2?key=${translateKey}`;
+    
+    const requestBody = {
+      q: text,
+      target: targetLanguage,
+    };
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody),
+    });
+
+    console.log('📡 Response status:', response.status, response.statusText);
+
+    if (!response.ok) {
+      const errorBody = await response.text();
+      console.error('❌ Translation API error:', response.statusText);
+      console.error('❌ Error details:', errorBody);
+      return text;
+    }
+
+    const data = await response.json();
+    
+    if (!data.data || !data.data.translations || !data.data.translations[0]) {
+      console.error('Unexpected translation API response format');
+      return text;
+    }
+
+    return data.data.translations[0].translatedText;
+  } catch (error) {
+    console.error('Translation error:', error.message);
+    return text; // Return original text on error
+  }
+}
+
+/**
+ * Translate multiple texts
+ * @param {string[]} texts - Array of texts to translate
+ * @param {string} targetLanguage - Target language code
+ * @returns {Promise&lt;string[]>} - Array of translated texts
+ */
+export async function translateMultiple(texts, targetLanguage) {
+  if (!Array.isArray(texts) || texts.length === 0) {
+    return texts;
+  }
+
+  if (targetLanguage === 'en' || !targetLanguage) {
+    return texts;
+  }
+
+  if (!translateKey) {
+    console.warn('Translation service is not available - API key missing');
+    return texts;
+  }
+
+  try {
+    const response = await fetch('https://translation.googleapis.com/language/translate/v2', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        q: texts,
+        target: targetLanguage,
+        key: translateKey,
+      }),
+    });
+
+    if (!response.ok) {
+      console.error('Translation API error:', response.statusText);
+      return texts;
+    }
+
+    const data = await response.json();
+    
+    if (!data.data || !data.data.translations) {
+      console.error('Unexpected translation API response format');
+      return texts;
+    }
+
+    return data.data.translations.map(item => item.translatedText);
+  } catch (error) {
+    console.error('Translation error:', error.message);
+    return texts; // Return original texts on error
+  }
+}
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="CashierMainPage.html">CashierMainPage</a></li><li><a href="Manager.html">Manager</a></li><li><a href="Transaction.html">Transaction</a></li><li><a href="User.html">User</a></li></ul><h3>Global</h3><ul><li><a href="global.html#TranslationContext">TranslationContext</a></li><li><a href="global.html#buildTraySummaries">buildTraySummaries</a></li><li><a href="global.html#chatWithAI">chatWithAI</a></li><li><a href="global.html#clearOrder">clearOrder</a></li><li><a href="global.html#decodeHTMLEntities">decodeHTMLEntities</a></li><li><a href="global.html#loadOrder">loadOrder</a></li><li><a href="global.html#printHistory">printHistory</a></li><li><a href="global.html#saveOrder">saveOrder</a></li><li><a href="global.html#translateMultiple">translateMultiple</a></li><li><a href="global.html#translateText">translateText</a></li><li><a href="global.html#useTranslate">useTranslate</a></li><li><a href="global.html#useTranslatedArray">useTranslatedArray</a></li><li><a href="global.html#useTranslatedObject">useTranslatedObject</a></li><li><a href="global.html#useTranslatedText">useTranslatedText</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Tue Dec 09 2025 19:51:30 GMT-0600 (Central Standard Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

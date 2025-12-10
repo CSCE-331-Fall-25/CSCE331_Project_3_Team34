@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: Project3_Server/src/Transaction.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: Project3_Server/src/Transaction.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * @fileoverview Transaction, Order, and Tray model classes.
+ * Manages customer transactions, orders, and meal composition.
+ */
+
+import { Menu } from './Item.js';
+import { Employee } from './User.js';
+
+/**
+ * Transaction class - Represents a complete customer transaction.
+ * Contains one or more orders and tracks pricing and employee information.
+ * 
+ * @class
+ * @param {Object} db - Database pool for queries
+ * @param {Employee} [employee] - Employee processing the transaction
+ */
+class Transaction {
+    constructor(db, employee) {
+        this.db = db;
+        this.employee = employee || new Employee('','','');
+        this.amount = 0;
+        this.profit = 0;
+
+        this.orders = [];
+        this.currOrder = null;
+        this.customerID = null;
+    }
+
+    /**
+     * Creates a new order within this transaction.
+     * 
+     * @param {Item} item - Item to order
+     * @param {string} [size=null] - Size of the order (small, medium, large)
+     * @returns {Order} New Order instance
+     */
+    NewOrder(item, size = null) {
+        this.currOrder = new Order(this, item, size);
+        this.orders.push(this.currOrder);
+        return this.currOrder;
+    }
+
+    /**
+     * Saves a transaction and all its orders to the database.
+     * Generates new transaction ID and recursively saves all orders.
+     * 
+     * @static
+     * @async
+     * @param {Object} db - Database pool connection
+     * @param {Transaction} transaction - Transaction to save
+     * @returns {Promise&lt;number>} The generated transaction ID
+     */
+    static async AddToDatabase(db, transaction) {
+        // Pull next available transaction ID
+        // Use MAX(id) + 1 to avoid sequence sync issues with Kiosk
+        const transIdRes = await db.query('SELECT MAX(transactionid) as maxid FROM transactions');
+        
+        let transactionID;
+        if (!transIdRes || !transIdRes.rows || transIdRes.rows.length === 0 || transIdRes.rows[0].maxid === null) {
+             transactionID = 1;
+        } else {
+             transactionID = parseInt(transIdRes.rows[0].maxid) + 1;
+        }
+
+        // Insert transaction record
+        const insertTransQuery = `
+            INSERT INTO transactions (transactionid, employeeid, time, amount, profit, customerid, stage)
+            VALUES ($1, $2, NOW(), $3, $4, $5, $6)
+        `;
+        await db.query(insertTransQuery, [
+            transactionID,
+            // If transaction.employee is an Employee instance use its ID, otherwise NULL
+            (transaction.employee &amp;&amp; transaction.employee.employeeID) ? transaction.employee.employeeID : -1,
+            transaction.amount,
+            transaction.profit,
+            transaction.customerID || null,
+            4 // Stage 4 = "Waiting" in kitchen display (not started)
+        ]);
+        
+        for (const order of transaction.orders) {
+            await Order.AddToDatabase(db, transactionID, order);
+        }
+
+        return transactionID;
+    }
+
+    /**
+     * Calculates total amount and profit for the transaction.
+     * Sums all order prices and computes profit margin.
+     * 
+     * @async
+     * @param {Object} db - Database pool connection
+     * @returns {Promise&lt;number>} Total transaction amount
+     */
+    async calculateTotals(db) {
+        let totalAmount = 0;
+        let totalProfit = 0;
+
+        for (const order of this.orders) {
+            const orderPrice = await order.calculatePrice(db);
+            totalAmount += orderPrice;
+            // For simplicity, assume profit is 20% of the price
+            totalProfit += orderPrice * 0.2;
+        }
+
+        // Round totals to two decimal places
+        totalAmount = Math.round((totalAmount + Number.EPSILON) * 100) / 100;
+        totalProfit = Math.round((totalProfit + Number.EPSILON) * 100) / 100;
+
+        this.amount = totalAmount;
+        this.profit = totalProfit;
+
+        return this.amount;
+    }
+}
+
+class Order {
+    constructor(transaction, item, size = null) {
+        this.item = item;
+        this.transaction = transaction;
+        this.size = size;
+        this.price = 0;
+        this.db = transaction.db;
+
+        this.entrees = [];
+        this.sides = [];
+    }
+
+    NewTray(menu, type, size) {
+        const newTray = new Tray(this, menu, this.item, size);
+        // Initialize arrays if they don't exist
+        this.entrees = this.entrees || [];
+        this.sides = this.sides || [];
+        
+        if (type === 'side') {
+            this.sides.push(newTray);
+        } else {
+            this.entrees.push(newTray);
+        }
+
+        return newTray;
+    }
+
+    async AddTrays(db, entreeList = [], sideList = [], size) {
+        // Helper to get a name whether caller passed a string or { name }
+        const getName = (x) => (typeof x === 'string' ? x : x?.name);
+
+        // Always add all provided entrees, using per-entry size if present, otherwise fallback to provided size
+        for (const entree of (entreeList || [])) {
+            const name = getName(entree);
+            if (!name) continue;
+            let menu = await Menu.fetchByName(db, name);
+            console.log('Fetched menu for entree:', menu.name);
+            if (!menu) menu = { name };
+            this.NewTray(menu, 'entree', size);
+        }
+
+        // Always add all provided sides, using per-entry size if present, otherwise fallback to provided size
+        for (const side of (sideList || [])) {
+            const name = getName(side);
+            if (!name) continue;
+            let menu = await Menu.fetchByName(db, name);
+            if (!menu) menu = { name };
+            this.NewTray(menu, 'side', size);
+        }
+
+        // If nothing was provided (e.g., non-meal items), do nothing here.
+        // Such items are typically handled elsewhere, or have zero trays.
+        await this.transaction.calculateTotals(db);
+    }
+
+    static async AddToDatabase(db, transactionID, order) {
+        // Get next available order ID
+        // Use MAX(id) + 1 to avoid sequence sync issues
+        const orderIdRes = await db.query('SELECT MAX(orderid) as maxid FROM orders');
+        
+        let orderID;
+        if (!orderIdRes || !orderIdRes.rows || orderIdRes.rows.length === 0 || orderIdRes.rows[0].maxid === null) {
+             orderID = 1;
+        } else {
+             orderID = parseInt(orderIdRes.rows[0].maxid) + 1;
+        }
+
+        // Insert order record
+        const insertOrderQuery = `
+            INSERT INTO orders (transactionid, itemid, orderid)
+            VALUES ($1, $2, $3)
+        `;
+        await db.query(insertOrderQuery, [
+            transactionID,
+            order.item.itemID || null,
+            orderID
+        ]);
+
+        // Insert trays (await each to ensure correct ordering and that any lookups complete)
+        for (const tray of [...(order.entrees || []), ...(order.sides || [])]) {
+            await Tray.AddToDatabase(db, orderID, tray);
+        }
+
+        // `AddToDatabase` is static; call the instance method on the order instance
+        await order.handleInventory(db);
+    }
+
+    async calculatePrice(db) {
+        let price = this.item.price || 0;
+        for (const tray of [...(this.entrees || []), ...(this.sides || [])]) {
+            price += await tray.calculatePrice(db);
+        }
+        // Round price to two decimal places
+        price = Math.round((price + Number.EPSILON) * 100) / 100;
+        this.price = price;
+        return price;
+    }
+
+    async handleInventory(db) {        
+        // Helper to normalize inventory id sources (arrays or Postgres array strings like "{1,2}")
+        const parseInvIDs = (val) => {
+            if (!val &amp;&amp; val !== 0) return [];
+            if (Array.isArray(val)) return val.map(x => String(x).trim()).filter(Boolean);
+            if (typeof val === 'string') {
+                // Remove surrounding braces and quotes if present, then split by comma
+                const cleaned = val.replace(/[{}"\s]/g, '');
+                if (!cleaned) return [];
+                return cleaned.split(',').map(s => s.trim()).filter(Boolean);
+            }
+            // Fallback: convert to string and split
+            return String(val).split(',').map(s => s.trim()).filter(Boolean);
+        };
+
+        const invList = parseInvIDs(this.item.inventoryIDs);
+        for (const invID of invList) {
+            const trimmedID = String(invID).trim();
+            if (!trimmedID) continue;
+            const updateQuery = `
+                UPDATE inventory
+                SET quantity = quantity - 1
+                WHERE inventoryid = $1
+            `;
+            try {
+                await db.query(updateQuery, [trimmedID]);
+                console.log(`Decreased inventory for id: ${trimmedID}`);
+            } catch (err) {
+                console.error(`Failed to decrease inventory for id ${trimmedID}:`, err);
+            }
+        }
+
+        // Decrease inventory for each tray item
+        for (const tray of [...(this.entrees || []), ...(this.sides || [])]) {
+            await tray.handleInventory(db);
+        }
+    }
+}
+
+class Tray {
+    constructor(order, menu, item, size = null) {
+        this.order = order;
+        this.menu = menu;
+        this.item = item;
+        this.size = size;
+        this.price = 0;
+
+        this.db = order.db;
+        this.calculatePrice(this.db);
+        order.calculatePrice(this.db);
+        order.transaction.calculateTotals(this.db);
+    }
+
+    static async AddToDatabase(db, orderID, tray) {
+        // Output to database
+        const insertTrayQuery = `
+            INSERT INTO trays (orderid, menuid, type, size)
+            VALUES ($1, $2, $3, $4)
+        `;
+        // Determine menuid: prefer tray.menu.menuid, fall back to a lookup by name if available
+        let menuid = tray?.menu?.menuid ?? null;
+        try {
+            if ((!menuid || menuid === null) &amp;&amp; tray?.menu?.name) {
+                const fetched = await Menu.fetchByName(db, tray.menu.name);
+                if (fetched &amp;&amp; fetched.menuid) menuid = fetched.menuid;
+            }
+        } catch (err) {
+            // If lookup fails, leave menuid as null and continue; logging helps debugging
+            console.error('Failed to resolve menu id for tray:', tray?.menu?.name, err &amp;&amp; err.message ? err.message : err);
+        }
+
+        await db.query(insertTrayQuery, [
+            orderID,
+            menuid,
+            tray.item.type,
+            tray.size
+        ]);
+    }
+
+    async calculatePrice(db) {
+        // Fetch menu item price from DB if not already present
+        let price = 0;
+        if (this.size !== null) {
+            // console.log('Calculating price for tray with size:', this.size);
+            // Query the price from the sizemod table with the size
+            const sizeQuery = 'SELECT pricemod FROM sizemods WHERE name = $1 AND size = $2 AND type = $3';
+            
+            let type = this.menu.type;
+            if (this.menu.pricemod !== 0) {
+                type = 'premium';
+            }
+
+            const sizeRes = await db.query(sizeQuery, [this.item.itemType, this.size, type]);
+            if (sizeRes &amp;&amp; sizeRes.rows &amp;&amp; sizeRes.rows.length > 0) {
+                price += sizeRes.rows[0].pricemod || 0;
+            }
+        } else {
+            price += this.menu.pricemod;
+        }
+        // Round price to two decimal places
+        price = Math.round((price + Number.EPSILON) * 100) / 100;
+        this.price = price;
+        return price;
+    }
+
+    async handleInventory(db) {
+        // Normalize inventory ids for menu (may be string like "{1,2}" or an array)
+        const parseInvIDs = (val) => {
+            if (!val &amp;&amp; val !== 0) return [];
+            if (Array.isArray(val)) return val.map(x => String(x).trim()).filter(Boolean);
+            if (typeof val === 'string') {
+                const cleaned = val.replace(/[{}"\s]/g, '');
+                if (!cleaned) return [];
+                return cleaned.split(',').map(s => s.trim()).filter(Boolean);
+            }
+            return String(val).split(',').map(s => s.trim()).filter(Boolean);
+        };
+
+        const invList = parseInvIDs(this.menu.inventoryids);
+        for (const invID of invList) {
+            const trimmedID = String(invID).trim();
+            if (!trimmedID) continue;
+            const updateQuery = `
+                UPDATE inventory
+                SET quantity = quantity - 1
+                WHERE inventoryid = $1
+            `;
+            try {
+                await db.query(updateQuery, [trimmedID]);
+                console.log(`Decreased inventory for id: ${trimmedID}`);
+            } catch (err) {
+                console.error(`Failed to decrease inventory for id ${trimmedID}:`, err);
+            }
+        }
+    }
+}
+
+export default Transaction;
+export { Order, Tray };
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="CashierMainPage.html">CashierMainPage</a></li><li><a href="Manager.html">Manager</a></li><li><a href="Transaction.html">Transaction</a></li><li><a href="User.html">User</a></li></ul><h3>Global</h3><ul><li><a href="global.html#TranslationContext">TranslationContext</a></li><li><a href="global.html#buildTraySummaries">buildTraySummaries</a></li><li><a href="global.html#chatWithAI">chatWithAI</a></li><li><a href="global.html#clearOrder">clearOrder</a></li><li><a href="global.html#decodeHTMLEntities">decodeHTMLEntities</a></li><li><a href="global.html#loadOrder">loadOrder</a></li><li><a href="global.html#printHistory">printHistory</a></li><li><a href="global.html#saveOrder">saveOrder</a></li><li><a href="global.html#translateMultiple">translateMultiple</a></li><li><a href="global.html#translateText">translateText</a></li><li><a href="global.html#useTranslate">useTranslate</a></li><li><a href="global.html#useTranslatedArray">useTranslatedArray</a></li><li><a href="global.html#useTranslatedObject">useTranslatedObject</a></li><li><a href="global.html#useTranslatedText">useTranslatedText</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Tue Dec 09 2025 19:51:30 GMT-0600 (Central Standard Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

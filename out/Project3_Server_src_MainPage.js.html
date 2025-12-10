@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: Project3_Server/src/MainPage.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: Project3_Server/src/MainPage.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * @fileoverview CashierMainPage class for managing transactions.
+ * Handles transaction lifecycle, item purchases, discounts, and payments.
+ */
+
+import Transaction, {Order, Tray} from './Transaction.js';
+import Item, {Menu} from './Item.js';
+import User, {Employee, Customer} from './User.js';
+
+/**
+ * CashierMainPage class - Main transaction handler for cashier operations.
+ * Manages current transaction, orders, discounts, and payment processing.
+ * 
+ * @class
+ * @param {User} user - Current user (employee or customer)
+ * @param {Object} [db] - Database pool for queries
+ */
+class CashierMainPage {
+    
+    constructor(user, db = null){
+        this.debugging = true;
+
+        if(this.debugging) {
+            console.log("Initializing Back End...");
+        }
+        if(user === undefined) {
+            console.warn("No user provided, creating default user.");
+            user = new User("empty", "", "", false);
+        }
+        this.user = user;
+        console.log("User set to: " + this.user.username);
+        this.currentUser = user;//May need to find a way to ensure only User
+
+        this.totalPrice = 0;
+        this.taxRate = 0.0825;
+        this.discountRate = 0;
+        this.priceOff = 0;
+
+        // Connects the database
+        this.db = db;
+
+        // Creates the current transaction
+        this.currTransaction = new Transaction(this.db, this.user);
+    }
+
+
+    /**
+     * Adds an item to the current transaction and builds a corresponding Order.
+     * Fetches item details from DB when available and creates trays (entrees/sides).
+     *
+     * @async
+     * @param {string|number} givenItemID - Identifier or name of the item to add
+     * @param {Array&lt;string>} [entreeList=[]] - List of entree names (for combo items)
+     * @param {Array&lt;string>} [sideList=[]] - List of side names (for combo items)
+     * @param {string} [size] - Optional size attribute for size-aware items
+     * @returns {Promise&lt;Object>} Summary including cost, item name, entrees, sides, requirements and orderNumber
+     */
+    async BuyItemButton(givenItemID, entreeList = [], sideList = [], size) {
+        // Stores the current itemID
+        this.itemID = givenItemID;
+        
+        // Make size lowercase for consistency
+        size = size ? size.toLowerCase() : null;
+
+        // Creates a new transaction if transaction is null
+        if(this.currTransaction == null) {
+            this.currTransaction = new Transaction(this.db, this.user);
+        }
+
+        // Instantiates the item based on the given item id 
+        let currItem;
+        if (this.db) {
+            try {
+                currItem = await Item.fetchByName(this.db, givenItemID);
+                if (!currItem) {
+                    console.error('Item with ButtonID ' + givenItemID + ' not found in database.');
+                    currItem = new Item(givenItemID);
+                }
+            } catch (err) {
+                console.error('Error querying DB for item: ', err);
+                currItem = new Item(givenItemID);
+            }
+        } else {
+            console.warn('No DB connection available, using placeholder item.');
+            currItem = new Item(givenItemID);
+        }
+
+        // Creates a new order with the item 
+        const currOrder = this.currTransaction.NewOrder(currItem);
+        await currOrder.AddTrays(this.db, entreeList, sideList, size);
+
+        // Get the last order (just added)
+        if(this.debugging)console.log("new item name: " + currItem.name);
+        
+        // console.log("new order price: " + currOrder.price);
+        //TODO: check if we even need to return anything here besides confirmation we bought the item
+        return {
+            cost: currOrder.price,
+            item: currItem.name,
+            entrees: currOrder.entrees.map(e => e.menu?.name || 'Select Entree'),
+            sides: currOrder.sides.map(s => s.menu?.name || 'Select Side'),
+            requirements: {
+                numberOfTrays: (currOrder.entrees?.length || 0) + (currOrder.sides?.length || 0)
+            },
+            orderNumber: this.currTransaction.orderNumber
+        };
+    }
+
+
+
+    /**
+     * Validates and applies a discount to the current transaction.
+     * Accepts manager overrides (fixed price off or percent) or looks up
+     * discount codes in the database and applies the best available discount.
+     *
+     * @async
+     * @param {string} discountCode - Code provided by user for discount lookup
+     * @param {number} [priceOff=0] - Fixed amount to subtract from subtotal (manager override)
+     * @param {number} [discountPer=0] - Percentage discount (0-100) as manager override
+     * @returns {Promise&lt;Object>} Result object containing acceptedDiscount and discountAmount
+     */
+    async AddDiscount(discountCode, priceOff = 0, discountPer = 0) {
+        //SET TO ONLY ACCEPT IF GREATER THAN CURRENT DISCOUNT
+        //SET TO ONLY ACCEPT 1 type at a time
+        console.log("Adding discount with code: " + discountCode);
+        // Validate discount code from database
+        if(this.currTransaction == null) {
+            if(this.debugging) {
+                console.log("Transaction is null, cant apply discount yet");
+            }
+            return { acceptedDiscount: -1};
+        }
+        // console.log("length: " + this.currTransaction.orders.length);
+        if(this.currTransaction.orders.length === 0) {
+            if(this.debugging) {
+                console.log("No items in transaction, cant apply discount yet");
+            }
+            return { acceptedDiscount: -1};
+        }
+
+        // Check if we have a database connection
+        if (!this.db) {
+            console.warn('No DB connection available, cannot validate discount code');
+            return { acceptedDiscount: false };
+        }
+        if(priceOff > 0 &amp;&amp; priceOff > this.priceOff) {
+            this.priceOff = priceOff;
+            console.log("Applied manager price off: " + priceOff);
+            return { acceptedDiscount: 1, discountAmount: this.GetCostInformation().discountAmount  };
+        }
+        if(discountPer > 0) {
+            this.discountRate = discountPer / 100;
+            console.log("Applied manager discount percent: " + discountPer);
+            return { acceptedDiscount: 1, discountAmount: this.GetCostInformation().discountAmount  };
+        }
+
+        try {
+            console.log("Querying the database for the code");
+            // Query the discounts table for the provided code
+            const q = 'SELECT * FROM discounts WHERE code = $1';
+            const result = await this.db.query(q, [discountCode]);
+
+            if (!result.rows || result.rows.length === 0) {
+                console.log("Invalid discount code: " + discountCode);
+                return { acceptedDiscount: false };
+            }
+
+            const discount = result.rows[0];
+            let newDiscountRate = discount.percent ? (discount.percent / 100) : 0;
+            let newPriceOff = discount.fixed || 0;
+
+            // Apply the best percentage discount for the customer
+            if(newDiscountRate > this.discountRate) {
+                this.discountRate = newDiscountRate;
+                this.currTransaction.discountCode = discountCode;
+            }
+
+            // Apply the best fixed discount for the customer
+            if(newPriceOff > this.priceOff) {
+                this.priceOff = newPriceOff;
+                this.currTransaction.discountCode = discountCode;
+            }
+
+            console.log("Returning discount with " + this.discountRate + " " + this.priceOff)
+            let discountAmount = this.GetCostInformation().discountAmount;
+            return { acceptedDiscount: 1, discountAmount: discountAmount};
+
+
+        } catch (err) {
+            console.error('Error querying discounts table:', err);
+            return { acceptedDiscount: false };
+        }
+
+        //TODO problem is improved discountRate will overwrite priceOff and vice versa
+        // Need to store both the best percentage and best fixed discount separately
+        let currDicountCode = discountCode;
+        if(newDiscountRate > this.discountRate) {
+            this.discountRate = newDiscountRate;
+            this.currTransaction.discountCode = currDicountCode;
+        }
+        if(newPriceOff > this.priceOff) {
+            this.priceOff = newPriceOff;
+            this.currTransaction.discountCode = currDicountCode;
+        }
+        let discountAmount = this.GetCostInformation().discountAmount;
+        return { acceptedDiscount: 1, discountAmount: discountAmount};
+        
+    }
+
+
+    /**
+     * Prints a human readable receipt for the provided transaction to console
+     * and clears the current transaction afterwards.
+     *
+     * @param {Transaction} transaction - Transaction instance to print
+     * @returns {void}
+     */
+    PrintReceipt(transaction) {
+        // This breaks because we havent started outputting to database yet
+        console.log("----- Receipt -----");
+        transaction.orders.forEach((order, index) => {
+            const itemId = order.item?.itemID ?? order.item?.name ?? 'unknown';
+            const price = order.price || 0;
+            console.log(`${index + 1}. ${itemId}, Price: $${price.toFixed(2)}`);
+            
+            // Print entrees if they exist
+            if (order.entrees &amp;&amp; order.entrees.length > 0) {
+                order.entrees.forEach(entree => {
+                    const entreeName = entree.menu?.name || entree.name || 'Unknown Entree';
+                    console.log(`   - Entree: ${entreeName}`);
+                });
+            }
+            
+            // Print sides if they exist
+            if (order.sides &amp;&amp; order.sides.length > 0) {
+                order.sides.forEach(side => {
+                    const sideName = side.menu?.name || side.name || 'Unknown Side';
+                    console.log(`   - Side: ${sideName}`);
+                });
+            }
+        });
+    // Use GetCostInformation and coerce values to numbers to avoid runtime errors
+    const costInfo = this.GetCostInformation();
+    let subtotal = Number(costInfo.subtotal) || 0;
+    let discountAmount = Number(costInfo.discountAmount) || 0;
+    let priceOff = Number(costInfo.priceOff) || 0;
+    let tax = Number(costInfo.tax) || 0;
+    let total = Number(costInfo.total) || 0;
+
+    console.log(`Subtotal: $${subtotal.toFixed(2)}`);
+    console.log(`Discount: -$${discountAmount.toFixed(2)}`);
+    console.log(`Price Off: -$${priceOff.toFixed(2)}`);
+    console.log(`Tax: $${tax.toFixed(2)}`);
+    console.log(`Total: $${Math.ceil(total * 100) / 100}`);
+        console.log("-------------------");
+        this.ClearTransaction();
+    }
+    /**
+     * Persists the current transaction to the database, prints a receipt,
+     * and clears the transaction. Returns the inserted transaction ID.
+     *
+     * @async
+     * @returns {Promise&lt;number>} The database transaction ID assigned to the saved transaction
+     * @throws {Error} If persisting the transaction fails
+     */
+    async PurchaseTransaction() {
+        // Finalize purchase logic here
+        if(this.debugging) {
+            console.log("Purchase button clicked. Finalizing transaction...");
+        }
+        const { total } = this.GetCostInformation();
+
+        // Ensure the transaction has the correct employee assigned (if current user is an employee)
+        if (this.user &amp;&amp; typeof this.user.employeeID !== 'undefined') {
+            this.currTransaction.employee = this.user;
+        }
+
+        // Return the promise so callers can await the inserted transaction ID.
+        return Transaction.AddToDatabase(this.db, this.currTransaction)
+            .then((transactionID) => {
+                console.log("Transaction stored in database with ID: " + transactionID);
+                console.log("Total Price: $" + Math.ceil(total).toFixed(2));
+                // Print receipt and clear transaction
+                this.PrintReceipt(this.currTransaction);
+                return transactionID;
+            })
+            .catch((err) => {
+                console.error("Error storing transaction in database: ", err);
+                throw err;
+            });
+    }
+
+    /**
+     * Removes an order (item) from the current transaction by its index.
+     *
+     * @param {number} index - Index of the order to remove
+     * @returns {{success: boolean, error?: string}} Removal result
+     */
+    RemoveItemByIndex(index) {
+        if(this.debugging) {
+            console.log("Removing item at index: " + index);
+        }
+        if(index &lt; 0 || index >= this.currTransaction.orders.length) {
+            if(this.debugging) {
+                console.log("Invalid index: " + index);
+            }
+            return { success: false, error: "Invalid index" };
+        }
+        // Remove the order at the given index
+        this.currTransaction.orders.splice(index, 1);
+        if(this.debugging)console.log("Item removed. now " + this.currTransaction.orders.length + " items remain.");
+        console.log("Current orders after removal:");
+        this.currTransaction.orders.forEach((order, idx) => {
+            const itemId = order.item?.itemID ?? order.item?.name ?? 'unknown';
+            console.log(`  ${idx}: Item ID: ${itemId}`);
+        });
+
+        return {
+            success: true
+        };
+    }
+    /**
+     * Resets the current transaction and related pricing state to defaults.
+     * Creates a fresh Transaction instance attached to the existing user and DB.
+     *
+     * @returns {void}
+     */
+    ClearTransaction() {
+        console.log("Clearing current transaction...");
+        //this.user = user; //TODO: if kiosk WILL NEED TO GO BACK TO LOGIN PAGE FOR NEW CUSTOMER
+
+        this.currTransaction = null;
+        this.currTransaction = new Transaction(this.db, this.user);
+        this.totalPrice = 0;
+        this.taxRate = 0.0825;
+        this.discountRate = 0;
+        this.priceOff = 0;
+
+        this.user = this.user; //TODO: WILL NEED TO GO BACK TO LOGIN PAGE FOR NEW CUSTOMER
+    }
+    /**
+     * Calculates cost breakdown for the current transaction.
+     * Computes subtotal, discount amount (percent + fixed), tax, and total.
+     *
+     * @returns {{subtotal:number, discountAmount:number, tax:number, total:number, priceOff?:number}}
+     */
+    GetCostInformation(){
+        let subtotal = 0;
+        if (!this.currTransaction || !this.currTransaction.orders) {
+            console.log("No current transaction or orders found.");
+            return { subtotal: 0, discountAmount: 0, tax: 0, total: 0, priceOff: 0 };
+        }
+        
+        this.currTransaction.orders.forEach(order => {
+            // Avoid stringifying the whole order (it contains circular references).
+            const itemId = order.item?.itemID ?? order.item?.name ?? 'unknown';
+            const price = order.price || 0;
+            // Skip any orders with missing or invalid items (treat missing price as 0)
+            console.log("Adding order item ID: " + itemId + " with price: " + price);
+            subtotal += price;
+        });
+    // Compute percent-based discount and fixed price-off separately
+    let discountAmount = subtotal * (this.discountRate || 0);
+    let priceOff = Number(this.priceOff) || 0;
+    discountAmount += priceOff;
+    // Tax is applied after discounts (both percent and fixed)
+    let taxable = subtotal - discountAmount;
+    let tax = taxable * (this.taxRate || 0.0825);
+    let total = subtotal - discountAmount + tax;
+
+    return { subtotal, discountAmount, tax, total };
+    }
+    /**
+     * Returns a serializable snapshot of the current transaction state suitable
+     * for sending to a client. Includes order lines, discount/tax totals and
+     * a computed total price.
+     *
+     * @returns {Object} Current state containing orders, discountAmount, priceOff, tax, totalPrice, currCost
+     */
+    GetCurrentState() {
+        if (!this.currTransaction || !this.currTransaction.orders) {
+            console.logerror("No current transaction or orders found.");
+            return {
+                orders: [],
+                discountAmount: 0,
+                priceOff: 0,
+                totalPrice: 0
+            };
+        }
+        const { subtotal, discountAmount, tax, total, priceOff } = this.GetCostInformation();
+        // For better client-side rendering, include both the tray name and a displayType for each tray.
+        // displayType will be used on the receipt (e.g., 'A La Carte', 'Appetizer', 'Drink', 'Bottle')
+        // while the client still groups trays by entree/side.
+
+        return {
+            orders: this.currTransaction.orders.map(order => ({
+                cost: order.price,
+                item: order.item.name,
+                // Entrees: include name and an optional displayType. If the parent order's item
+                // is one of the single-item types, use that as displayType; otherwise default to 'Entree'.
+                entrees: (order.entrees || []).map(e => ({
+                    name: e.menu?.name || 'Select Entree',
+                    displayType: ['A La Carte', 'Appetizer', 'Drink', 'Bottle'].includes(order.item?.name) ? order.item?.name : 'Entree'
+                })),
+                sides: (order.sides || []).map(s => ({
+                    name: s.menu?.name || 'Select Side',
+                    displayType: 'Side'
+                })),
+            })),
+            discountAmount,
+            priceOff,
+            tax,
+            totalPrice: total,
+            currCost:subtotal
+        };
+    }
+    /**
+     * Permanently removes a transaction and its associated orders/trays from the database.
+     * Only allowed when the caller has manager privileges.
+     *
+     * @async
+     * @param {number} transactionId - Database ID of the transaction to void
+     * @param {boolean} userIsManager - Whether the requesting user has manager privileges
+     * @returns {Promise&lt;{error:number}>} Result object; error codes indicate outcome
+     */
+    async VoidTransaction(transactionId, userIsManager) {
+        if (!userIsManager) {
+            return { error: 0 };
+        }
+        let q = "SELECT orderid FROM orders WHERE transactionid = " + transactionId + ";";
+        let orders = await this.db.query(q);
+        if (!orders.rows || orders.rows.length === 0) {
+            console.log("Transaction doesn't exist");
+            return { error: 1 };
+        }
+        for (const order of orders.rows) {
+            q = "DELETE FROM trays WHERE orderid = " + order.orderid + ";";
+            await this.db.query(q);
+        }
+        q = "DELETE FROM orders WHERE transactionid = " + transactionId + ";";
+        await this.db.query(q);
+        q = "DELETE FROM transactions WHERE transactionid = " + transactionId + ";";
+        await this.db.query(q);
+        return { error: 55 };
+    }
+}
+
+export default CashierMainPage;
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="CashierMainPage.html">CashierMainPage</a></li><li><a href="Manager.html">Manager</a></li><li><a href="Transaction.html">Transaction</a></li><li><a href="User.html">User</a></li></ul><h3>Global</h3><ul><li><a href="global.html#TranslationContext">TranslationContext</a></li><li><a href="global.html#buildTraySummaries">buildTraySummaries</a></li><li><a href="global.html#chatWithAI">chatWithAI</a></li><li><a href="global.html#clearOrder">clearOrder</a></li><li><a href="global.html#decodeHTMLEntities">decodeHTMLEntities</a></li><li><a href="global.html#loadOrder">loadOrder</a></li><li><a href="global.html#printHistory">printHistory</a></li><li><a href="global.html#saveOrder">saveOrder</a></li><li><a href="global.html#translateMultiple">translateMultiple</a></li><li><a href="global.html#translateText">translateText</a></li><li><a href="global.html#useTranslate">useTranslate</a></li><li><a href="global.html#useTranslatedArray">useTranslatedArray</a></li><li><a href="global.html#useTranslatedObject">useTranslatedObject</a></li><li><a href="global.html#useTranslatedText">useTranslatedText</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Tue Dec 09 2025 19:51:30 GMT-0600 (Central Standard Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

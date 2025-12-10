@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: Project3_Client/src/pages/Menu.jsx</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: Project3_Client/src/pages/Menu.jsx</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * @fileoverview Menu display page component.
+ * Shows paginated menu items organized by category (entrees, sides, apps, drinks).
+ * Handles auto-cycling through items and sign-out functionality.
+ */
+
+import React, { use, useEffect, useMemo, useState } from 'react';
+import "../styles/Menu/Menu.css";
+import pandaLogo from '../assets/PandaLogo.svg';
+
+import { getImageForItem } from "../assets/utils/imageMapper";
+
+
+
+import { useNavigate } from 'react-router-dom';
+//component imports
+import SignOutButton from '../Components/SignOut.jsx';
+
+/**
+ * Menu component - Displays menu items in paginated categories.
+ * Auto-cycles through items at regular intervals.
+ * 
+ * @returns {JSX.Element} Menu page with paginated item display
+ */
+export default function Menu() {
+
+  const pageSizes = {
+    items: 6,
+    entrees: 8,
+    sides: 4,
+    apps: 4,
+    drinks: 8,
+  };
+
+  const cycleInterval = 3000; // 5 seconds
+
+  const [HeaderOn, setHeaderOn] = useState(false);
+
+  const [extraMenus, setExtraMenus] = useState([]);
+  const [displayed, setDisplayed] = useState({
+    items: [],
+    entrees: [],
+    sides: [],
+    apps: [],
+    drinks: [],
+  });
+
+  const [pages, setPages] = useState({
+    items: 0,
+    entrees: 0,
+    sides: 0,
+    apps: 0,
+    drinks: 0,
+  });
+
+  // Router navigation for sign out
+   const navigate = useNavigate();
+   /**
+    * Navigates user back to login page.
+    */
+   const handleSignOut = () => navigate('/');
+   // modal to confirm sign out
+   const [showSignOutModal, setShowSignOutModal] = useState(false);
+   //const [extraMenus, setExtraMenus] = useState([]);
+   const [allItems, setAllItems] = useState([]);
+
+
+  /**
+   * Cycles through a list with pagination, wrapping around to the beginning.
+   * Creates a circular slice of items for carousel-style display.
+   * @param {Array} list - Items to paginate
+   * @param {number} start - Starting index for current page
+   * @param {number} pageSize - Number of items per page
+   * @returns {Array} Sliced and circularly arranged items
+   */
+  const cycleSlice = (list, start, pageSize) => {
+    if (list.length &lt;= pageSize) return list; // Not enough to paginate
+
+    let result = [];
+    for (let i = 0; i &lt; pageSize; i++) {
+      const index = (start + i) % list.length;
+      result.push(list[index]);
+    }
+    return result;
+  };
+
+
+
+  useEffect(() => {
+    const fetchMenusByType = async (type) => {
+      try {
+        const response = await fetch("/api/fetch-menus-by-type", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ type }),
+        });
+        const data = await response.json();
+        return response.ok ? data : [];
+      } catch (err) {
+        console.error(err);
+        return [];
+      }    
+    };
+
+    const fetchAllItems = async (type) => {
+    try {
+      const response = await fetch("/api/fetch-all-items", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type }),
+      });
+      const data = await response.json();
+      if (response.ok) {
+        return data;
+      }
+    } catch (error) {
+      console.error("Error fetching menus:", error);
+      return [];
+    }
+    };
+
+    (async () => {
+        const fetchedEntrees = await fetchMenusByType("entree");
+        const fetchedSides = await fetchMenusByType("side");
+        const fetchedApps = await fetchMenusByType("appetizer");
+        const fetchedDrinks = await fetchMenusByType("drink");
+
+        const fetchedItems = await fetchAllItems();
+
+        const allMenus = [
+          ...(fetchedEntrees || []),
+          ...(fetchedSides || []),
+          ...(fetchedApps || []),
+          ...(fetchedDrinks || [])
+        ];
+
+        setExtraMenus(allMenus);
+        setAllItems(fetchedItems || []);
+      })();
+  }, []);
+
+  const typeLists = useMemo(() => ({
+    items: allItems,
+    entrees: extraMenus.filter(i => i.type.toLowerCase() === 'entree'),
+    sides: extraMenus.filter(i => i.type.toLowerCase() === 'side'),
+    apps: extraMenus.filter(i => i.type.toLowerCase() === 'appetizer' || i.type.toLowerCase() === 'app'),
+    drinks: extraMenus.filter(i => i.type.toLowerCase() === 'drink'),
+  }), [allItems, extraMenus]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const newDisplayed = {};
+      const newPages = {};
+      Object.keys(typeLists).forEach(type => {
+        const list = typeLists[type];
+        const pageSize = pageSizes[type];
+        const nextPage = (pages[type] + 1) % Math.ceil(list.length / pageSize);
+
+        const start = nextPage * pageSize;
+
+        newDisplayed[type] = cycleSlice(list, start, pageSize);
+
+        newPages[type] = nextPage;
+      });
+      setDisplayed(newDisplayed);
+      setPages(newPages);
+    }, cycleInterval);
+
+    return () => clearInterval(interval);
+  }, [pages, allItems, extraMenus]);
+
+  useEffect(() => {
+    const initDisplayed = {};
+    Object.keys(typeLists).forEach(type => {
+      const list = typeLists[type];
+      initDisplayed[type] = cycleSlice(list, 0, pageSizes[type]);
+    });
+    setDisplayed(initDisplayed);
+  }, [typeLists]);
+
+  
+
+  return (
+    &lt;div className="mainBackground">
+      &lt;div className="menu-page-container">
+        {HeaderOn &amp;&amp; (
+          &lt;div className="header-container">
+
+            &lt;div className="center-logo">
+              &lt;img src={pandaLogo} alt="Panda Logo" className="logo" />
+            &lt;/div>
+          &lt;/div>
+        )}
+        &lt;div className="menu-page-container">
+          {showSignOutModal &amp;&amp; &lt;SignOutButton />}
+          &lt;div className="menu-content">
+
+            {/* COLUMN 1 – MENU ITEMS */}
+            &lt;div className="column">
+              &lt;div className="menu-section">
+                &lt;h3 className="section-title">Menu Items&lt;/h3>
+
+                &lt;div className="section-grid">
+                  {displayed.items.map(item => {
+                  const imgSrc = getImageForItem(item.itemName);
+                  let boxStyle = imgSrc ? 'menu-item menu-item-menu' : 'menu-item menu-item-menu no-img';
+
+                  return (
+                    &lt;div key={item.itemID} className={boxStyle}>
+                      {imgSrc &amp;&amp; (
+                        &lt;img
+                          src={imgSrc}
+                          alt={item.itemName}
+                          className="menu-item-image"
+                          onError={(e) => {
+                            e.currentTarget.style.display = "none";
+                          }}
+                        />
+                      )}
+                      &lt;div className="menu-item-name">{item.itemName}&lt;/div>
+                      &lt;div className="menu-item-price">
+                        ${item.itemPrice?.toFixed(2) || ""}
+                      &lt;/div>
+                    &lt;/div>
+                  );
+                })}
+                &lt;/div>
+              &lt;/div>
+            &lt;/div>
+
+            {/* COLUMN 2 – ENTREES */}
+            &lt;div className="column">
+
+              {/* ENTREES */}
+              &lt;div className="menu-section">
+                &lt;h3 className="section-title">Entrees&lt;/h3>
+
+                &lt;div className="section-grid">
+                  {displayed.entrees.map(item => {
+                    const imgSrc = getImageForItem(item.menuName);
+                    let boxStyle = imgSrc ? 'menu-item' : 'menu-item no-img';
+
+                    return (
+                    &lt;div key={`entree-${item.menuID}`} className={boxStyle}>
+                      {imgSrc &amp;&amp; (&lt;img src={getImageForItem(item.menuName)} alt={item.menuName} className="menu-item-image" />)}
+                      
+                      &lt;div className="menu-item-name">{item.menuName}&lt;/div>
+                      {item.priceMod > 0 &amp;&amp; (
+                        &lt;img src={getImageForItem("P")} alt="Premium" className="menu-item-image-premium" />
+                      )}
+                    &lt;/div>
+                  );
+                  })}
+                &lt;/div>
+              &lt;/div>
+
+              {/* SIDES */}
+              &lt;div className="menu-section">
+                &lt;h3 className="section-title">Sides&lt;/h3>
+
+                &lt;div className="section-grid">
+                  {displayed.sides.map(item => (
+                    &lt;div key={`side-${item.menuID}`} className="menu-item">
+                      &lt;img src={getImageForItem(item.menuName)} alt={item.menuName} className="menu-item-image" />
+                      &lt;div className="menu-item-name">{item.menuName}&lt;/div>
+                    &lt;/div>
+                  ))}
+                &lt;/div>
+              &lt;/div>
+
+            &lt;/div>
+
+            {/* COLUMN 3 – SIDES + APPETIZERS */}
+            &lt;div className="column">
+
+              {/* APPETIZERS */}
+              &lt;div className="menu-section">
+                &lt;h3 className="section-title">Appetizers&lt;/h3>
+
+                &lt;div className="section-grid">
+                  {displayed.apps.map(item => (
+                    &lt;div key={`app-${item.menuID}`} className="menu-item">
+                      &lt;img src={getImageForItem(item.menuName)} alt={item.menuName} className="menu-item-image" />
+                      &lt;div className="menu-item-name">{item.menuName}&lt;/div>
+                    &lt;/div>
+                  ))}
+                &lt;/div>
+              &lt;/div>
+
+              {/* APPETIZERS */}
+              &lt;div className="menu-section">
+                &lt;h3 className="section-title">Drinks&lt;/h3>
+
+                &lt;div className="section-grid">
+                  {displayed.drinks.map(item => { 
+                    const imgSrc = getImageForItem(item.menuName);
+                    let boxStyle = imgSrc ? 'menu-item' : 'menu-item no-img';
+
+                    return (
+                    &lt;div key={`bev-${item.menuID}`} className={boxStyle}>
+                      {imgSrc &amp;&amp; (
+                        &lt;img src={getImageForItem(item.menuName)} alt={item.menuName} className="menu-item-image" />
+                      )}
+                      &lt;div className="menu-item-name">{item.menuName}&lt;/div>
+                    &lt;/div>
+                  );
+                })}
+                &lt;/div>
+              &lt;/div>
+
+            &lt;/div>
+          &lt;/div>
+            &lt;br>&lt;/br>
+        {HeaderOn &amp;&amp; (&lt;button className = "sign-out-button" onClick={() => setShowSignOutModal(true)}>Sign Out&lt;/button>)}
+        &lt;/div>
+      &lt;/div>
+    &lt;/div>
+  );
+}</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="CashierMainPage.html">CashierMainPage</a></li><li><a href="Manager.html">Manager</a></li><li><a href="Transaction.html">Transaction</a></li><li><a href="User.html">User</a></li></ul><h3>Global</h3><ul><li><a href="global.html#TranslationContext">TranslationContext</a></li><li><a href="global.html#buildTraySummaries">buildTraySummaries</a></li><li><a href="global.html#chatWithAI">chatWithAI</a></li><li><a href="global.html#clearOrder">clearOrder</a></li><li><a href="global.html#decodeHTMLEntities">decodeHTMLEntities</a></li><li><a href="global.html#loadOrder">loadOrder</a></li><li><a href="global.html#printHistory">printHistory</a></li><li><a href="global.html#saveOrder">saveOrder</a></li><li><a href="global.html#translateMultiple">translateMultiple</a></li><li><a href="global.html#translateText">translateText</a></li><li><a href="global.html#useTranslate">useTranslate</a></li><li><a href="global.html#useTranslatedArray">useTranslatedArray</a></li><li><a href="global.html#useTranslatedObject">useTranslatedObject</a></li><li><a href="global.html#useTranslatedText">useTranslatedText</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Tue Dec 09 2025 19:51:30 GMT-0600 (Central Standard Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

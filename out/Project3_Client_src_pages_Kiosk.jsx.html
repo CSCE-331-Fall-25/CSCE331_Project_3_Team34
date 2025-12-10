@@ -1,0 +1,1465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: Project3_Client/src/pages/Kiosk.jsx</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: Project3_Client/src/pages/Kiosk.jsx</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * @fileoverview Kiosk customer self-service ordering interface.
+ * Allows customers to browse menu, select items, customize orders, and checkout.
+ * Supports accessibility features and multiple languages.
+ */
+
+import { useEffect, useRef, useState, useMemo } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import pandaLogo from '../assets/PandaLogo.svg'
+import WeatherScreen from './WeatherScreen';
+// Transaction is a server-side class; don't import it into the client bundle.
+import '../styles/Kiosk.css';
+
+import { getImageForItem } from "../assets/utils/imageMapper";
+import ChatModal from '../Components/ChatModal';
+import { saveOrder, loadOrder, clearOrder } from '../utils/orderPersistence';
+import { useTranslatedObject } from '../hooks/useTranslatedText';
+import { useContext } from 'react';
+import { TranslationContext } from '../contexts/TranslationContext';
+
+/**
+ * Kiosk component - Main customer self-service ordering interface.
+ * Provides menu browsing, order management, accessibility features, and checkout.
+ * Supports multi-language interface and ChatBot assistance.
+ * 
+ * @returns {JSX.Element} Kiosk ordering interface
+ */
+export default function Kiosk() {
+
+  // --- Accessibility feature --- //
+  const [showAccessibility, setShowAccessibility] = useState(false);
+  const [baseFontSize, setBaseFontSize] = useState(16);
+
+  const increaseFont = () => setBaseFontSize(prev => Math.min(prev + 2, 30));
+  const decreaseFont = () => setBaseFontSize(prev => Math.max(prev - 2, 10));
+
+  // --- Translation system --- //
+  const translationKeys = useMemo(() => ({
+    'Select': 'Select',
+    'Current Order': 'Current Order',
+    'No items yet': 'No items yet',
+    'Total': 'Total',
+    'Clear': 'Clear',
+    'Checkout': 'Checkout',
+    'Welcome': 'Welcome',
+    'Customer Sign In': 'Customer Sign In',
+    'Sign Out': 'Sign Out',
+    'Employee Sign In': 'Employee Sign In',
+    'Back': 'Back',
+    'No items': 'No items',
+    'Select Payment Method': 'Select Payment Method',
+    'Cash': 'Cash',
+    'Card': 'Card',
+    'Rewards': 'Rewards',
+    'Transaction': 'Transaction',
+    'Complete': 'Complete',
+    'New Order': 'New Order',
+    'Loading': 'Loading',
+    'calories': 'calories',
+    'Allergens': 'Allergens',
+    'Choose a size for': 'Choose a size for',
+    'requires a size.': 'requires a size.',
+    'options': 'options',
+    'Included': 'Included',
+    'Cancel': 'Cancel',
+    'Small': 'Small',
+    'Medium': 'Medium',
+    'Large': 'Large',
+  }), []);
+
+  const translatedTexts = useTranslatedObject(translationKeys);
+
+  // Get translation context for dynamic content like menu item names
+  const translationContext = useContext(TranslationContext);
+  const selectedLanguage = translationContext?.selectedLanguage || 'en';
+
+  // --- inactivity timer --- //
+
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const timerRef = useRef(null);
+
+  /**
+   * Starts or resets the inactivity timer.
+   * Navigates to weather screen after 10 minutes of inactivity.
+   * 
+   * @returns {void}
+   */
+  function startTimer() {
+    clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => navigate('/weather'), 1000 * 60 * 10); // 10 minutes
+  }
+
+  const [tableColumns, setTableColumns] = useState([]);
+  const [tableData, setTableData] = useState([]);
+  const [errorLabel, setErrorLabel] = useState("");
+  const [inventoryData, setInventoryData] = useState([]);
+  const [customerLoggedIn, setCustomerLoggedIn] = useState(false);
+  const [customerName, setCustomerName] = useState('');
+
+  /**
+   * Fetches inventory data from the backend.
+   * 
+   * @async
+   * @returns {Promise&lt;void>}
+   */
+  const getInventoryData = async () => {
+    // console.log("inventory data");
+    const response = await fetch("/api/inventory-data");
+    if (!response.ok) {
+      console.log("Error in function call");
+      setErrorLabel("Failed to connect to backend");
+    }
+    else if (response == null) {
+      console.log("Error getting data");
+      setErrorLabel("Failed to connect to backend");
+    }
+    else {
+      const newData = await response.json();
+      //console.log(JSON.stringify(newData));
+      setInventoryData(newData);
+      setTableColumns([
+        { accessorKey: "inventoryid", header: translatedTexts['Inventory ID'] || "Inventory ID", cell: info => info.getValue() },
+        { accessorKey: "name", header: translatedTexts['Name'] || "Name", cell: info => getTranslatedItemName(info.getValue()) },
+        { accessorKey: "quantity", header: translatedTexts['Quantity'] || "Quantity", cell: info => info.getValue() },
+        { accessorKey: "minstock", header: translatedTexts['Minimum Stock'] || "Minimum Stock", cell: info => info.getValue() },
+        { accessorKey: "maxstock", header: translatedTexts['Maximum Stock'] || "Maximum Stock", cell: info => info.getValue() }
+      ]);
+      // console.log(JSON.stringify(newData));
+      if (newData.error == -2) {
+        setErrorLabel(translatedTexts['Failed to connect to backend'] || "Failed to connect to backend");
+      }
+      else if (newData.error == -1) {
+        setErrorLabel(translatedTexts['Error getting inventory items'] || "Error getting inventory items");
+      }
+      else if (newData.error == 0) {
+        setErrorLabel(translatedTexts['No inventory items'] || "No inventory items");
+      }
+      setTableData(Array.isArray(newData) ? newData.slice() : [newData]);
+    }
+  }
+
+  useEffect(() => {
+    getInventoryData();
+
+    const events = ['click', 'mousemove', 'scroll', 'touchstart'];
+    function resetTimer() { startTimer(); }
+    events.forEach(event => window.addEventListener(event, resetTimer, { passive: true }));
+    startTimer();
+    return () => {
+      clearTimeout(timerRef.current);
+      events.forEach(event => window.removeEventListener(event, resetTimer));
+    };
+  }, [navigate]);
+
+  // --- UI state and handlers --- //
+  const [selectedItemId, setSelectedItemId] = useState('');
+  const [menuItems, setMenuItems] = useState([]);
+  const [orderItems, setOrderItems] = useState([]);
+  const [items, setItems] = useState([]);
+  const [translatedItemNames, setTranslatedItemNames] = useState({});
+  const [bandaidHalfAndHalf, setBandaidHalfAndHalf] = useState(0);
+  const [selectionQueue, setSelectionQueue] = useState([]);
+  const [currentGroupId, setCurrentGroupId] = useState(null);
+  const [activeSelection, setActiveSelection] = useState(null); // { type, label, remaining }
+  const groupIdRef = useRef(0);
+  const currentParentItemIdRef = useRef(null);
+  const swapTargetRef = useRef(null);
+
+  const [state, setState] = useState("Kiosk"); // Possible states: "Kiosk", "Checkout", "Payment", "Receipt"
+  const [transactionNumber, setTransactionNumber] = useState(0);
+  const [orderFinalized, setOrderFinalized] = useState(false);
+  
+  const timeoutRef = useRef(null);
+
+  // Loading overlay state: set while any long-running async action is in progress
+  const [loading, setLoading] = useState(false);
+
+  // Blocking state used when we want to prevent input without showing the overlay
+  const [blocking, setBlocking] = useState(false);
+
+  // Helper to run async operations while showing the loading overlay.
+  // withLoading accepts an optional options object: { showOverlay: boolean }
+  // If showOverlay is false, we activate a transparent input blocker instead
+  const withLoading = async (fn, { showOverlay = true } = {}) => {
+    if (showOverlay) setLoading(true); else setBlocking(true);
+    try {
+      return await fn();
+    } finally {
+      if (showOverlay) setLoading(false); else setBlocking(false);
+    }
+  };
+
+  // Fetch wrapper with timeout using AbortController to avoid indefinite hangs
+  const fetchWithTimeout = (url, options = {}, timeoutMs = 8000) => {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeoutMs);
+    const opts = { ...options, signal: controller.signal };
+    return fetch(url, opts)
+      .finally(() => clearTimeout(id));
+  };
+
+  const changeState = (newState) => {
+    setState(newState);
+  }
+
+  // Helper to get translated item name (from cache or original)
+  const getTranslatedItemName = (name) => {
+    return translatedItemNames[name] || name;
+  };
+
+  // Helper to translate allergen string (comma-separated list)
+  const getTranslatedAllergens = (allergenString) => {
+    if (!allergenString || allergenString === 'NA') return allergenString;
+    
+    // Split by comma, translate each allergen, then join back
+    const allergens = allergenString.split(',').map(a => a.trim());
+    const translated = allergens.map(allergen => translatedItemNames[allergen] || allergen);
+    return translated.join(', ');
+  };
+
+  // size modifiers fetched from server grouped by type (lowercased)
+  const [sizeModsByType, setSizeModsByType] = useState({});
+  const [pendingSizeSelection, setPendingSizeSelection] = useState(null);
+
+  const getSizeOptionsForType = type => {
+    const normalized = (type || '').toLowerCase();
+    return sizeModsByType[normalized] ?? [];
+  };
+
+  async function fetchSizeMods() {
+    try {
+      const res = await fetch('/api/kiosk/get-sizes');
+      if (!res.ok) throw new Error('Failed to load size modifiers');
+      const data = await res.json();
+      if (!Array.isArray(data)) { setSizeModsByType({}); return; }
+      const grouped = data.reduce((acc, row, idx) => {
+        const typeKey = String(row.type ?? row.name ?? '').toLowerCase();
+        if (!typeKey) return acc;
+        const sizeLabelRaw = row.size ?? row.label ?? row.name ?? `size-${idx}`;
+        const sizeKey = String(sizeLabelRaw).toLowerCase();
+        const displayLabel = typeof sizeLabelRaw === 'string' ? (sizeLabelRaw.charAt(0).toUpperCase() + sizeLabelRaw.slice(1)) : String(sizeLabelRaw);
+        const entry = { key: sizeKey, label: displayLabel, priceDelta: safeNumber(row.pricemod ?? row.price ?? row.cost ?? 0) };
+        if (!acc[typeKey]) acc[typeKey] = [];
+        // avoid duplicate keys
+        if (!acc[typeKey].some(e => e.key === entry.key)) acc[typeKey].push(entry);
+        return acc;
+      }, {});
+      setSizeModsByType(grouped);
+    } catch (err) {
+      console.error('Failed to load size modifiers', err);
+      setSizeModsByType({});
+    }
+  }
+
+  const [isChatOpen, setIsChatOpen] = useState(false);
+
+  const openChat = () => setIsChatOpen(true);
+  const closeChat = () => setIsChatOpen(false);
+
+  const [showChat, setShowChat] = useState(false);
+
+
+  const safeNumber = value => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
+
+  const getSizeContextForChoice = (option) => {
+    if (!activeSelection) return null;
+    const selectionType = (activeSelection.type || '').toLowerCase();
+    const optionType = (option?.type || '').toLowerCase();
+    const priceModValue = safeNumber(option?.pricemod ?? 0);
+
+    const buildContext = (key, labelOverride) => {
+      const options = getSizeOptionsForType(key);
+      if (!options.length) return null;
+      return { sizeGroup: key, label: labelOverride || key, options };
+    };
+
+    if (selectionType === 'drink') {
+      return buildContext('drink', 'Drink');
+    }
+
+    if (selectionType === 'a la carte') {
+      if (priceModValue > 0) {
+        const premium = buildContext('premium', 'Premium');
+        if (premium) return premium;
+      }
+      if (optionType === 'entree') {
+        return buildContext('entree', 'Entree');
+      }
+      if (optionType === 'side') {
+        return buildContext('side', 'Side');
+      }
+      return null;
+    }
+
+    return null;
+  };
+
+  const resolveDisplayPrice = item => {
+    const hasPriceMod = item?.pricemod !== undefined &amp;&amp; item?.pricemod !== null;
+    let allergies = item.allergies;
+    let hideAllergies = item.allergies == "NA";
+    if (hasPriceMod) {
+      const modValue = safeNumber(item.pricemod);
+      return { value: modValue, hide: modValue === 0, allergies: allergies, hideAllergies: hideAllergies };
+    }
+    const baseValue = safeNumber(item?.price ?? item?.cost ?? 0);
+    return { value: baseValue, hide: false, allergies: allergies, hideAllergies: hideAllergies };
+  };
+
+  const computeLinePrice = item => {
+    const baseValue = safeNumber(item?.price ?? item?.cost ?? 0);
+    const priceMod = safeNumber(item?.pricemod ?? 0);
+    const sizeMod = safeNumber(item?.sizePriceMod ?? 0);
+    return baseValue + priceMod + sizeMod;
+  };
+
+  /**
+   * Adds an item to the current order.
+   * 
+   * @param {Object} item - Item to add
+   * @param {Object} [overrides={}] - Optional overrides for item properties
+   * @param {number} [insertAt=null] - Optional index to insert at
+   * @returns {void}
+   */
+  function addToOrder(item, overrides = {}, insertAt = null) {
+    setOrderItems(prev => {
+      const entry = { ...item, ...overrides };
+      const newOrder = insertAt == null || insertAt &lt; 0 || insertAt > prev.length
+        ? [...prev, entry]
+        : [...prev.slice(0, insertAt), entry, ...prev.slice(insertAt)];
+      saveOrder(newOrder, 'kiosk');
+      return newOrder;
+    });
+  }
+
+  /**
+   * Removes an item from the order by index.
+   * 
+   * @param {number} idx - Index of item to remove
+   * @returns {void}
+   */
+  function removeFromOrder(idx) {
+    setOrderItems(prev => {
+      const target = prev[idx];
+      if (!target) return prev;
+      if (target.isParent &amp;&amp; target.groupId != null) {
+        const nextOrder = prev.filter(entry => entry.groupId !== target.groupId);
+        if (currentGroupId === target.groupId) {
+          clearUI();
+          currentParentItemIdRef.current = null;
+          if (swapTargetRef.current?.groupId === target.groupId) {
+            swapTargetRef.current = null;
+          }
+        }
+        saveOrder(nextOrder, 'kiosk');
+        return nextOrder;
+      }
+      const nextOrder = prev.filter((_, i) => i !== idx);
+      saveOrder(nextOrder, 'kiosk');
+      return nextOrder;
+    });
+  }
+
+  function removeGroupFromOrder(groupId) {
+    if (groupId == null) return;
+    setOrderItems(prev => prev.filter(entry => entry.groupId !== groupId));
+    if (swapTargetRef.current?.groupId === groupId) {
+      swapTargetRef.current = null;
+    }
+  }
+
+  /**
+   * Handles swapping an item in the order.
+   * 
+   * @async
+   * @param {number} idx - Index of item to swap
+   * @param {Object} it - New item to swap in
+   * @returns {Promise&lt;void>}
+   */
+  async function handleSwap(idx, it) {
+    setBandaidHalfAndHalf(0);
+    const target = it;
+    if (!target || target.isParent) return;
+
+    const parentEntry = orderItems.find(entry => entry.groupId === target.groupId &amp;&amp; entry.isParent);
+    const parentItemId = parentEntry?.itemid || target.parentItemId || '';
+
+    setOrderItems(prev => prev.filter((_, i) => i !== idx));
+    swapTargetRef.current = {
+      index: idx,
+      groupId: target.groupId ?? null,
+      halfAndHalf: target.halfAndHalf,
+      type: target.type,
+      parentItemId,
+    };
+
+    if (!target.type) return;
+
+    const label = target.type ? `Swap ${target.type}` : 'Swap Item';
+    const swapQueue = [{ type: target.type, label }];
+
+    setSelectionQueue(swapQueue);
+    setActiveSelection(null);
+    setMenuItems([]);
+    setSelectedItemId(parentItemId);
+    setCurrentGroupId(target.groupId ?? null);
+    currentParentItemIdRef.current = parentItemId;
+
+    await withLoading(() => startNextSelection(swapQueue), { showOverlay: false });
+  }
+
+  function clearUI() {
+    setCurrentGroupId(null);
+    setSelectionQueue([]);
+    setActiveSelection(null);
+    setMenuItems([]);
+    setSelectedItemId('');
+    currentParentItemIdRef.current = null;
+    swapTargetRef.current = null;
+    setPendingSizeSelection(null);
+  }
+
+  function clearOrderAndUI() {
+    setOrderItems([]);
+    clearUI();
+    clearOrder('kiosk');
+  }
+  
+  /**
+   * Fetches all available menu items from backend.
+   * 
+   * @async
+   * @returns {Promise&lt;void>}
+   */
+  async function fetchItems() {
+    try {
+      const res = await fetchWithTimeout('/api/kiosk/get-items');
+      console.log('status', res.status, 'ok', res.ok);
+      console.log('headers', Object.fromEntries(res.headers.entries()));
+
+      // parse JSON body
+      const data = await res.json();
+      // console.log('data', data);                    // inspect
+      // console.log(JSON.stringify(data, null, 2));  // nicely formatted
+      // if (Array.isArray(data)) console.table(data); // nice table for arrays
+
+      // Keep the item objects so we can use every property (name, price, etc.).
+      const normalized = Array.isArray(data)
+        ? data.map((d, idx) => (
+            typeof d === 'string'
+              ? { name: d, itemid: `item-${idx}`, price: 0 }
+              : d
+          ))
+        : [];
+      setItems(normalized);
+    } catch (err) {
+      console.error('fetch failed', err);
+    }
+  }
+
+  async function getNextTransactionNum() {
+    try {
+      const res = await fetchWithTimeout('/api/kiosk/get-next-transaction-number');
+    }
+    catch (err) {
+      console.error('fetch failed', err);
+    }
+  }
+
+  useEffect(() => {
+    // Initial data fetches should show the loading overlay
+    withLoading(async () => {
+      await fetchItems();
+      await getNextTransactionNum();
+      await fetchSizeMods();
+    });
+    
+    // Load saved order from sessionStorage (persists within browser session)
+    const savedOrder = loadOrder('kiosk');
+    if (savedOrder.length > 0) {
+      setOrderItems(savedOrder);
+    }
+    
+    // Handle login success
+    const success = searchParams.get('success');
+    // Guard against duplicate handling (React StrictMode / HMR can cause double mount)
+    try {
+      if (typeof window !== 'undefined' &amp;&amp; window.__kiosk_google_login_handled) return;
+    } catch (e) {}
+
+    if (success == '4') {
+      setCustomerLoggedIn(true);
+      // Fetch customer data
+      fetch('/api/get-user', {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include'
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success &amp;&amp; data.user) {
+            setCustomerName(getTranslatedItemName(data.user.username));
+          }
+        })
+        .catch((err) => console.error('Failed to fetch customer data:', err));
+      alert('Customer logged in successfully');
+      // mark handled so we don't show this alert again on a duplicate mount
+      try { if (typeof window !== 'undefined') window.__kiosk_google_login_handled = true; } catch (e) {}
+      window.history.replaceState({}, '', window.location.pathname);
+    } else if (success == '2') {
+      navigate('/hub');
+    } else if (success) {
+      // Clear any other success params
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
+
+  // Translate item names and allergens when items/menuItems change OR language changes
+  useEffect(() => {
+    if (!translationContext) return;
+
+    const translateItemNames = async () => {
+      // If English, just use original names
+      if (selectedLanguage === 'en') {
+        const englishNames = {};
+        items.forEach(item => {
+          item.name &amp;&amp; (englishNames[item.name] = item.name);
+          // Also collect allergens from both fields
+          if (item.allergens &amp;&amp; item.allergens !== 'NA') {
+            const allergens = item.allergens.split(',').map(a => a.trim());
+            allergens.forEach(allergen => englishNames[allergen] = allergen);
+          }
+          if (item.allergies &amp;&amp; item.allergies !== 'NA') {
+            const allergies = item.allergies.split(',').map(a => a.trim());
+            allergies.forEach(allergen => englishNames[allergen] = allergen);
+          }
+        });
+        menuItems.forEach(item => {
+          if (item.name) englishNames[item.name] = item.name;
+          // Also collect allergens from both fields
+          if (item.allergens &amp;&amp; item.allergens !== 'NA') {
+            const allergens = item.allergens.split(',').map(a => a.trim());
+            allergens.forEach(allergen => englishNames[allergen] = allergen);
+          }
+          if (item.allergies &amp;&amp; item.allergies !== 'NA') {
+            const allergies = item.allergies.split(',').map(a => a.trim());
+            allergies.forEach(allergen => englishNames[allergen] = allergen);
+          }
+        });
+        setTranslatedItemNames(englishNames);
+        return;
+      }
+
+      // Collect all unique item names and allergens to translate
+      const textsToTranslate = new Set();
+      items.forEach(item => {
+        item.name &amp;&amp; textsToTranslate.add(item.name);
+        // Also collect allergens from items (check both 'allergens' and 'allergies' fields)
+        if (item.allergens &amp;&amp; item.allergens !== 'NA') {
+          const allergens = item.allergens.split(',').map(a => a.trim());
+          allergens.forEach(allergen => textsToTranslate.add(allergen));
+        }
+        if (item.allergies &amp;&amp; item.allergies !== 'NA') {
+          const allergies = item.allergies.split(',').map(a => a.trim());
+          allergies.forEach(allergen => textsToTranslate.add(allergen));
+        }
+      });
+      menuItems.forEach(item => {
+        if (item.name) textsToTranslate.add(item.name);
+        // Parse allergens and add each one (check both 'allergens' and 'allergies' fields)
+        if (item.allergens &amp;&amp; item.allergens !== 'NA') {
+          const allergens = item.allergens.split(',').map(a => a.trim());
+          allergens.forEach(allergen => textsToTranslate.add(allergen));
+        }
+        if (item.allergies &amp;&amp; item.allergies !== 'NA') {
+          const allergies = item.allergies.split(',').map(a => a.trim());
+          allergies.forEach(allergen => textsToTranslate.add(allergen));
+        }
+      });
+
+      if (textsToTranslate.size === 0) return;
+
+      try {
+        // Translate all texts
+        const textsArray = Array.from(textsToTranslate);
+        const translations = await translationContext.translateMultiple(
+          textsArray,
+          selectedLanguage
+        );
+        // Map original text to translated text
+        const translationMap = {};
+        textsArray.forEach((text, idx) => {
+          translationMap[text] = translations[idx] || text;
+        });
+        setTranslatedItemNames(translationMap);
+      } catch (error) {
+        console.error('Failed to translate item names:', error);
+        // Fallback to original names
+        const fallback = {};
+        textsToTranslate.forEach(text => fallback[text] = text);
+        setTranslatedItemNames(fallback);
+      }
+    };
+
+    translateItemNames();
+  }, [items, menuItems, selectedLanguage, translationContext]);
+
+  async function fetchMenuRowsByType(type) {
+    if (!type) return [];
+    const q = encodeURIComponent(type);
+    const res = await fetch(`/api/kiosk/get-menu?type=${q}`);
+    if (!res.ok) throw new Error(`Failed to load menu for ${type}`);
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
+  }
+
+  async function getMenuByType(type) {
+    const normalized = (type || '').toLowerCase();
+    if (!normalized) {
+      setMenuItems([]);
+      return;
+    }
+    try {
+      // Support 'a la carte' by combining entree and side rows
+      if (normalized === 'a la carte') {
+        const results = await Promise.allSettled([
+          fetchMenuRowsByType('entree'),
+          fetchMenuRowsByType('side'),
+        ]);
+        const combined = [];
+        const seen = new Set();
+        results.forEach(result => {
+          if (result.status !== 'fulfilled' || !Array.isArray(result.value)) return;
+          result.value.forEach(item => {
+            if (!item) return;
+            const key = item.menuid ?? item.id ?? (item.name ? `name-${item.name}` : `idx-${combined.length}`);
+            if (seen.has(key)) return;
+            seen.add(key);
+            combined.push(item);
+          });
+        });
+        setMenuItems(combined);
+        return;
+      }
+      const data = await fetchMenuRowsByType(type);
+      setMenuItems(data);
+    } catch (err) {
+      console.error(err);
+      setMenuItems([]);
+    }
+  }
+
+
+  function buildSelectionQueue(item) {
+    if (!item) return [];
+    const queue = [];
+    if (item.type === 'meal') {
+      const entreeCount = Number(item.numentrees ?? 0);
+      const sideCount = Number(item.numsides ?? 0);
+      for (let i = 0; i &lt; entreeCount; i++) {
+        queue.push({ type: 'entree', label: `Entree ${i + 1}` });
+      }
+      for (let i = 0; i &lt; sideCount; i++) {
+        queue.push({ type: 'side', label: `Side ${i + 1}` });
+      }
+    } else if (item.type === 'a la carte') {
+      queue.push({ type: 'a la carte', label: 'A La Carte' });
+    } else {
+      queue.push({ type: item.type, label: item.name || item.type });
+    }
+    return queue;
+  }
+
+  async function startNextSelection(queueOverride) {
+    const queueSource = queueOverride ?? selectionQueue;
+    if (!queueSource.length) {
+      setSelectionQueue([]);
+      setActiveSelection(null);
+      setMenuItems([]);
+      setSelectedItemId('');
+      setCurrentGroupId(null);
+      currentParentItemIdRef.current = null;
+      swapTargetRef.current = null;
+      return;
+    }
+    const [next, ...rest] = queueSource;
+    setSelectionQueue(rest);
+    setActiveSelection({ ...next, remaining: rest.length });
+    await getMenuByType(next.type);
+  }
+
+  /**
+   * Handles selection of a menu item from the UI.
+   * Initiates size selection or adds item to order.
+   * 
+   * @async
+   * @param {Object} item - Selected item
+   * @returns {Promise&lt;void>}
+   */
+  async function handleItemSelection(item) {
+    if (currentGroupId != null &amp;&amp; (selectionQueue.length > 0 || activeSelection) &amp;&amp; bandaidHalfAndHalf &lt; 2) {
+      removeGroupFromOrder(currentGroupId);
+    }
+    clearUI();
+    setBandaidHalfAndHalf(0);
+    if (item.itemid &lt; 4) {
+      setBandaidHalfAndHalf(1);
+    }
+
+    const newGroupId = groupIdRef.current + 1;
+    groupIdRef.current = newGroupId;
+    currentParentItemIdRef.current = item.itemid;
+    addToOrder(item, { groupId: newGroupId, isParent: true, parentItemId: item.itemid });
+    setCurrentGroupId(newGroupId);
+    setSelectedItemId(item.itemid);
+    const queue = buildSelectionQueue(item);
+    setSelectionQueue(queue);
+    await withLoading(() => startNextSelection(queue), { showOverlay: false });
+  }
+
+  function handleMenuTileClick(option) {
+    if (!activeSelection) {
+      handleMenuChoice(option);
+      return;
+    }
+    const sizeContext = getSizeContextForChoice(option);
+    if (sizeContext &amp;&amp; sizeContext.options.length) {
+      setPendingSizeSelection({
+        option,
+        sizeOptions: sizeContext.options,
+        selectionLabel: activeSelection.label || activeSelection.type,
+        sizeCategory: sizeContext.label,
+      });
+      return;
+    }
+    if (option.type == "side" &amp;&amp; bandaidHalfAndHalf == 2) {
+      setBandaidHalfAndHalf(3);
+    }
+    if (option.type == "side" &amp;&amp; bandaidHalfAndHalf == 1) {
+      setBandaidHalfAndHalf(2);
+    }
+    handleMenuChoice(option);
+  }
+
+  function cancelSizeSelection() {
+    setPendingSizeSelection(null);
+  }
+
+  function confirmSizeSelection(sizeOpt) {
+    if (!pendingSizeSelection) return;
+    handleMenuChoice(pendingSizeSelection.option, sizeOpt);
+    setPendingSizeSelection(null);
+  }
+
+  /**
+   * Handles selection of menu items for meal customization.
+   * 
+   * @async
+   * @param {Object} option - Selected menu option
+   * @param {string} [explicitSize=null] - Optionally specify size
+   * @returns {Promise&lt;void>}
+   */
+  async function handleMenuChoice(option, explicitSize = null) {
+
+    //DEBUG:
+    // const inventoryIDs = option.inventoryids;
+    // console.log("Selected menu Inventory:", inventoryIDs.join(", "));
+
+    // for (const invID of inventoryIDs) {
+    //   console.log(invID + ": " + inventoryData.find(item => item.inventoryid === invID)?.quantity);
+    // }
+
+
+    const pendingSwap = swapTargetRef.current;
+    let insertAt = null;
+    if (pendingSwap &amp;&amp; pendingSwap.groupId === currentGroupId) {
+      insertAt = pendingSwap.index;
+    }
+
+    const sizeContext = getSizeContextForChoice(option);
+    const sizeOptions = sizeContext?.options ?? [];
+    const selectedSize = explicitSize ?? (sizeOptions.length ? sizeOptions[0] : null);
+    const sizePayload = selectedSize ? { sizeLabel: selectedSize.label, sizeKey: selectedSize.key, sizePriceMod: selectedSize.priceDelta } : {};
+
+    if (currentGroupId != null &amp;&amp; option != "C") {
+      const halfFlag = (pendingSwap &amp;&amp; pendingSwap.halfAndHalf !== undefined)
+        ? pendingSwap.halfAndHalf
+        : (bandaidHalfAndHalf == 2);
+
+      addToOrder(option, {
+        groupId: currentGroupId,
+        isParent: false,
+        parentItemId: currentParentItemIdRef.current,
+        type: activeSelection?.type,
+        halfAndHalf: halfFlag,
+        ...sizePayload
+      }, insertAt);
+    } else if (option != "C") {
+      addToOrder(option, { ...sizePayload }, insertAt);
+    }
+
+    if (pendingSwap) {
+      swapTargetRef.current = null;
+    }
+
+    if (bandaidHalfAndHalf == 2 &amp;&amp; option != "C") {
+      for (let row of orderItems) {
+        if (row.groupId == groupIdRef.current &amp;&amp; row.halfAndHalf == false &amp;&amp; row.type == 'side') {
+          row["halfAndHalf"] = true;
+        }
+      }
+    }
+
+    if (selectionQueue.length === 0) {
+      // Meal is complete - send to backend (silent blocking — don't show overlay mid-order)
+      await withLoading(() => sendCompletedMealToBackend(), { showOverlay: false });
+
+      setActiveSelection(null);
+      setMenuItems([]);
+      setCurrentGroupId(null);
+      setSelectedItemId('');
+      currentParentItemIdRef.current = null;
+      return;
+    }
+    await withLoading(() => startNextSelection(), { showOverlay: false });
+  }
+
+  async function sendCompletedMealToBackend() {
+    if (currentGroupId == null) return;
+    
+    // Find all items in the current group
+    const groupItems = orderItems.filter(item => item.groupId === currentGroupId);
+    const parentItem = groupItems.find(item => item.isParent);
+    
+    if (!parentItem) {
+      console.error('No parent item found for group:', currentGroupId);
+      return;
+    }
+
+    // Separate entrees and sides
+    const entreeList = groupItems
+      .filter(item => !item.isParent &amp;&amp; item.type === 'entree')
+      .map(item => item.name);
+    
+    const sideList = groupItems
+      .filter(item => !item.isParent &amp;&amp; item.type === 'side')
+      .map(item => item.name);
+
+    try {
+      const res = await fetchWithTimeout('/api/buy-item', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          itemID: parentItem.name,
+          entreeList,
+          sideList,
+          size: null
+        })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        console.log('Item added to backend transaction:', data);
+      } else {
+        console.error('Failed to add item to backend:', data);
+      }
+    } catch (err) {
+      if (err.name === 'AbortError') {
+        console.error('Request aborted (timeout) sending item to backend');
+      } else {
+        console.error('Error sending item to backend:', err);
+      }
+    }
+  }
+
+  async function handleAIOrder(ordersInput) {
+    // Support both single object and array
+    const orders = Array.isArray(ordersInput) ? ordersInput : [ordersInput];
+    console.log("AI adding orders:", orders);
+    
+    // Fetch menu data once for all orders
+    let allEntrees = [];
+    let allSides = [];
+    let allDrinks = [];
+    let allAppetizers = [];
+    try {
+        const [entrees, sides, drinks, bottles, appetizers] = await Promise.all([
+            fetchMenuRowsByType('entree'),
+            fetchMenuRowsByType('side'),
+            fetchMenuRowsByType('drink'),
+            fetchMenuRowsByType('bottle'),
+            fetchMenuRowsByType('appetizer')
+        ]);
+        allEntrees = entrees;
+        allSides = sides;
+        allDrinks = [...drinks, ...bottles];
+        allAppetizers = appetizers;
+    } catch (e) {
+        console.error("Failed to fetch menu data for pricing", e);
+    }
+
+    const newItemsBatch = [];
+
+    for (const order of orders) {
+        // 1. Send to backend
+        try {
+          const res = await fetch('/api/buy-item', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+              itemID: order.type,
+              entreeList: [...(order.entrees || []), ...(order.drinks || []), ...(order.appetizers || [])],
+              sideList: order.sides,
+              size: null
+            })
+          });
+          const data = await res.json();
+          if (!data.success) {
+            console.error("Failed to add AI order to backend", data);
+            continue; // Skip adding to UI if backend failed
+          }
+          console.log("Backend accepted AI order:", data);
+        } catch (e) {
+          console.error("Error sending AI order", e);
+          continue;
+        }
+
+        // 2. Update local state (UI)
+        const normalize = (s) => (s || '').toLowerCase().trim();
+        const parentItem = items.find(i => normalize(i.name) === normalize(order.type)) || { name: order.type, price: 0, type: 'meal' };
+        const generatedParentId = parentItem.itemid || `ai-${Date.now()}-${Math.random()}`;
+        
+        const newGroupId = groupIdRef.current + 1;
+        groupIdRef.current = newGroupId;
+
+        // Parent
+        newItemsBatch.push({
+            ...parentItem,
+            groupId: newGroupId,
+            isParent: true,
+            parentItemId: generatedParentId
+        });
+
+        // Children - Entrees
+        if (order.entrees &amp;&amp; Array.isArray(order.entrees)) {
+          order.entrees.forEach((name) => {
+              const details = allEntrees.find(e => normalize(e.name) === normalize(name));
+              newItemsBatch.push({
+                  name: name,
+                  type: 'entree',
+                  pricemod: details ? details.pricemod : 0,
+                  menuid: details ? details.menuid : null,
+                  groupId: newGroupId,
+                  isParent: false,
+                  parentItemId: generatedParentId
+              });
+          });
+        }
+        
+        // Children - Sides
+        if (order.sides &amp;&amp; Array.isArray(order.sides)) {
+          order.sides.forEach((name) => {
+              const details = allSides.find(s => normalize(s.name) === normalize(name));
+              newItemsBatch.push({
+                  name: name,
+                  type: 'side',
+                  pricemod: details ? details.pricemod : 0,
+                  menuid: details ? details.menuid : null,
+                  groupId: newGroupId,
+                  isParent: false,
+                  parentItemId: generatedParentId
+              });
+          });
+        }
+
+        // Children - Drinks
+        if (order.drinks &amp;&amp; Array.isArray(order.drinks)) {
+            order.drinks.forEach((name) => {
+                const details = allDrinks.find(d => normalize(d.name) === normalize(name));
+                newItemsBatch.push({
+                    name: name,
+                    type: details ? details.type : 'drink',
+                    pricemod: details ? details.pricemod : 0,
+                    menuid: details ? details.menuid : null,
+                    groupId: newGroupId,
+                    isParent: false,
+                    parentItemId: generatedParentId
+                });
+            });
+        }
+
+        // Children - Appetizers
+        if (order.appetizers &amp;&amp; Array.isArray(order.appetizers)) {
+            order.appetizers.forEach((name) => {
+                const details = allAppetizers.find(a => normalize(a.name) === normalize(name));
+                newItemsBatch.push({
+                    name: name,
+                    type: 'appetizer',
+                    pricemod: details ? details.pricemod : 0,
+                    menuid: details ? details.menuid : null,
+                    groupId: newGroupId,
+                    isParent: false,
+                    parentItemId: generatedParentId
+                });
+            });
+        }
+    }
+
+    console.log("Adding new items to UI:", newItemsBatch);
+
+    setOrderItems(prev => {
+        const next = [...prev, ...newItemsBatch];
+        saveOrder(next, 'kiosk');
+        return next;
+    });
+  }
+
+  const total = orderItems.reduce((s, it) => s + computeLinePrice(it), 0);
+
+  /**
+   * Initiates the purchase process for current order.
+   * 
+   * @async
+   * @returns {Promise&lt;void>}
+   */
+  async function handlePurchase() {
+    // Move to Checkout screen; actual purchase should occur after payment
+    if ((orderItems.length === 0 || selectionQueue.length > 0 || activeSelection) &amp;&amp; bandaidHalfAndHalf != 2) {
+      return;
+    }
+    changeState("Checkout");
+  }
+
+  // Handle payment confirmation and submit the order to the server.
+  /**
+   * Processes payment for the order.
+   * 
+   * @async
+   * @param {string} method - Payment method (cash, card, rewards)
+   * @returns {Promise&lt;void>}
+   */
+  async function handlePayment(method) {
+    console.log("Payment method selected: " + method);
+    // Show visible loading overlay while purchase completes
+    await withLoading(async () => {
+      try {
+        const res = await fetchWithTimeout('/api/kiosk/submit-order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ orderItems, method }),
+        }, 15000);
+
+        if (!res || !res.ok) {
+          console.error('Purchase failed (network):', res &amp;&amp; res.status);
+          setErrorLabel('Failed to complete purchase');
+        } else {
+          const data = await res.json();
+          // Support different key names returned by server
+          const txn = data?.transactionid ?? data?.transactionId ?? data?.transactionIdNumber;
+          if (txn) setTransactionNumber(Number(txn));
+        }
+      } catch (err) {
+        if (err?.name === 'AbortError') {
+          console.error('Purchase request timed out');
+          setErrorLabel('Purchase timed out');
+        } else {
+          console.error('Error during purchase:', err);
+          setErrorLabel('Purchase failed');
+        }
+      }
+
+      changeState('Finished');
+
+      timeoutRef.current = setTimeout(() => {
+        goBackToKiosk();
+      }, 5000);
+    });
+  }
+
+  function goBackToKiosk() {
+    
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+
+    clearOrderAndUI();
+    changeState("Kiosk");
+    navigate('/weather');
+  }
+
+  
+
+  return (
+    &lt;div style={{ fontSize: `${baseFontSize}px` }}>
+      &lt;div>
+        {loading &amp;&amp; (
+          &lt;div className="loading-overlay" aria-hidden>
+            &lt;div className="loading-inner">{translatedTexts['Loading']}…&lt;/div>
+          &lt;/div>
+        )}
+        {blocking &amp;&amp; !loading &amp;&amp; (
+          &lt;div className="input-blocker" aria-hidden />
+        )}
+        {(state == "Kiosk") &amp;&amp; (
+        &lt;div className="kiosk-root">
+          &lt;div className="kiosk-left">
+            &lt;div className="kiosk-type-list">
+              {items.map((item, idx) => {
+                const currItemId = item.itemid;
+                const basePrice = safeNumber(item.price ?? item.cost ?? 0);
+                return (
+                  &lt;button
+                    key={item.itemid} 
+                    className={`kiosk-type-btn ${selectedItemId === currItemId ? 'active' : ''}`}
+                    onClick={() => handleItemSelection(item)}
+                  >
+                    &lt;div className="kiosk-type-name">{getTranslatedItemName(item.name) || currItemId}&lt;/div>
+                    &lt;div className="kiosk-item-price">${basePrice.toFixed(2)}&lt;/div>
+                  &lt;/button>
+                );
+              })}
+            &lt;/div>
+          &lt;/div>
+
+          &lt;div className="kiosk-middle">
+            {!selectedItemId &amp;&amp; (
+              &lt;div className="kiosk-logo-wrapper">
+                &lt;img
+                  src={pandaLogo}
+                  alt="Panda Express"
+                  className="kiosk-logo"
+                />
+              &lt;/div>
+            )}
+            {selectedItemId &amp;&amp; (
+              &lt;>
+                {activeSelection &amp;&amp; (
+                  &lt;div className="kiosk-selection-banner">
+                    {translatedTexts['Select']} {activeSelection.label || activeSelection.type}
+                    {typeof activeSelection.remaining === 'number' &amp;&amp; activeSelection.remaining > 0 &amp;&amp; (
+                      &lt;span className="kiosk-selection-remaining"> ({activeSelection.remaining} more after this)&lt;/span>
+                    )}
+                  &lt;/div>
+                )}
+                &lt;div className="kiosk-items-grid">
+                  {menuItems.length === 0 &amp;&amp; &lt;div className="kiosk-empty">{translatedTexts['No items']}&lt;/div>}
+                  {menuItems.map(it => {
+                    const { value, hide, allergies, hideAllergies } = resolveDisplayPrice(it);
+
+                    let isInStock = true;
+                    const inventoryIDs = it.inventoryids;
+
+                    for (const invID of inventoryIDs) {
+                      if(inventoryData.find(item => item.inventoryid === invID)?.quantity &lt; inventoryData.find(item => item.inventoryid === invID)?.minstock) isInStock = false;
+                    }
+
+                    let imageClass = isInStock ? 'kiosk-menu-image' : 'kiosk-menu-image out-of-stock';
+
+                    let imgSrc = getImageForItem(it.name);
+                    let boxStyle = `kiosk-item kisok-item-button${!isInStock ? ' out-of-stock' : ''}${!imgSrc ? ' no-img' : ''}`;
+
+                    return (
+                      &lt;div
+                        key={it.id ?? it.menuid ?? it.name}
+                        role="button"
+                        tabIndex={0}
+                        className={boxStyle}
+                        onClick={() => { if (isInStock) handleMenuTileClick(it); }}
+                        onKeyDown={(e) => { if (e.key === 'Enter' &amp;&amp; isInStock) handleMenuTileClick(it); }}
+                      >
+                        {imgSrc &amp;&amp; (
+                          &lt;img
+                            src={getImageForItem(it.name)}
+                            alt={it.name || 'item'}
+                            className='kiosk-menu-image'
+                          />
+                        )}
+                        &lt;div className="kiosk-item-name">{getTranslatedItemName(it.name)}&lt;/div>
+                        &lt;div className="kiosk-item-price">{hide ? '' : `$${value.toFixed(2)}`}&lt;/div>
+                        &lt;div className="kiosk-item-calories">
+                          {it.calories ? `${it.calories} ${translatedTexts['calories']}` : `0 ${translatedTexts['calories']}`}
+                        &lt;/div>
+                        &lt;div className="kiosk-item-calories">
+                          {hideAllergies ? '' : (allergies ? `${translatedTexts['Allergens']}: ${getTranslatedAllergens(allergies)}` : '')}
+                        &lt;/div>
+                      &lt;/div>
+                    );
+                  })}
+                  {(bandaidHalfAndHalf == 2) &amp;&amp; (
+                    &lt;div
+                      role="button"
+                      tabIndex={0}
+                      className={`kiosk-item kisok-item-button${false ? ' out-of-stock' : ''}${true ? ' no-img' : ''}`}
+                      onClick={() => { handleMenuTileClick("C"); }}
+                      onKeyDown={(e) => { if (e.key === 'Enter') handleMenuTileClick("C"); }}
+                    >
+                      &lt;div className="kiosk-item-name">{translatedTexts['Complete']}&lt;/div>
+                    &lt;/div> 
+                  )}
+                &lt;/div>
+                {pendingSizeSelection &amp;&amp; (
+                  &lt;div className="kiosk-size-modal-backdrop">
+                    &lt;div className="kiosk-size-modal">
+                      &lt;div className="kiosk-size-modal-title">
+                        {translatedTexts['Choose a size for']} {getTranslatedItemName(pendingSizeSelection.option?.name)}
+                      &lt;/div>
+                      &lt;div className="kiosk-size-modal-subtitle">
+                        {pendingSizeSelection.selectionLabel || 'Selection'} {translatedTexts['requires a size.'] || 'requires a size.'}
+                      &lt;/div>
+                      {pendingSizeSelection.sizeCategory &amp;&amp; (
+                        &lt;div className="kiosk-size-modal-subtitle secondary">
+                          {pendingSizeSelection.sizeCategory} {translatedTexts['options'] || 'options'}
+                        &lt;/div>
+                      )}
+                      &lt;div className="kiosk-size-modal-options">
+                        {pendingSizeSelection.sizeOptions.map(opt => (
+                          &lt;button
+                            key={opt.key}
+                            type="button"
+                            className="kiosk-size-btn"
+                            onClick={() => confirmSizeSelection(opt)}
+                          >
+                            &lt;span className="kiosk-size-label">{translatedTexts[opt.label] || opt.label}&lt;/span>
+                            {opt.priceDelta ? (
+                              &lt;span className="kiosk-size-price">+${opt.priceDelta.toFixed(2)}&lt;/span>
+                            ) : (
+                              &lt;span className="kiosk-size-price">{translatedTexts['Included'] || 'Included'}&lt;/span>
+                            )}
+                          &lt;/button>
+                        ))}
+                      &lt;/div>
+                      &lt;button type="button" className="kiosk-size-cancel" onClick={cancelSizeSelection}>{translatedTexts['Cancel'] || 'Cancel'}&lt;/button>
+                    &lt;/div>
+                  &lt;/div>
+                )}
+              &lt;/>
+            )}
+          &lt;/div>
+
+          &lt;div className="kiosk-right">
+            {customerLoggedIn &amp;&amp; customerName &amp;&amp; (
+              &lt;div className="kiosk-customer-info">
+                &lt;h3>{translatedTexts['Welcome']}, {customerName}!&lt;/h3>
+              &lt;/div>
+            )}
+            &lt;h3 className="kiosk-title">{translatedTexts['Current Order']}&lt;/h3>
+            &lt;div className="kiosk-order-list">
+              {orderItems.length === 0 &amp;&amp; &lt;div className="kiosk-empty">{translatedTexts['No items yet']}&lt;/div>}
+              {orderItems.map((it, idx) => {
+                const { value, hide } = resolveDisplayPrice(it);
+                const rowClass = `kiosk-order-row${it.isParent ? ' kiosk-order-row-parent' : (value > 0) ? ' kiosk-order-row-child-premium' : ' kiosk-order-row-child-default'}`;
+                const hasSizeMod = it.sizePriceMod !== undefined &amp;&amp; it.sizePriceMod !== null;
+                const sizeModValue = hasSizeMod ? safeNumber(it.sizePriceMod) : 0;
+                const sizeModLabel = hasSizeMod ? `${sizeModValue >= 0 ? '+' : '-'}$${Math.abs(sizeModValue).toFixed(2)}` : '';
+                const priceLabel = hasSizeMod ? sizeModLabel : (hide ? '' : `$${value.toFixed(2)}`);
+                if (it.type != "HalfAndHalf") {
+                  return (
+                    &lt;div className={rowClass} key={idx}>  
+                      &lt;div className="kiosk-order-name">
+                        &lt;span>{it.name}&lt;/span>
+                        {it.sizeLabel &amp;&amp; (
+                          &lt;span className="kiosk-order-size-note">
+                            {it.sizeLabel}
+                            {hasSizeMod &amp;&amp; ` (${sizeModLabel})`}
+                          &lt;/span>
+                        )}
+                        {it.halfAndHalf &amp;&amp; (
+                          &lt;span className="kiosk-order-size-note">
+                            {translatedTexts['Half &amp; Half']}
+                          &lt;/span>
+                        )}
+                      &lt;/div>
+                      &lt;div className="kiosk-order-actions">
+                        &lt;div className="kiosk-order-price">{priceLabel}&lt;/div>
+                        {it.isParent ? (
+                          &lt;button className="kiosk-remove-btn" onClick={() => removeFromOrder(idx)}>
+                            &lt;img src={getImageForItem("trashcan")} alt="Remove" className="remove-icon" />
+                          &lt;/button>
+                        ) : (
+                          &lt;button className="kiosk-swap-btn" onClick={() => handleSwap(idx, it)}>
+                            &lt;img src={getImageForItem("swapArrows")} alt="Swap" className="swap-icon" />
+                          &lt;/button>
+                        )}
+                      &lt;/div>
+                    &lt;/div>
+                  );
+                }
+              })}
+            &lt;/div>
+            &lt;div className="kiosk-order-summary">
+              &lt;div>{translatedTexts['Total']}: ${total.toFixed(2)}&lt;/div>
+              &lt;div className="kiosk-order-controls">
+                &lt;button onClick={clearOrderAndUI} className="kiosk-clear-btn">{translatedTexts['Clear']}&lt;/button>
+                &lt;button onClick={() => {console.log('Proceed to checkout', orderItems); handlePurchase();}} className="kiosk-checkout-btn" disabled={loading}>{translatedTexts['Checkout']}&lt;/button>
+              &lt;/div>
+            &lt;/div>
+          &lt;/div>
+          &lt;button
+              className={`ai-chat-btn ${!open ? 'pulse' : 'fadeIn'}`} // change open --> isChatOpen
+              onClick={() => setShowChat(true)}
+            >
+              &lt;div className='aitext'>AI&lt;/div>
+          &lt;/button>
+          &lt;button
+            className="circle-btn"
+            onClick={() => customerLoggedIn ? (setCustomerLoggedIn(false), setCustomerName('')) : navigate('/login?returnTo=/kiosk&amp;functionality=3')}>
+            {/* {customerLoggedIn ? 'Sign Out' : 'Customer Sign In'} */}
+            Login
+          &lt;/button>
+          {/* &lt;button
+            className="kiosk-signin-btn"
+            onClick={() => navigate('/login?returnTo=/hub&amp;functionality=2')}>
+            Employee Sign In
+          &lt;/button> */}
+          &lt;button
+            className="circle-btn back-btn"
+            onClick={() => navigate('/weather')}>
+              &lt;img src={getImageForItem('exitIcon')} alt="Back" className='icon-img'/>
+          &lt;/button>
+          &lt;button
+            className="accessibility-btn"
+            onClick={() => setShowAccessibility(true)}
+          >
+            &lt;img src={getImageForItem('accessibilityIcon')} alt="Back" className='icon-img'/>
+          &lt;/button>
+          {showChat &amp;&amp; &lt;ChatModal onClose={() => setShowChat(false)} onAddOrder={handleAIOrder} />}
+          {showAccessibility &amp;&amp; (
+            &lt;div className="accessibility-modal-overlay">
+              &lt;div className="accessibility-modal">
+                &lt;h2>Accessibility Options&lt;/h2>
+                &lt;p style={{ fontSize: `${baseFontSize}px` }}>
+                  Sample text: “Welcome to Panda Express!”
+                &lt;/p>
+
+                &lt;div className="acc-controls">
+                  &lt;button onClick={decreaseFont}>−&lt;/button>
+                  &lt;span>{baseFontSize}px&lt;/span>
+                  &lt;button onClick={increaseFont}>+&lt;/button>
+                &lt;/div>
+
+                &lt;button className="acc-close" onClick={() => setShowAccessibility(false)}>
+                  Close
+                &lt;/button>
+              &lt;/div>
+            &lt;/div>
+          )}
+
+        &lt;/div>
+        )} 
+        {state == "Checkout" &amp;&amp; (
+          &lt;div className="purchase-screen-wrapper">
+            &lt;div className="purchase-screen-card">
+
+              &lt;img src={pandaLogo} alt="Panda Express" className="purchase-logo" />
+
+              {/* Top image */}
+              &lt;h4 className="purchase-screen-title">{translatedTexts['Select Payment Method']}&lt;/h4>
+              &lt;div className="purchase-screen-price">{translatedTexts['Total']}: ${total.toFixed(2)}&lt;/div>
+
+
+              {/* Buttons section */}
+              &lt;div className="purchase-buttons">
+                &lt;div className={`purchase-option ${loading ? 'disabled' : ''}`} onClick={() => !loading &amp;&amp; handlePayment("Cash")}>
+                  &lt;img src={getImageForItem("cashImg")} alt="Cash" className="option-img" />
+                  &lt;span className="option-text">{translatedTexts['Cash']}&lt;/span>
+                &lt;/div>
+
+                &lt;div className={`purchase-option ${loading ? 'disabled' : ''}`} onClick={() => !loading &amp;&amp; handlePayment("Card")}>
+                  &lt;img src={getImageForItem("cardImg")} alt="Card" className="option-img" />
+                  &lt;span className="option-text">{translatedTexts['Card']}&lt;/span>
+                &lt;/div>
+
+                &lt;div className={`purchase-option ${loading ? 'disabled' : ''}`} onClick={() => !loading &amp;&amp; handlePayment("Rewards")}>
+                  &lt;img src={getImageForItem("rewardsImg")} alt="Rewards" className="option-img" />
+                  &lt;span className="option-text">{translatedTexts['Rewards']}&lt;/span>
+                &lt;/div>  
+              &lt;/div>
+            &lt;/div>
+          &lt;/div>
+        )}
+        {state == "Finished" &amp;&amp; (
+          &lt;div className="purchase-screen-wrapper">
+            &lt;div className="purchase-screen-card">
+
+              &lt;img src={getImageForItem("orderComplete")} alt="orderComplete" className="finished-img" />
+
+              {/* Top image */}
+              &lt;h4 className="purchase-screen-title">{translatedTexts['Transaction']}: {transactionNumber} {translatedTexts['Complete']}!&lt;/h4>
+              &lt;div className="purchase-screen-price">{translatedTexts['Total']}: ${total.toFixed(2)}&lt;/div>
+
+              &lt;br>&lt;/br>
+
+              {/* Buttons section */} 
+              &lt;div className="finished-option" onClick={() => {
+                setTransactionNumber(transactionNumber + 1);  
+                goBackToKiosk();
+                }}>
+                {translatedTexts['New Order']}
+              &lt;/div>
+              
+            &lt;/div>
+          &lt;/div>
+        )}
+      &lt;/div>
+    &lt;/div>
+  );
+}</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="CashierMainPage.html">CashierMainPage</a></li><li><a href="Manager.html">Manager</a></li><li><a href="Transaction.html">Transaction</a></li><li><a href="User.html">User</a></li></ul><h3>Global</h3><ul><li><a href="global.html#TranslationContext">TranslationContext</a></li><li><a href="global.html#buildTraySummaries">buildTraySummaries</a></li><li><a href="global.html#chatWithAI">chatWithAI</a></li><li><a href="global.html#clearOrder">clearOrder</a></li><li><a href="global.html#decodeHTMLEntities">decodeHTMLEntities</a></li><li><a href="global.html#loadOrder">loadOrder</a></li><li><a href="global.html#printHistory">printHistory</a></li><li><a href="global.html#saveOrder">saveOrder</a></li><li><a href="global.html#translateMultiple">translateMultiple</a></li><li><a href="global.html#translateText">translateText</a></li><li><a href="global.html#useTranslate">useTranslate</a></li><li><a href="global.html#useTranslatedArray">useTranslatedArray</a></li><li><a href="global.html#useTranslatedObject">useTranslatedObject</a></li><li><a href="global.html#useTranslatedText">useTranslatedText</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Tue Dec 09 2025 19:51:30 GMT-0600 (Central Standard Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>
