@@ -160,14 +160,14 @@ export default function Menu() {
     <div className="mainBackground">
       <div className="menu-page-container">
         {HeaderOn && (
-          <div className="header-container">
+          <header className="header-container">
 
             <div className="center-logo">
               <img src={pandaLogo} alt="Panda Logo" className="logo" />
             </div>
-          </div>
+          </header>
         )}
-        <div className="menu-page-container">
+        <main className="menu-page-container">
           {showSignOutModal && <SignOutButton />}
           <div className="menu-content">
 
@@ -288,7 +288,7 @@ export default function Menu() {
           </div>
             <br></br>
         {HeaderOn && (<button className = "sign-out-button" onClick={() => setShowSignOutModal(true)}>Sign Out</button>)}
-        </div>
+        </main>
       </div>
     </div>
   );
