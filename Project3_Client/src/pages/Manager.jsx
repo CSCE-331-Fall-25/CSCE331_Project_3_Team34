@@ -28,7 +28,6 @@ ChartJS.register(
 
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import SignOutButton from "../Components/SignOut.jsx";
 
 export default function Manager() {
 
@@ -1595,7 +1594,6 @@ export default function Manager() {
       <div className = "manager-subheader"><h1>Welcome, {employeeName === null ? "missing" : employeeName}!</h1></div>
 
       <div className = "manager-buttons-container">
-        <BackToHubButton className="button manager-button" />
         <button className = "button manager-button" onClick={() => {setShowReportModal(true); generateXReport(); setLabel("");}}>View Reports</button>
         <button className = "button manager-button" onClick={()=> {
             setShowInventoryModal(true);
@@ -1624,7 +1622,8 @@ export default function Manager() {
         >
           Manage Menu
         </button>
-        <button className = "button manager-button" onClick={() => setShowSignOutModal(true)}>Sign Out</button>
+        <BackToHubButton className="button manager-button" />
+
       </div>
       <div className="line-chart">
         <Line data={salesData} options={options} aria-label="Sales Data Chart" role="img"/>
