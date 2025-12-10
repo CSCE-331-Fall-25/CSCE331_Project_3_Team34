@@ -399,6 +399,8 @@ export default function Kitchen() {
   // Each column shows tickets that can be clicked to advance to next stage
   return (
     <div className="kitchen-screen">
+      <h1 className="sr-only">Kitchen Display System</h1>
+      <main>
       {/* Language selector */}
       <div className="kitchen-language-picker" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
         <span className="meta-label">{translatedTexts['Language'] || 'Language'}:</span>
@@ -406,6 +408,7 @@ export default function Kitchen() {
           className="language-select"
           value={selectedLanguage}
           onChange={e => setSelectedLanguage && setSelectedLanguage(e.target.value)}
+          aria-label={translatedTexts['Language'] || 'Language'}
         >
           {Object.entries(supportedLanguages).map(([code, label]) => (
             <option key={code} value={code}>{label}</option>
@@ -515,7 +518,7 @@ export default function Kitchen() {
                                 {displayName}
                                 {/* If item has a tray property, show translated tray */}
                                 {translatedTray && (
-                                  <span className="kitchen-ticket-tray" style={{ marginLeft: 8, color: '#888', fontSize: '0.95em' }}>
+                                  <span className="kitchen-ticket-tray" style={{ marginLeft: 8, color: '#595959', fontSize: '0.95em' }}>
                                     {' '}
                                     {translatedTexts['Tray:'] || 'Tray:'}{' '}
                                     {translatedTray}
@@ -558,6 +561,7 @@ export default function Kitchen() {
           </section>
         ))}
       </div>
+      </main>
     </div>
   );
 }

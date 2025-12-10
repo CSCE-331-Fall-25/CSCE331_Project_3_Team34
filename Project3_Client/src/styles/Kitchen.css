@@ -39,12 +39,12 @@
 
 .kitchen-subtitle {
   margin: 4px 0 0 0;
-  color: #666;
+  color: #4a4a4a;
 }
 
 .kitchen-status {
   font-size: 0.9rem;
-  color: #666;
+  color: #4a4a4a;
 }
 
 .kitchen-error {
@@ -85,7 +85,7 @@
 
 .kitchen-count {
   font-size: 0.9rem;
-  color: #666;
+  color: #4a4a4a;
 }
 
 .kitchen-column-body {
@@ -128,18 +128,18 @@
 
 .kitchen-ticket-time {
   font-size: 0.85rem;
-  color: #777;
+  color: #595959;
 }
 
 .kitchen-ticket-name {
   font-size: 0.95rem;
-  color: #444;
+  color: #333;
 }
 
 .kitchen-ticket-items {
   margin: 0;
   padding-left: 18px;
-  color: #555;
+  color: #333;
 }
 
 .kitchen-ticket-items li {
