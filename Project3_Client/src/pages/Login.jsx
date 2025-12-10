@@ -249,6 +249,11 @@ export default function Login() {
             src={pandaLogo}
             alt="Panda Express Logo"
           />
+          {message && (
+            <div className="login-message-box">
+              {message}
+            </div>
+          )}
           <form onSubmit={handleLogin} className="login-form">
             <input
               type="text"
@@ -266,11 +271,7 @@ export default function Login() {
             />
             <button type="submit">Login</button>
           </form>
-          {message && (
-            <div className="login-message-box">
-              {message}
-            </div>
-          )}
+          
           {!customer && 
           <GoogleLoginButton returnTo={returnTo} functionality={functionality} />
           }

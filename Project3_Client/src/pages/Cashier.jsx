@@ -10,6 +10,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 
 //components
 import SignOutButton from "../Components/SignOut.jsx";
+import BackToHubButton from "../Components/BackToHubButton.jsx";
 import DiscountModal from "../Components/DiscountModal.jsx";
 import CashierCostTable from "../Components/CashierCostTable.jsx";
 import ClearTransactionButton from "../Components/ClearTransactionButton.jsx";
@@ -450,6 +451,7 @@ export default function Cashier() {
                 {btn.text}
               </button>
             ))}
+            <BackToHubButton className="function-button" />
           </div>
         </section>
 

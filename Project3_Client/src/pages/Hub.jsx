@@ -6,6 +6,8 @@ import bobRoss from "../assets/bob-ross.png";
 
 
 export default function Hub() {
+  const [isManager, setIsManager] = useState(false);
+  const [showSignOutModal, setShowSignOutModal] = useState(false);
   const [pendingLink, setPendingLink] = useState(false);
 
   const goFullscreen = () => {
@@ -63,6 +65,33 @@ export default function Hub() {
         alert('Error fetching authenticated user.');
       });
     }
+    //check if the user is a manager
+    fetch('/api/get-user', {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include'
+    })
+    .then(response => {
+      if (!response.ok) {
+        // not authenticated or other HTTP error
+        if (response.status === 401) {
+          // handle unauthenticated: show login, or clear state
+          setIsManager(false);
+          return Promise.reject(new Error('Not authenticated'));
+        }
+        return Promise.reject(new Error('Server error: ' + response.status));
+      }
+      return response.json();
+    })
+    .then(data => {
+      // prefer top-level isManager if provided, fall back to user.isManager
+      const managerFlag = data.isManager ?? data.user?.isManager ?? false;
+      setIsManager(Boolean(managerFlag));
+    })
+    .catch(error => {
+      console.error('Error checking if user is a manager:', error);
+      //alert('Error checking if user is a manager.');
+    });
   }, []);
 
   const handleLinkGoogleId = () => {
@@ -134,16 +163,21 @@ export default function Hub() {
 
   return (
     <main className="hub-wrapper">
+      {showSignOutModal && (
+              <SignOutButton onClose={() => setShowSignOutModal(false)} />
+            )}
       <h1 className="sr-only">Home Hub</h1>
       <img src={bobRoss} alt="Bob Ross Panda" className="hub-hero-image" />
       <div className="home-grid">
         <Link to="/weather"><button onClick={goFullscreen}>Kiosk</button></Link>
         <Link to="/cashier"><button>Cashier</button></Link>
-        <Link to="/manager"><button>Manager</button></Link>
+        {isManager && <Link to="/manager"><button>Manager</button></Link>}
+        
         <Link to="/menu"><button>Menu</button></Link>
         <Link to="/kitchen"><button>Kitchen</button></Link>
-        <button className="google-btn" onClick={handleLinkGoogleId}>Link Google ID</button>
-        <button className="google-btn" onClick={handleUnlinkGoogleId}>Unlink Google ID</button>
+        <button  onClick={handleLinkGoogleId}>Link Google ID</button>
+        <button  onClick={handleUnlinkGoogleId}>Unlink Google ID</button>
+        <button onClick={() => setShowSignOutModal(true)}>Sign Out</button>
       </div>
     </main>
   );

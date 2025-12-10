@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, useContext } from 'react';
 import { TranslationContext } from '../contexts/TranslationContext';
 import { useTranslatedObject, useTranslatedText } from '../hooks/useTranslatedText';
+import BackToHubButton from '../Components/BackToHubButton';
 import '../styles/Kitchen.css';
 
 // Utility function to decode HTML entities
@@ -413,6 +414,7 @@ export default function Kitchen() {
             <option key={code} value={code}>{label}</option>
           ))}
         </select>
+        <BackToHubButton style={{ marginLeft: 'auto' }} />
       </div>
       {error && <div className="kitchen-error">{error}</div>}
       {/* Three columns: Waiting, Started, Complete */}

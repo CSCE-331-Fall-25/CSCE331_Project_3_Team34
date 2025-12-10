@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import "../styles/Manager/Manager.css";
 import { flexRender, getCoreRowModel, getPaginationRowModel, useReactTable } from '@tanstack/react-table'
 import { Line } from "react-chartjs-2";
+import BackToHubButton from '../Components/BackToHubButton.jsx';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -34,7 +35,7 @@ export default function Manager() {
   //Reports
   const [showReportModal, setShowReportModal] = useState(false);
   const [employeeName, setEmployeeName] = useState("Missing");
-  const [isManager, setIsManager] = useState(false);
+  // const [isManager, setIsManager] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   
   // Managment modals
@@ -46,10 +47,10 @@ export default function Manager() {
   const navigate = useNavigate();
 
   // Navigate back to the top-level login page (App shows login UI when pathname === '/')
-  const handleSignOut = () => navigate('/');
+  // const handleSignOut = () => navigate('/');
 
-  //modal to confirm sign out
-  const [showSignOutModal, setShowSignOutModal] = useState(false);
+  // //modal to confirm sign out
+  // const [showSignOutModal, setShowSignOutModal] = useState(false);
 
   const [salesData, setSalesData] = useState({
     labels: [
@@ -98,20 +99,20 @@ export default function Manager() {
     }
     else {
       const newData = await response.json();
-      console.log(newData);
-      // Check if user is a manager
-      const managerStatus = newData && newData.isManager ? true : false;
-      if (!managerStatus) {
-        // User is not a manager, redirect to home
-        console.log("User is not a manager, redirecting to home");
-        navigate('/');
-        setIsLoading(false);
-        return;
-      }
+      // console.log(newData);
+      // // Check if user is a manager
+      // const managerStatus = newData && newData.isManager ? true : false;
+      // if (!managerStatus) {
+      //   // User is not a manager, redirect to home
+      //   console.log("User is not a manager, redirecting to home");
+      //   navigate('/');
+      //   setIsLoading(false);
+      //   return;
+      // }
       // `newData.user` is an object { username, isEmployee } — store the username string
       const username = newData && newData.user && newData.user.username ? newData.user.username : null;
       setEmployeeName(username);
-      setIsManager(managerStatus);
+      // setIsManager(managerStatus);
       setIsLoading(false);
     }
   }
@@ -476,7 +477,7 @@ export default function Manager() {
       { accessorKey: "name", header: "Name", cell: info => info.getValue() },
       { accessorKey: "role", header: "Role", cell: info => info.getValue() },
       { accessorKey: "wage", header: "Wage", cell: info => info.getValue() },
-      { accessorKey: "ismanager", header: "Manager?", cell: info => info.getValue() },
+      // { accessorKey: "ismanager", header: "Manager?", cell: info => info.getValue() },
       { accessorKey: "email", header: "Email", cell: info => info.getValue() },
       { accessorKey: "username", header: "Username", cell: info => info.getValue() },
       { accessorKey: "password", header: "Password", cell: info => info.getValue() }]);
@@ -1286,13 +1287,6 @@ export default function Manager() {
           Loading...
         </div>
       )}
-      {!isLoading && !isManager && (
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontSize: '18px', color: 'red' }}>
-          Access Denied: Manager role required
-        </div>
-      )}
-      {!isLoading && isManager && (
-      <>
       {showReportModal &&(
           <div className="modal-overlay">
             <div className="modal-content">
@@ -1593,13 +1587,15 @@ export default function Manager() {
           </div>
         )
       }
-      {showSignOutModal && (
+      {/* {showSignOutModal && (
         <SignOutButton onClose={() => setShowSignOutModal(false)} />
-      )}
+      )} */}
+      
       <main>
       <div className = "manager-subheader"><h1>Welcome, {employeeName === null ? "missing" : employeeName}!</h1></div>
 
       <div className = "manager-buttons-container">
+        <BackToHubButton className="button manager-button" />
         <button className = "button manager-button" onClick={() => {setShowReportModal(true); generateXReport(); setLabel("");}}>View Reports</button>
         <button className = "button manager-button" onClick={()=> {
             setShowInventoryModal(true);
@@ -1634,8 +1630,8 @@ export default function Manager() {
         <Line data={salesData} options={options} aria-label="Sales Data Chart" role="img"/>
       </div>
       </main>
-      </>
-      )}
+      
+      
     </div>
   );
 }
