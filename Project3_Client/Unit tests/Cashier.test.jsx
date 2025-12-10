@@ -34,12 +34,9 @@ describe('Cashier view', () => {
     expect(true).toBeTruthy();
   });
 
-  test('customize order warns when no selection', () => {
-    const alertSpy = jest.spyOn(window, 'alert').mockImplementation(() => {});
+  test('customize button is disabled when no selection', () => {
     const { getByText } = render(<MemoryRouter><Cashier /></MemoryRouter>);
     const btn = getByText(/CUSTOMIZE/i);
-    btn.click();
-    expect(alertSpy).toHaveBeenCalledWith('Please select an item to customize');
-    alertSpy.mockRestore();
+    expect(btn).toBeDisabled();
   });
 });

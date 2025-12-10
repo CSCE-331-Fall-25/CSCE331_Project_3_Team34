@@ -1,72 +1,128 @@
 /* Hub layout */
 .hub-wrapper {
 	display: flex;
-	flex-direction: column;
-	align-items: center;
-	justify-content: center;
 	min-height: 100vh;
-	padding: 2rem 1rem 3rem;
+	padding: 2rem;
 	box-sizing: border-box;
+	background: linear-gradient(135deg, #f43c3c, #741010, #250000);
 }
 
-.hub-hero-image {
-	width: min(320px, 70vw);
-	height: auto;
-	margin-bottom: 1.5rem;
-	object-fit: contain;
+.hub-content {
+	display: flex;
+	flex: 1;
+	max-width: 1200px;
+	margin: 0 auto;
+	background: #fff;
+	border-radius: 20px;
+	box-shadow: 0 20px 60px rgba(0,0,0,0.12);
 }
 
-/* Styles for the App button grid */
-.home-grid {
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-	gap: 1rem;
-	max-width: 900px;
-	margin: 1.25rem auto;
-	padding: 0.5rem;
-	align-items: stretch;
-    
+.hub-left {
+	flex: 0 0 360px;
+	padding: 2rem;
+	display: flex;
+	flex-direction: column;
+	justify-content: flex-start;
+	gap: 1.5rem;
+	background: linear-gradient(135deg, #fcfbf7 0%, #f1f4fb 100%);
+	border: 2px solid #000;
+	border-right: 0;
+	border-radius: 18px 0 0 18px;
+	box-shadow: 12px 0 24px rgba(0,0,0,0.1);
 }
 
-.home-grid a {
-	text-decoration: none;
-	display: block;
+.hub-header {
+	margin-bottom: 1.75rem;
+	padding-bottom: 1.25rem;
+	border-bottom: 1px solid rgba(0,0,0,0.15);
 }
 
-.home-grid button,
-.home-grid .google-btn {
-	width: 100%;
-	padding: 0.9rem 1rem;
-	font-size: 1rem;
-	font-weight: 600;
-	border-radius: 10px;
-	border: 1px solid rgba(0,0,0,0.15);
-	background: linear-gradient(180deg, #1f1f1f, #151515);
+.hub-header-label {
+	display: inline-block;
+	padding: 0.2rem 0.75rem;
+	font-size: 0.8rem;
+	font-weight: 700;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	background: #111;
 	color: #fff;
+	border-radius: 999px;
+}
+
+.hub-header h2 {
+	margin: 0.75rem 0 0.2rem;
+	font-size: 1.9rem;
+	color: #0b0b0b;
+}
+
+.hub-header-date {
+	margin: 0;
+	font-size: 0.95rem;
+	color: #4c4c4c;
+}
+
+.hub-button-column {
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+}
+
+.hub-button-column a {
+	text-decoration: none;
+}
+
+
+.hub-button-column button {
+	width: 100%;
+	padding: 1rem 1.25rem;
+	font-size: 1.05rem;
+	font-weight: 600;
+	border-radius: 12px;
+	border: 1px solid #000;
+	background: linear-gradient(180deg, #ffffff, #f7f7f7);
+	color: #101010;
 	cursor: pointer;
 	transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
 }
 
-.home-grid .google-btn {
-	grid-column: 1 / -1;
-	max-width: 280px;
-	justify-self: center;
+.hub-button-column button:hover {
+	transform: translateX(4px);
+	box-shadow: 0 10px 20px rgba(0,0,0,0.18);
+	border-color: #d71920;
+}
+
+.hub-right {
+	flex: 1;
+	position: relative;
+	background: #111;
+	border: 2px solid #000;
+	border-left: 0;
+	border-radius: 0 18px 18px 0;
+	overflow: hidden;
+}
+
+.hub-hero-image {
+	position: absolute;
+	inset: 0;
 	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	object-position: center;
 }
 
-.home-grid button:hover {
-	transform: translateY(-3px);
-	box-shadow: 0 10px 24px rgba(0,0,0,0.25);
-	border-color: #646cff;
-}
+@media (max-width: 900px) {
+	.hub-content {
+		flex-direction: column;
+	}
 
+	.hub-left {
+		flex: none;
+	}
 
-
-@media (prefers-color-scheme: light) {
-	.home-grid button {
-		background: linear-gradient(180deg, #ffffff, #f3f3f3);
-		color: #213547;
-		border: 1px solid rgba(0,0,0,0.06);
+	.hub-hero-image {
+		position: static;
+		height: 320px;
+		border-radius: 0 0 20px 20px;
 	}
 }
 

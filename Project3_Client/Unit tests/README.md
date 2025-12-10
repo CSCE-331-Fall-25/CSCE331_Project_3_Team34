@@ -61,10 +61,13 @@ Below is a detailed description of what each test file is doing, which code path
   - Focus: The Login page user flows (form rendering, client-side validation, server authentication flow, and the Google OAuth callback handling).
   - Key behaviors tested:
     - Rendering of the login form and the two input fields and submit button.
-    - Client-side validation: submitting with empty username or password shows a specific alert message.
-    - Failure and success branches when POSTing to `/api/authenticate-login` (mocked via `global.fetch`): tests assert that the correct alert or navigation happens.
+    - Client-side validation: submitting with empty username or password displays an error message ("Please enter both Username and Password.") directly in the UI.
+    - Failure and success branches when POSTing to `/api/authenticate-login` (mocked via `global.fetch`): tests assert that the correct error message ("Invalid Login") is displayed or navigation occurs.
     - Presence of the Google login button (the actual `googleLoginButton` component is mocked to a simple element during tests to avoid import.meta or external SDKs).
   - Why: Login logic interacts with both browser APIs (sessionStorage, window.history) and network APIs; unit tests keep those interactions deterministic via mocks so they exercise only the Login component logic.
+  - Notes:
+    - The test mocks `react-router-dom`'s `useNavigate` to verify redirection without actual browser navigation.
+    - `window.alert` is no longer used for error reporting in this component; tests check for DOM elements with error text.
 
 - `Unit tests/Kiosk.test.jsx`
   - Focus: Kiosk flow and behavior after Google OAuth callback parameters in the URL.
@@ -73,6 +76,9 @@ Below is a detailed description of what each test file is doing, which code path
     - Safe handling of sessionStorage (saved orders) during mount.
     - Basic fetch calls are triggered on mount when mocked; tests assert there are no unhandled rejections.
   - Why: The Kiosk page integrates with an OAuth redirect flow and session state; the tests are intentionally small and focused on the callback and side-effects rather than rendering the entire kiosk UI.
+  - Notes:
+    - This test suite heavily mocks `window.location` and `sessionStorage` to simulate the OAuth redirect flow.
+    - It verifies that the `handleGoogleLogin` logic is triggered correctly based on URL parameters.
 
 - `Unit tests/Cashier.test.jsx`
   - Focus: Basic cashier page flows (loading current state, transaction UI, customizing items, and manager overrides).
@@ -80,17 +86,23 @@ Below is a detailed description of what each test file is doing, which code path
     - Render sanity for cashier header and language selector.
     - Manager override flow via URL query `?success=2` (ensures override flags and alerts don't crash).
     - UpdatePage and current-state loading: when `/api/current-state` returns empty results, the page should not crash.
-    - Smoke tests for purchase and customize flows to make sure the core handlers are wired.
+    - Customize flow: verifies that the "CUSTOMIZE" button is disabled when no item is selected, preventing invalid actions.
   - Why: Cashier has a lot of interactive logic and relies on server state; tests focus on the main entry points and validation behavior.
+  - Notes:
+    - The test mocks `fetch` to simulate server responses for orders and menu items.
+    - `act(...)` warnings may appear in the console due to complex state updates in the `Cashier` component, but tests pass reliably.
 
 - `Unit tests/Manager.test.jsx`
   - Focus: Manager dashboard smoke checks (rendering the main container, availability of manager actions and chart/report code paths).
   - Key behaviors tested:
     - The manager container renders (we check for a top-level container element rather than asserting exact header text to be tolerant of small UI changes).
-    - Buttons and controls used by managers (sign out, manage inventory, etc.) are present.
+    - Buttons and controls: checks for the presence of "Back to Hub" (replacing the old "Sign Out"), "Manage Inventory", etc.
     - Chart rendering is not exercised against a real canvas — it is mocked globally in test setup to avoid jsdom canvas errors.
     - Safe handling when `/api/get-user` returns empty or errors — the page should not crash.
   - Why: The Manager page includes Chart.js and a number of server-driven report loads; tests ensure the page boots up and reacts to basic success/failure of API calls.
+  - Notes:
+    - Chart.js is mocked globally to avoid canvas errors in the jsdom environment.
+    - The test uses regex matching (e.g., `/Back to Hub/i`) to be resilient to minor text casing changes.
 
 - `Unit tests/Kitchen.test.jsx`
   - Focus: Kitchen ticket loading and basic ticket UI.
@@ -99,6 +111,9 @@ Below is a detailed description of what each test file is doing, which code path
     - The ticket-loading code path correctly updates component state when fetch returns data (the tests are primarily smoke tests for mount + fetch flows).
     - Proper behaviour if translation context is not present.
   - Why: Kitchen UI depends on repeated async fetches; tests validate basic resilience of the component.
+  - Notes:
+    - Tests focus on the `useEffect` data fetching cycle.
+    - `act(...)` warnings are common here due to the component's polling/interval logic, but the tests successfully verify the initial load and error states.
 
 - `Unit tests/Menu.test.jsx`
   - Focus: Menu page flows (loading menus by type, paginating items, and rendering special menus like drinks/extra menus).
@@ -108,6 +123,9 @@ Below is a detailed description of what each test file is doing, which code path
     - Pagination logic is exercised by returning more items than the page size and asserting the initial slice rendered matches the page size.
     - The component is resilient to fetch failures (test mocks a rejected fetch and asserts the component still mounts without unhandled exceptions).
   - Why: Menu has complex client-side logic (grouping by type, handling extras and paginating lists); the tests focus on the groups and pagination behavior rather than full end-to-end rendering.
+  - Notes:
+    - Mocks `fetch` to return different categories of items (Entree, Side, Drink) to test the filtering logic.
+    - Verifies pagination by checking the number of items rendered against the page size.
 
 ### Common failures and how to debug them
 - "Cannot use import.meta outside a module": this usually happens when source files use Vite-specific `import.meta` constructs. Solution: tests mock or guard those imports (we added small mocks for `import.meta`-dependent components in the test files). Example: `googleLoginButton.jsx` is mocked to a simple div.
