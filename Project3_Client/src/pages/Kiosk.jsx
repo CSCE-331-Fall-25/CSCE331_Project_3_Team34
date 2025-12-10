@@ -1228,12 +1228,13 @@ export default function Kiosk() {
             >
               <div className='aitext'>AI</div>
           </button>
-          <button
-            className="circle-btn"
-            onClick={() => customerLoggedIn ? (setCustomerLoggedIn(false), setCustomerName('')) : navigate('/login?returnTo=/kiosk&functionality=3')}>
-            {/* {customerLoggedIn ? 'Sign Out' : 'Customer Sign In'} */}
-            Login
-          </button>
+          {!customerLoggedIn && (
+            <button
+              className="circle-btn"
+              onClick={() => navigate('/login?returnTo=/kiosk&functionality=3')}>
+              Login
+            </button>
+          )}
           {/* <button
             className="kiosk-signin-btn"
             onClick={() => navigate('/login?returnTo=/hub&functionality=2')}>
