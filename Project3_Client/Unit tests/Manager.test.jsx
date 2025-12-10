@@ -14,9 +14,9 @@ describe('Manager view', () => {
     expect(container.querySelector('.manager-page-container')).not.toBeNull();
   });
 
-  test('has sign out button present', () => {
+  test('has back to hub button present', () => {
     render(<MemoryRouter><Manager /></MemoryRouter>);
-    expect(screen.queryByText(/Sign Out/i)).not.toBeNull();
+    expect(screen.queryByText(/Back to Hub/i)).not.toBeNull();
   });
 
   test('language select present and defaultable', () => {

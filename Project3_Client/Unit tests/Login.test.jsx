@@ -26,17 +26,15 @@ describe('Login view', () => {
 
   test('renders username and password inputs and login button', () => {
     render(<Login />);
-    expect(screen.getByPlaceholderText('Employee Username')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Username')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Password')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^Login$/i })).toBeInTheDocument();
   });
 
-  test('alerts when submitting empty credentials', async () => {
-    const alertSpy = jest.spyOn(window, 'alert').mockImplementation(() => {});
+  test('shows error message when submitting empty credentials', () => {
     render(<Login />);
     fireEvent.click(screen.getByRole('button', { name: /^Login$/i }));
-    expect(alertSpy).toHaveBeenCalledWith('Please enter both Username and Password.');
-    alertSpy.mockRestore();
+    expect(screen.getByText('Please enter both Username and Password.')).toBeInTheDocument();
   });
 
   test('shows invalid login alert on server failure', async () => {
@@ -47,13 +45,11 @@ describe('Login view', () => {
       }
       return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
     });
-    const alertSpy = jest.spyOn(window, 'alert').mockImplementation(() => {});
     render(<Login />);
-    fireEvent.change(screen.getByPlaceholderText('Employee Username'), { target: { value: 'user1' } });
+    fireEvent.change(screen.getByPlaceholderText('Username'), { target: { value: 'user1' } });
     fireEvent.change(screen.getByPlaceholderText('Password'), { target: { value: 'pass1' } });
     fireEvent.click(screen.getByRole('button', { name: /^Login$/i }));
-    await waitFor(() => expect(alertSpy).toHaveBeenCalled());
-    alertSpy.mockRestore();
+    await waitFor(() => expect(screen.getByText(/Invalid Login/i)).toBeInTheDocument());
   });
 
   test('has google login button when not customer', () => {
@@ -70,7 +66,7 @@ describe('Login view', () => {
     });
 
     render(<Login />);
-    fireEvent.change(screen.getByPlaceholderText('Employee Username'), { target: { value: 'user1' } });
+    fireEvent.change(screen.getByPlaceholderText('Username'), { target: { value: 'user1' } });
     fireEvent.change(screen.getByPlaceholderText('Password'), { target: { value: 'pass1' } });
     fireEvent.click(screen.getByRole('button', { name: /^Login$/i }));
     await waitFor(() => expect(mockNavigate).toHaveBeenCalled());
