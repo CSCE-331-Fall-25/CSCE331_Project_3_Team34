@@ -16,11 +16,15 @@ export default function Kiosk() {
 
   // --- Accessibility feature --- //
   const [showAccessibility, setShowAccessibility] = useState(false);
-  const [baseFontSize, setBaseFontSize] = useState(16);
+  const [fontScale, setFontScale] = useState(1);
 
-  const increaseFont = () => setBaseFontSize(prev => Math.min(prev + 2, 30));
-  const decreaseFont = () => setBaseFontSize(prev => Math.max(prev - 2, 10));
-
+  const increaseFont = () => setFontScale(prev => Math.min(prev + 0.1, 2));   // max 200%
+  const decreaseFont = () => setFontScale(prev => Math.max(prev - 0.1, 0.6)); // min 60%
+  
+  useEffect(() => {
+    document.documentElement.style.fontSize = `${fontScale}rem`;
+  }, [fontScale]);
+  
   // --- Translation system --- //
   const translationKeys = useMemo(() => ({
     'Select': 'Select',
@@ -1051,7 +1055,7 @@ export default function Kiosk() {
   
 
   return (
-    <div style={{ fontSize: `${baseFontSize}px` }}>
+    <div>
       <main>
         <h1 className="sr-only">Panda Express Kiosk</h1>
         {loading && (
@@ -1075,7 +1079,7 @@ export default function Kiosk() {
                     className={`kiosk-type-btn ${selectedItemId === currItemId ? 'active' : ''}`}
                     onClick={() => handleItemSelection(item)}
                   >
-                    <div className="kiosk-type-name">{getTranslatedItemName(item.name) || currItemId}</div>
+                    <div className="kiosk-type-name">{getTranslatedItemName(item.name)}</div>
                     <div className="kiosk-item-price">${basePrice.toFixed(2)}</div>
                   </button>
                 );
@@ -1249,10 +1253,34 @@ export default function Kiosk() {
               })}
             </div>
             <div className="kiosk-order-summary">
-              <div>{translatedTexts['Total']}: ${total.toFixed(2)}</div>
-              <div className="kiosk-order-controls">
-                <button onClick={clearOrderAndUI} className="kiosk-clear-btn">{translatedTexts['Clear']}</button>
-                <button onClick={() => {handlePurchase();}} className="kiosk-checkout-btn" disabled={loading}>{translatedTexts['Checkout']}</button>
+              <div className="bottom-right-buttons">
+                <div className='bottom-row-top'>
+                  <div>{translatedTexts['Total']}: ${total.toFixed(2)}</div>
+                  <div className="kiosk-order-controls">
+                    <button onClick={clearOrderAndUI} className="kiosk-clear-btn">{translatedTexts['Clear']}</button>
+                    <button onClick={() => {handlePurchase();}} className="kiosk-checkout-btn" disabled={loading}>{translatedTexts['Checkout']}</button>
+                  </div>
+                </div>
+                <div className='bottom-row-bottom'>
+                  {!customerLoggedIn && (
+                    <button
+                      className="accessibility-btn"
+                      onClick={() => navigate('/login?returnTo=/kiosk&functionality=3')}>
+                      Login
+                    </button>
+                  )}
+                  <button
+                    className="accessibility-btn back-btn"
+                    onClick={() => navigate('/weather')}>
+                      <img src={getImageForItem('exitIcon')} alt="Back" className='icon-img'/>
+                  </button>
+                  <button
+                    className="accessibility-btn"
+                    onClick={() => setShowAccessibility(true)}
+                  >
+                    <img src={getImageForItem('accessibilityIcon')} alt="Back" className='icon-img'/>
+                  </button>
+                </div>
               </div>
             </div>
           </aside>
@@ -1262,41 +1290,19 @@ export default function Kiosk() {
             >
               <div className='aitext'>AI</div>
           </button>
-          {!customerLoggedIn && (
-            <button
-              className="circle-btn"
-              onClick={() => navigate('/login?returnTo=/kiosk&functionality=3')}>
-              Login
-            </button>
-          )}
-          {/* <button
-            className="kiosk-signin-btn"
-            onClick={() => navigate('/login?returnTo=/hub&functionality=2')}>
-            Employee Sign In
-          </button> */}
-          <button
-            className="circle-btn back-btn"
-            onClick={() => navigate('/weather')}>
-              <img src={getImageForItem('exitIcon')} alt="Back" className='icon-img'/>
-          </button>
-          <button
-            className="accessibility-btn"
-            onClick={() => setShowAccessibility(true)}
-          >
-            <img src={getImageForItem('accessibilityIcon')} alt="Back" className='icon-img'/>
-          </button>
+          
           {showChat && <ChatModal onClose={() => setShowChat(false)} onAddOrder={handleAIOrder} />}
           {showAccessibility && (
             <div className="accessibility-modal-overlay">
               <div className="accessibility-modal">
                 <h2>Accessibility Options</h2>
-                <p style={{ fontSize: `${baseFontSize}px` }}>
+                <p style={{ fontSize: `${fontScale}rem` }}>
                   Sample text: “Welcome to Panda Express!”
                 </p>
 
                 <div className="acc-controls">
                   <button onClick={decreaseFont}>−</button>
-                  <span>{baseFontSize}px</span>
+                  <span>{(fontScale * 16).toFixed(0)}px</span>
                   <button onClick={increaseFont}>+</button>
                 </div>
 
