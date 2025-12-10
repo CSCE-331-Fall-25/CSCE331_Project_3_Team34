@@ -1567,6 +1567,7 @@ export default function Manager() {
       {showSignOutModal && (
         <SignOutButton onClose={() => setShowSignOutModal(false)} />
       )}
+      <main>
       <div className = "manager-subheader"><h1>Welcome, {employeeName === null ? "missing" : employeeName}!</h1></div>
 
       <div className = "manager-buttons-container">
@@ -1601,8 +1602,9 @@ export default function Manager() {
         <button className = "button manager-button" onClick={() => setShowSignOutModal(true)}>Sign Out</button>
       </div>
       <div className="line-chart">
-        <Line data={salesData} options={options}/>
+        <Line data={salesData} options={options} aria-label="Sales Data Chart" role="img"/>
       </div>
+      </main>
     </div>
   );
 }
