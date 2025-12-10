@@ -252,8 +252,8 @@ export default function Login() {
           <form onSubmit={handleLogin} className="login-form">
             <input
               type="text"
-              placeholder="Employee Username"
-              aria-label="Employee Username"
+              placeholder="Username"
+              aria-label="Username"
               value={employeeId ?? ''}
               onChange={handleIdChange}
             />
