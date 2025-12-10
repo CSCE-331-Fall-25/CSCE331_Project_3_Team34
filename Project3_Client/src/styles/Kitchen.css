@@ -15,6 +15,11 @@
   background: #fff !important;
   font-weight: 600;
 }
+
+.kitchen-screen .meta-label {
+  color: #333;
+}
+
 .kitchen-screen {
   height: 100vh;
   display: flex;
