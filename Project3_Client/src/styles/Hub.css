@@ -4,7 +4,7 @@
 	min-height: 100vh;
 	padding: 2rem;
 	box-sizing: border-box;
-	background: radial-gradient(circle at top left, #ff8a8a, #c70000 60%, #7a0000);
+	background: linear-gradient(135deg, #f43c3c, #741010, #250000);
 }
 
 .hub-content {
