@@ -1018,8 +1018,8 @@ export default function Kiosk() {
 
   return (
     <div style={{ fontSize: `${baseFontSize}px` }}>
-      <h1 className="sr-only">Panda Express Kiosk</h1>
       <main>
+        <h1 className="sr-only">Panda Express Kiosk</h1>
         {loading && (
           <div className="loading-overlay" aria-hidden>
             <div className="loading-inner">{translatedTexts['Loading']}…</div>
@@ -1167,10 +1167,10 @@ export default function Kiosk() {
           <aside className="kiosk-right" aria-label="Order summary">
             {customerLoggedIn && customerName && (
               <div className="kiosk-customer-info">
-                <h3>{translatedTexts['Welcome']}, {customerName}!</h3>
+                <h2>{translatedTexts['Welcome']}, {customerName}!</h2>
               </div>
             )}
-            <h3 className="kiosk-title">{translatedTexts['Current Order']}</h3>
+            <h2 className="kiosk-title">{translatedTexts['Current Order']}</h2>
             <div className="kiosk-order-list">
               {orderItems.length === 0 && <div className="kiosk-empty">{translatedTexts['No items yet']}</div>}
               {orderItems.map((it, idx) => {
@@ -1281,7 +1281,7 @@ export default function Kiosk() {
               <img src={pandaLogo} alt="Panda Express" className="purchase-logo" />
 
               {/* Top image */}
-              <h4 className="purchase-screen-title">{translatedTexts['Select Payment Method']}</h4>
+              <h2 className="purchase-screen-title">{translatedTexts['Select Payment Method']}</h2>
               <div className="purchase-screen-price">{translatedTexts['Total']}: ${total.toFixed(2)}</div>
 
 
@@ -1312,7 +1312,7 @@ export default function Kiosk() {
               <img src={getImageForItem("orderComplete")} alt="orderComplete" className="finished-img" />
 
               {/* Top image */}
-              <h4 className="purchase-screen-title">{translatedTexts['Transaction']}: {transactionNumber} {translatedTexts['Complete']}!</h4>
+              <h2 className="purchase-screen-title">{translatedTexts['Transaction']}: {transactionNumber} {translatedTexts['Complete']}!</h2>
               <div className="purchase-screen-price">{translatedTexts['Total']}: ${total.toFixed(2)}</div>
 
               <br></br>
