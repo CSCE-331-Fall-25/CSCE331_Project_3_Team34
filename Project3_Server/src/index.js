@@ -1,6 +1,6 @@
+import "dotenv/config";
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
 import { pool, setPool } from "./db.js";
 import CashierMainPage from "./MainPage.js";
 import User, {Employee, Customer} from "./User.js";
@@ -27,7 +27,7 @@ import {chatWithAI} from "./GenAI.js";
 
 // Load .env file only if it exists (for local development)
 // In production (Render), environment variables are set directly
-dotenv.config();
+// dotenv.config(); // Loaded via import "dotenv/config" at the top
 
 const app = express();
 app.locals.dbPool = pool;

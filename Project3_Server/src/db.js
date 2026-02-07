@@ -8,7 +8,10 @@ const { Pool } = pkg;
 const connectionString = process.env.DATABASE_URL || "postgres://team_34:bobross@csce-315-db.engr.tamu.edu:5432/team_34_db";
 
 export const pool = new Pool({
-    connectionString: connectionString
+    connectionString: connectionString,
+    ssl: {
+        rejectUnauthorized: false
+    }
 });
 
 // Allow tests or runtime code to inject a mock pool
