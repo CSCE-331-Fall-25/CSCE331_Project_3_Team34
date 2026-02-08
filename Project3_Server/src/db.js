@@ -5,7 +5,7 @@ const { Pool } = pkg;
 // Connect to PostgreSQL
 // In production (Render), DATABASE_URL is provided as an environment variable
 // For local development, falls back to the default connection string
-const connectionString = process.env.DATABASE_URL || "postgres://team_34:bobross@csce-315-db.engr.tamu.edu:5432/team_34_db";
+const connectionString = process.env.DATABASE_URL;
 
 export const pool = new Pool({
     connectionString: connectionString,
